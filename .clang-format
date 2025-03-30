@@ -1,0 +1,4 @@
+BasedOnStyle: LLVM
+FixNamespaceComments: true
+NamespaceIndentation: All
+ColumnLimit: 150
