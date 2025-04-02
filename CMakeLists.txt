@@ -22,6 +22,11 @@ add_link_options(-march=native)
 add_compile_definitions(ROSE_VERSION="${ROSE_VERSION}")
 
 set(srcs
+  src/rose/byte_board.h
+  src/rose/common.h
+  src/rose/position.cpp
+  src/rose/position.h
+  src/rose/square.h
   src/rose/util/assert.cpp
   src/rose/util/assert.h
   src/rose/util/defer.h
@@ -35,3 +40,4 @@ add_executable(rose src/main.cpp ${srcs})
 target_compile_options(rose PUBLIC $<$<CONFIG:Release>:-DROSE_NO_ASSERTS>)
 
 add_library(rose-lib OBJECT ${srcs})
+do_test(position)

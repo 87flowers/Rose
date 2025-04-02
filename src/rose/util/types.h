@@ -4,6 +4,12 @@
 #include <cstddef>
 #include <cstdint>
 
+namespace rose::vec {
+  struct v128;
+  struct v256;
+  struct v512;
+}; // namespace rose::vec
+
 namespace rose {
   using u8 = std::uint8_t;
   using u16 = std::uint16_t;
@@ -23,6 +29,10 @@ namespace rose {
 
   using f32 = float;
   using f64 = double;
+
+  using v128 = vec::v128;
+  using v256 = vec::v256;
+  using v512 = vec::v512;
 
   namespace time {
     using Clock = std::chrono::steady_clock;
