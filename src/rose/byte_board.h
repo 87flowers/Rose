@@ -11,9 +11,9 @@
 namespace rose {
 
   union alignas(64) Byteboard {
-    std::array<v512, 2> z;
-    std::array<Place, 128> m;
-    std::array<u8, 128> r{};
+    v512 z;
+    std::array<Place, 64> m;
+    std::array<u8, 64> r{};
 
     constexpr Byteboard() = default;
 

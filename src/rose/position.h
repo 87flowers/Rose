@@ -78,21 +78,23 @@ template <> struct std::formatter<rose::Position, char> {
       }
     };
 
-    for (int i = 0; i < 64; i++) {
-      const int sq = (i + (i & 0b111000)) ^ 0x70;
-      const Place p = position.board.m[sq];
+    for (i8 rank = 7; rank >= 0; rank--) {
+      for (u8 file = 0; file < 8; file++) {
+        const Square sq = Square::fromFileAndRank(file, static_cast<u8>(rank));
+        const Place p = position.board.m[sq.raw];
 
-      if (p.isEmpty()) {
-        blanks++;
-      } else {
-        emit_blanks();
-        ctx.advance_to(std::format_to(ctx.out(), "{}", p));
-      }
+        if (p.isEmpty()) {
+          blanks++;
+        } else {
+          emit_blanks();
+          ctx.advance_to(std::format_to(ctx.out(), "{}", p));
+        }
 
-      if (i % 8 == 7) {
-        emit_blanks();
-        if (i < 63)
-          ctx.advance_to(std::format_to(ctx.out(), "/"));
+        if (file == 7) {
+          emit_blanks();
+          if (rank != 0)
+            ctx.advance_to(std::format_to(ctx.out(), "/"));
+        }
       }
     }
 

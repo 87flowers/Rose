@@ -9,7 +9,7 @@ using namespace rose;
 
 auto main(int argc, char **argv) -> int {
   Byteboard bb;
-  for (int i = 0; i < 128; i++)
+  for (int i = 0; i < 64; i++)
     bb.r[i] = i;
   bb.dumpRaw();
   std::print("\n");

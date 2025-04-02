@@ -14,14 +14,14 @@
 namespace rose {
 
   struct Square {
-    u8 raw = 0x88;
+    u8 raw = 0x80;
 
-    static constexpr auto invalid() -> Square { return {0x88}; }
+    static constexpr auto invalid() -> Square { return {0x80}; }
 
-    constexpr auto isValid() const -> bool { return (raw & 0x88) == 0; }
+    constexpr auto isValid() const -> bool { return (raw & 0x80) == 0; }
 
-    static constexpr auto fromFileAndRank(usize file, usize rank) -> Square { return Square{narrow_cast<u8>(rank * 0x10 + file)}; }
-    constexpr auto toFileAndRank() const -> std::tuple<usize, usize> { return {raw % 0x10, raw / 0x10}; }
+    static constexpr auto fromFileAndRank(usize file, usize rank) -> Square { return Square{narrow_cast<u8>(rank * 8 + file)}; }
+    constexpr auto toFileAndRank() const -> std::tuple<usize, usize> { return {raw % 8, raw / 8}; }
 
     auto allAttacks() const -> v512 {
       const v512 offsets = v512::fromArray({
