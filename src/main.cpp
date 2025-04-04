@@ -1,7 +1,7 @@
 #include <print>
 
-#include "rose/byte_board.h"
-#include "rose/position.h"
+#include "rose/byteboard.h"
+#include "rose/geometry.h"
 #include "rose/square.h"
 #include "rose/util/types.h"
 
@@ -9,14 +9,13 @@ using namespace rose;
 
 auto main(int argc, char **argv) -> int {
   Byteboard bb;
-  for (int i = 0; i < 64; i++)
-    bb.r[i] = i;
-  bb.dumpRaw();
-  std::print("\n");
+  const auto sq = Square::parse("e4").value();
+  const auto [z, valid] = geometry::superpieceRays(sq);
+  bb.z = z;
 
-  const auto position = Position::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-  position.value().prettyPrint();
-  std::print("fen: {}\n", position.value());
+  std::print("{:02x} {:02x}\n", sq.raw, geometry::internal::expandSq(sq));
+  bb.dumpSq(valid);
+  std::print("\n");
 
   return 0;
 }

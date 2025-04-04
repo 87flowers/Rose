@@ -11,6 +11,8 @@
 
 namespace rose {
 
+  static inline constexpr usize max_legal_moves = 256;
+
   enum class ParseError {
     invalid_char,
     invalid_length,
@@ -33,6 +35,8 @@ namespace rose {
     constexpr auto invert() const -> Color { return static_cast<Inner>(!raw); }
     constexpr auto toBackRank() const -> u8 { return raw == white ? 0 : 7; }
     constexpr auto toIndex() const -> usize { return static_cast<usize>(raw); }
+    constexpr auto toMsb8() const -> u8 { return raw == white ? 0 : 0x80; }
+    constexpr auto toBitboard() const -> u64 { return static_cast<u64>(-static_cast<i64>(raw)); }
 
     constexpr auto operator==(const Color &) const -> bool = default;
   };
@@ -53,6 +57,11 @@ namespace rose {
     constexpr PieceType() = default;
     /* implicit */ constexpr PieceType(Inner raw) : raw(raw) {}
 
+    static constexpr auto fromIndex(usize index) -> PieceType {
+      constexpr std::array<PieceType::Inner, 7> ptypes{none, p, n, b, r, q, k};
+      return ptypes[index];
+    }
+
     constexpr auto isNone() const -> bool { return raw == none; }
     constexpr auto toIndex() const -> usize { return std::bit_width(std::to_underlying(raw)); }
 
@@ -63,6 +72,8 @@ namespace rose {
   struct Place {
     enum Inner : u8 {
       empty = 0,
+
+      color_mask = 0x80,
 
       white = 0x00,
       black = 0x80,
@@ -96,7 +107,7 @@ namespace rose {
     constexpr Place() = default;
     /* implicit */ constexpr Place(Inner raw) : raw(raw) {}
 
-    static constexpr auto fromColorAndPtype(Color color, PieceType pt) { return static_cast<Color::Inner>((color.toIndex() << 7) | pt.raw); }
+    static constexpr auto fromColorAndPtype(Color color, PieceType pt) -> Place { return static_cast<Inner>(color.toMsb8() | pt.raw); }
 
     constexpr auto isEmpty() const -> bool { return raw == empty; }
     constexpr auto color() const -> Color { return static_cast<Color::Inner>((raw & black) != 0); }

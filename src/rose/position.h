@@ -3,7 +3,7 @@
 #include <format>
 #include <utility>
 
-#include "rose/byte_board.h"
+#include "rose/byteboard.h"
 #include "rose/common.h"
 #include "rose/square.h"
 #include "rose/util/tokenizer.h"
@@ -27,17 +27,21 @@ namespace rose {
   private:
     friend class std::formatter<rose::Position, char>;
 
-    Byteboard board{};
-    Color active_color{};
-    u16 ply{};
-    u16 irreversible_clock{};
-    Square enpassant = Square::invalid();
-    u64 hash{};
+    Byteboard m_board{};
+    Color m_active_color{};
+    u16 m_ply{};
+    u16 m_irreversible_clock{};
+    Square m_enpassant = Square::invalid();
+    u64 m_hash{};
 
   public:
     static const Position startpos;
 
     constexpr Position() = default;
+
+    constexpr auto board() const -> const Byteboard & { return m_board; }
+    constexpr auto activeColor() const -> Color { return m_active_color; }
+    auto kingSq(Color color) const -> Square { return Square{static_cast<u8>(std::countr_zero(m_board.bitboardFor<PieceType::k>(color)))}; }
 
     auto castlingRights() const -> Castling;
 
@@ -81,7 +85,7 @@ template <> struct std::formatter<rose::Position, char> {
     for (i8 rank = 7; rank >= 0; rank--) {
       for (u8 file = 0; file < 8; file++) {
         const Square sq = Square::fromFileAndRank(file, static_cast<u8>(rank));
-        const Place p = position.board.m[sq.raw];
+        const Place p = position.m_board.m[sq.raw];
 
         if (p.isEmpty()) {
           blanks++;
@@ -98,7 +102,7 @@ template <> struct std::formatter<rose::Position, char> {
       }
     }
 
-    ctx.advance_to(std::format_to(ctx.out(), " {} ", position.active_color));
+    ctx.advance_to(std::format_to(ctx.out(), " {} ", position.m_active_color));
 
     const Castling castling_rights = position.castlingRights();
     if (castling_rights == Castling::none)
@@ -112,12 +116,12 @@ template <> struct std::formatter<rose::Position, char> {
     if ((castling_rights & Castling::bq) != Castling::none)
       ctx.advance_to(std::format_to(ctx.out(), "q"));
 
-    if (position.enpassant.isValid()) {
-      ctx.advance_to(std::format_to(ctx.out(), " {} ", position.enpassant));
+    if (position.m_enpassant.isValid()) {
+      ctx.advance_to(std::format_to(ctx.out(), " {} ", position.m_enpassant));
     } else {
       ctx.advance_to(std::format_to(ctx.out(), " - "));
     }
 
-    return std::format_to(ctx.out(), "{} {}", position.irreversible_clock, position.ply / 2 + 1);
+    return std::format_to(ctx.out(), "{} {}", position.m_irreversible_clock, position.m_ply / 2 + 1);
   }
 };

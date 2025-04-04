@@ -1,8 +1,7 @@
 #include <format>
+#include <print>
 #include <string_view>
 #include <vector>
-
-#include <print>
 
 #include "rose/position.h"
 #include "rose/util/assert.h"

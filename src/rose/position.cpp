@@ -1,5 +1,6 @@
 #include "rose/position.h"
 
+#include <bit>
 #include <print>
 
 namespace rose {
@@ -8,16 +9,16 @@ namespace rose {
 
   auto Position::castlingRights() const -> Castling {
     Castling result = Castling::none;
-    if (board.m[Square::fromFileAndRank(4, 0).raw] == Place::unmoved_wk) {
-      if (board.m[Square::fromFileAndRank(0, 0).raw] == Place::unmoved_wr)
+    if (m_board.m[Square::fromFileAndRank(4, 0).raw] == Place::unmoved_wk) {
+      if (m_board.m[Square::fromFileAndRank(0, 0).raw] == Place::unmoved_wr)
         result |= Castling::wq;
-      if (board.m[Square::fromFileAndRank(7, 0).raw] == Place::unmoved_wr)
+      if (m_board.m[Square::fromFileAndRank(7, 0).raw] == Place::unmoved_wr)
         result |= Castling::wk;
     }
-    if (board.m[Square::fromFileAndRank(4, 7).raw] == Place::unmoved_bk) {
-      if (board.m[Square::fromFileAndRank(0, 7).raw] == Place::unmoved_br)
+    if (m_board.m[Square::fromFileAndRank(4, 7).raw] == Place::unmoved_bk) {
+      if (m_board.m[Square::fromFileAndRank(0, 7).raw] == Place::unmoved_br)
         result |= Castling::bq;
-      if (board.m[Square::fromFileAndRank(7, 7).raw] == Place::unmoved_br)
+      if (m_board.m[Square::fromFileAndRank(7, 7).raw] == Place::unmoved_br)
         result |= Castling::bk;
     }
     return result;
@@ -29,7 +30,7 @@ namespace rose {
       std::print(" {} |", static_cast<char>('1' + rank));
       for (u8 file = 0; file < 8; file++) {
         const Square sq = Square::fromFileAndRank(file, static_cast<u8>(rank));
-        const Place place = board.m[sq.raw];
+        const Place place = m_board.m[sq.raw];
         std::print(" {} ", place);
       }
       std::print("|\n");
@@ -59,7 +60,7 @@ namespace rose {
             return std::unexpected(ParseError::invalid_char);
           place_index += spaces;
         } else if (const auto p = Place::parse(ch); p) {
-          result.board.m[sq.raw] = *p;
+          result.m_board.m[sq.raw] = *p;
           place_index++;
         } else {
           return std::unexpected(ParseError::invalid_char);
@@ -75,10 +76,10 @@ namespace rose {
         return std::unexpected(ParseError::invalid_length);
       switch (color_str[0]) {
       case 'b':
-        result.active_color = Color::black;
+        result.m_active_color = Color::black;
         break;
       case 'w':
-        result.active_color = Color::white;
+        result.m_active_color = Color::white;
         break;
       default:
         return std::unexpected(ParseError::invalid_char);
@@ -91,11 +92,11 @@ namespace rose {
         const auto castle_rights = [&](Color color, u8 rook_file) -> std::optional<ParseError> {
           const Square rook_sq = Square::fromFileAndRank(rook_file, color.toBackRank());
           const Square king_sq = Square::fromFileAndRank(4, color.toBackRank());
-          if (result.board.m[rook_sq.raw].color() != color || result.board.m[rook_sq.raw].ptype() != PieceType::r ||
-              result.board.m[king_sq.raw].color() != color || result.board.m[king_sq.raw].ptype() != PieceType::k)
+          if (result.m_board.m[rook_sq.raw].color() != color || result.m_board.m[rook_sq.raw].ptype() != PieceType::r ||
+              result.m_board.m[king_sq.raw].color() != color || result.m_board.m[king_sq.raw].ptype() != PieceType::k)
             return ParseError::invalid_board;
-          result.board.m[rook_sq.raw] = result.board.m[rook_sq.raw].toPristine();
-          result.board.m[king_sq.raw] = result.board.m[king_sq.raw].toPristine();
+          result.m_board.m[rook_sq.raw] = result.m_board.m[rook_sq.raw].toPristine();
+          result.m_board.m[king_sq.raw] = result.m_board.m[king_sq.raw].toPristine();
           return std::nullopt;
         };
         switch (ch) {
@@ -130,19 +131,19 @@ namespace rose {
       const auto enpassant = Square::parse(enpassant_str);
       if (!enpassant)
         return std::unexpected(enpassant.error());
-      result.enpassant = enpassant.value();
+      result.m_enpassant = enpassant.value();
     }
 
     // Parse irreversible clock
     if (const usize irreversible_clock = std::stoi(std::string{irreversible_clock_str}); irreversible_clock <= 200) {
-      result.irreversible_clock = irreversible_clock;
+      result.m_irreversible_clock = irreversible_clock;
     } else {
       return std::unexpected(ParseError::out_of_range);
     }
 
     // Parse ply
     if (const usize ply = std::stoi(std::string{ply_str}); ply != 0 && ply < 10000) {
-      result.ply = (ply - 1) * 2 + static_cast<u16>(result.active_color.toIndex());
+      result.m_ply = (ply - 1) * 2 + static_cast<u16>(result.m_active_color.toIndex());
     } else {
       return std::unexpected(ParseError::out_of_range);
     }

@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#define forceinline inline __attribute__((always_inline))
+
 namespace rose::vec {
   struct v128;
   struct v256;
