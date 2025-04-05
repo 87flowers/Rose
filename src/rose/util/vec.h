@@ -69,6 +69,10 @@ namespace rose::vec {
   forceinline auto and8(v256 a, v256 b) -> v256 { return {_mm256_and_si256(a.raw, b.raw)}; }
   forceinline auto and8(v512 a, v512 b) -> v512 { return {_mm512_and_si512(a.raw, b.raw)}; }
 
+  forceinline auto blend8(u16 mask, v128 a, v128 b) -> v128 { return {_mm_mask_blend_epi8(mask, a.raw, b.raw)}; }
+  forceinline auto blend8(u32 mask, v256 a, v256 b) -> v256 { return {_mm256_mask_blend_epi8(mask, a.raw, b.raw)}; }
+  forceinline auto blend8(u64 mask, v512 a, v512 b) -> v512 { return {_mm512_mask_blend_epi8(mask, a.raw, b.raw)}; }
+
   forceinline auto eq8(v128 a, v128 b) -> u16 { return {_mm_cmpeq_epu8_mask(a.raw, b.raw)}; }
   forceinline auto eq8(v256 a, v256 b) -> u32 { return {_mm256_cmpeq_epu8_mask(a.raw, b.raw)}; }
   forceinline auto eq8(v512 a, v512 b) -> u64 { return {_mm512_cmpeq_epu8_mask(a.raw, b.raw)}; }
@@ -84,6 +88,10 @@ namespace rose::vec {
   forceinline auto permute8(v128 index, v128 a, v128 b) -> v128 { return {_mm_permutex2var_epi8(a.raw, index.raw, b.raw)}; }
   forceinline auto permute8(v256 index, v256 a, v256 b) -> v256 { return {_mm256_permutex2var_epi8(a.raw, index.raw, b.raw)}; }
   forceinline auto permute8(v512 index, v512 a, v512 b) -> v512 { return {_mm512_permutex2var_epi8(a.raw, index.raw, b.raw)}; }
+
+  forceinline auto sub8(v128 a, v128 b) -> v128 { return {_mm_sub_epi8(a.raw, b.raw)}; }
+  forceinline auto sub8(v256 a, v256 b) -> v256 { return {_mm256_sub_epi8(a.raw, b.raw)}; }
+  forceinline auto sub8(v512 a, v512 b) -> v512 { return {_mm512_sub_epi8(a.raw, b.raw)}; }
 
   forceinline auto test8(v128 a, v128 b) -> u16 { return _mm_test_epi8_mask(a.raw, b.raw); }
   forceinline auto test8(v256 a, v256 b) -> u32 { return _mm256_test_epi8_mask(a.raw, b.raw); }

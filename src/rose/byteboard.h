@@ -74,10 +74,9 @@ namespace rose {
   inline auto dumpRaysSq(v512 z, u64 mask = ~u64{0}) -> void {
     Byteboard bb;
     bb.z = z;
-    for (int ray = 0; ray < 9; ray++) {
-      const int maxi = ray < 8 ? 7 : 8;
-      for (int i = 0; i < maxi; i++) {
-        const int index = ray * 7 + i;
+    for (int ray = 0; ray < 8; ray++) {
+      for (int i = 1; i < 8; i++) {
+        const int index = ray * 8 + i;
         if ((mask >> index) & 1) {
           std::print("{} ", Square{bb.r[index]});
         } else {
@@ -86,15 +85,24 @@ namespace rose {
       }
       std::print("\n");
     }
+    std::print("knight: ");
+    for (int ray = 0; ray < 8; ray++) {
+      const int index = ray * 8;
+      if ((mask >> index) & 1) {
+        std::print("{} ", Square{bb.r[index]});
+      } else {
+        std::print("-- ");
+      }
+    }
+    std::print("\n");
   }
 
   inline auto dumpRaysRaw(v512 z, u64 mask = ~u64{0}) -> void {
     Byteboard bb;
     bb.z = z;
-    for (int ray = 0; ray < 9; ray++) {
-      const int maxi = ray < 8 ? 7 : 8;
-      for (int i = 0; i < maxi; i++) {
-        const int index = ray * 7 + i;
+    for (int ray = 0; ray < 8; ray++) {
+      for (int i = 1; i < 8; i++) {
+        const int index = ray * 8 + i;
         if ((mask >> index) & 1) {
           std::print("{:02x} ", bb.r[index]);
         } else {
@@ -103,6 +111,16 @@ namespace rose {
       }
       std::print("\n");
     }
+    std::print("knight: ");
+    for (int ray = 0; ray < 8; ray++) {
+      const int index = ray * 8;
+      if ((mask >> index) & 1) {
+        std::print("{:02x} ", bb.r[index]);
+      } else {
+        std::print("-- ");
+      }
+    }
+    std::print("\n");
   }
 
 } // namespace rose

@@ -39,47 +39,32 @@ auto testCompressCoords() -> void {
 }
 
 auto testSuperpieceRays() -> void {
-  {
-    const Square sq = Square::parse("e4").value();
-    const auto [z, valid] = geometry::superpieceRays(sq);
-    Byteboard bb;
-    bb.z = z;
-    rose_assert(valid == 0b1111111100001110001111000111100001110000111000011100011110000111);
-    rose_assert(bb.r[0] == Square::parse("f5").value().raw);
-    rose_assert(bb.r[1] == Square::parse("g6").value().raw);
-    rose_assert(bb.r[2] == Square::parse("h7").value().raw);
-    rose_assert(bb.r[7] == Square::parse("d5").value().raw);
-    rose_assert(bb.r[8] == Square::parse("c6").value().raw);
-    rose_assert(bb.r[9] == Square::parse("b7").value().raw);
-    rose_assert(bb.r[10] == Square::parse("a8").value().raw);
-    rose_assert(bb.r[14] == Square::parse("f3").value().raw);
-    rose_assert(bb.r[15] == Square::parse("g2").value().raw);
-    rose_assert(bb.r[16] == Square::parse("h1").value().raw);
-    rose_assert(bb.r[21] == Square::parse("d3").value().raw);
-    rose_assert(bb.r[22] == Square::parse("c2").value().raw);
-    rose_assert(bb.r[23] == Square::parse("b1").value().raw);
-    rose_assert(bb.r[28] == Square::parse("f4").value().raw);
-    rose_assert(bb.r[29] == Square::parse("g4").value().raw);
-    rose_assert(bb.r[30] == Square::parse("h4").value().raw);
-    rose_assert(bb.r[35] == Square::parse("e5").value().raw);
-    rose_assert(bb.r[36] == Square::parse("e6").value().raw);
-    rose_assert(bb.r[37] == Square::parse("e7").value().raw);
-    rose_assert(bb.r[38] == Square::parse("e8").value().raw);
-    rose_assert(bb.r[42] == Square::parse("d4").value().raw);
-    rose_assert(bb.r[43] == Square::parse("c4").value().raw);
-    rose_assert(bb.r[44] == Square::parse("b4").value().raw);
-    rose_assert(bb.r[45] == Square::parse("a4").value().raw);
-    rose_assert(bb.r[49] == Square::parse("e3").value().raw);
-    rose_assert(bb.r[50] == Square::parse("e2").value().raw);
-    rose_assert(bb.r[51] == Square::parse("e1").value().raw);
-    rose_assert(bb.r[56] == Square::parse("d2").value().raw);
-    rose_assert(bb.r[57] == Square::parse("f2").value().raw);
-    rose_assert(bb.r[58] == Square::parse("c3").value().raw);
-    rose_assert(bb.r[59] == Square::parse("c5").value().raw);
-    rose_assert(bb.r[60] == Square::parse("g3").value().raw);
-    rose_assert(bb.r[61] == Square::parse("g5").value().raw);
-    rose_assert(bb.r[62] == Square::parse("d6").value().raw);
-    rose_assert(bb.r[63] == Square::parse("f6").value().raw);
+  const Square sq = Square::parse("e4").value();
+  const auto [perm, valid] = geometry::superpieceRays(sq);
+  const auto bperm = geometry::superpieceInverseRays(sq);
+  const auto bitboard = ~bperm.msb8();
+
+  rose_assert(bitboard == 0b0001000110010010011111000111110011101111011111000111110010010010);
+
+  Byteboard p;
+  Byteboard b;
+  p.z = perm;
+  b.z = bperm;
+
+  std::print("perm:\n");
+  p.dumpRaw();
+  std::print("\n");
+  std::print("bperm:\n");
+  b.dumpRaw();
+  std::print("\n");
+
+  for (int i = 0; i < 64; i++) {
+    if ((valid >> i) & 1) {
+      rose_assert(b.r[p.r[i]] == i, "{:02x}: b[{:02x}] == {:02x}\n", i, p.r[i], b.r[p.r[i]]);
+    }
+    if ((bitboard >> i) & 1) {
+      rose_assert(p.r[b.r[i]] == i, "{:02x}: p[{:02x}] == {:02x}\n", i, b.r[i], p.r[b.r[i]]);
+    }
   }
 }
 
