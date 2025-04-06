@@ -64,6 +64,7 @@ namespace rose {
     auto calcAttacksSlow(Square sq) const -> std::array<u16, 2>;
 
     auto prettyPrint() const -> void;
+    auto printAttackTable() const -> void;
 
     static auto parse(std::string_view str) -> std::expected<Position, ParseError> {
       Tokenizer it{str};

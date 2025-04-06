@@ -82,6 +82,111 @@ namespace rose {
     std::print("     a  b  c  d  e  f  g  h  \n");
   }
 
+  auto Position::printAttackTable() const -> void {
+    // Indexing occurs in this order:
+    // +---------+
+    // |0 1 2 3 4|
+    // |5       6|
+    // |7 . x . 8|
+    // |9       a|
+    // |b c d e f|
+    // +---------+
+    const auto get = [this](Square sq, Square attacker) -> std::tuple<bool, int, int> {
+      const auto [sq_file, sq_rank] = sq.toFileAndRank();
+      const auto [attacker_file, attacker_rank] = attacker.toFileAndRank();
+      const int file_diff = static_cast<int>(attacker_file) - static_cast<int>(sq_file);
+      const int rank_diff = static_cast<int>(attacker_rank) - static_cast<int>(sq_rank);
+      if (file_diff < 0 && rank_diff > 0 && -file_diff == rank_diff)
+        return {true, 0, rank_diff};
+      if (file_diff == -1 && rank_diff == 2)
+        return {true, 1, 1};
+      if (file_diff == 0 && rank_diff > 0)
+        return {true, 2, rank_diff};
+      if (file_diff == 1 && rank_diff == 2)
+        return {true, 3, 1};
+      if (file_diff > 0 && rank_diff > 0 && file_diff == rank_diff)
+        return {true, 4, rank_diff};
+      if (file_diff == -2 && rank_diff == 1)
+        return {true, 5, 1};
+      if (file_diff == 2 && rank_diff == 1)
+        return {true, 6, 1};
+      if (rank_diff == 0 && file_diff < 0)
+        return {true, 7, -file_diff};
+      if (rank_diff == 0 && file_diff > 0)
+        return {true, 8, file_diff};
+      if (file_diff == -2 && rank_diff == -1)
+        return {true, 9, 1};
+      if (file_diff == 2 && rank_diff == -1)
+        return {true, 10, 1};
+      if (file_diff < 0 && rank_diff < 0 && file_diff == rank_diff)
+        return {true, 11, -rank_diff};
+      if (file_diff == -1 && rank_diff == -2)
+        return {true, 12, 1};
+      if (file_diff == 0 && rank_diff < 0)
+        return {true, 13, -rank_diff};
+      if (file_diff == 1 && rank_diff == -2)
+        return {true, 14, 1};
+      if (file_diff > 0 && rank_diff < 0 && file_diff == -rank_diff)
+        return {true, 15, -rank_diff};
+      return {false, 0, -1};
+    };
+
+    std::array<std::array<int, 16>, 64> result{};
+    for (int sq_raw = 0; sq_raw < 64; sq_raw++) {
+      const Square sq{static_cast<u8>(sq_raw)};
+      for (int color : {0, 1}) {
+        const u16 attackers = m_attack_table[color].r[sq.raw];
+        for (int id = 0; id < 16; id++) {
+          if ((attackers >> id) & 1) {
+            const Square attacker = m_piece_list[color].m[id];
+            const auto [valid, index, distance] = get(sq, attacker);
+            if (!valid || result[sq_raw][index] != 0) {
+              std::print("error: invalid attack to {}: piece id {}:{} is at {}\n", sq, color, id, attacker);
+              std::print("m_attack_table[{}].m[{}] = 0x{:04x}\n", color, sq, attackers);
+              std::print("m_piece_list[{}] = ", color);
+              m_piece_list[color].dump();
+              continue;
+            }
+            result[sq_raw][index] = distance;
+          }
+        }
+      }
+    }
+
+    std::print("   +---------+---------+---------+---------+---------+---------+---------+---------+\n");
+    for (i8 rank = 7; rank >= 0; rank--) {
+      for (int row : {0, 1, 2, 3, 4}) {
+        std::print(" {} |", row == 2 ? static_cast<char>('1' + rank) : ' ');
+        for (u8 file = 0; file < 8; file++) {
+          const Square sq = Square::fromFileAndRank(file, static_cast<u8>(rank));
+          const auto dirs = result[sq.raw];
+          const auto r = [dirs](int index) { return " 123456789"[dirs[index]]; };
+          const auto n = [dirs](int index) { return " n????????"[dirs[index]]; };
+          switch (row) {
+          case 0:
+            std::print("{} {} {} {} {}|", r(0), n(1), r(2), n(3), r(4));
+            break;
+          case 1:
+            std::print("{}       {}|", n(5), n(6));
+            break;
+          case 2:
+            std::print("{}   {}   {}|", r(7), m_board.m[sq.raw], r(8));
+            break;
+          case 3:
+            std::print("{}       {}|", n(9), n(10));
+            break;
+          case 4:
+            std::print("{} {} {} {} {}|", r(11), n(12), r(13), n(14), r(15));
+            break;
+          }
+        }
+        std::print("\n");
+      }
+      std::print("   +---------+---------+---------+---------+---------+---------+---------+---------+\n");
+    }
+    std::print("        a         b         c         d         e         f         g         h     \n");
+  }
+
   auto Position::parse(std::string_view board_str, std::string_view color_str, std::string_view castle_str, std::string_view enpassant_str,
                        std::string_view irreversible_clock_str, std::string_view ply_str) -> std::expected<Position, ParseError> {
     Position result{};

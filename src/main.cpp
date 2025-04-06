@@ -19,6 +19,7 @@ auto main(int argc, char **argv) -> int {
   position.pieceList(Color::black).dump();
   position.attackTable(Color::black).dumpRaw();
   std::print("\n");
+  position.printAttackTable();
 
   return 0;
 }
