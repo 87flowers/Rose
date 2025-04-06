@@ -57,7 +57,7 @@ namespace rose {
         return Move::make(from.value(), to.value());
 
       const auto p = Place::parse(str[4]);
-      if (!p || p.value().ptype() == PieceType::king || p.value().ptype() == PieceType::pawn || p.value().ptype() == PieceType::none)
+      if (!p || p.value().ptype() == PieceType::k || p.value().ptype() == PieceType::p || p.value().ptype() == PieceType::none)
         return std::unexpected(ParseError::invalid_char);
 
       return makePromotion(from.value(), to.value(), p.value().ptype());

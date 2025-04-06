@@ -5,6 +5,17 @@
 
 namespace rose {
 
+  auto PieceList::dump() const -> void {
+    for (const Square sq : m) {
+      if (sq.isValid()) {
+        std::print("{} ", sq);
+      } else {
+        std::print("-- ");
+      }
+    }
+    std::print("\n");
+  }
+
   const Position Position::startpos = Position::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").value();
 
   auto Position::castlingRights() const -> Castling {
@@ -22,6 +33,38 @@ namespace rose {
         result |= Castling::bk;
     }
     return result;
+  }
+
+  auto Position::calcAttacksSlow() const -> std::array<Wordboard, 2> {
+    std::array<Wordboard, 2> result{};
+    for (int i = 0; i < 64; i++) {
+      const Square sq{static_cast<u8>(i)};
+      const auto [white, black] = calcAttacksSlow(sq);
+      result[0].r[i] = white;
+      result[1].r[i] = black;
+    }
+    return result;
+  }
+
+  auto Position::calcAttacksSlow(Square sq) const -> std::array<u16, 2> {
+    const auto [ray_coords, ray_valid] = geometry::superpieceRays(sq);
+    const v512 ray_places = vec::permute8(ray_coords, m_board.z);
+
+    const u64 occupied = ray_places.nonzero8();
+    const u64 color = ray_places.msb8();
+
+    const u64 visible = geometry::superpieceAttacks(occupied, ray_valid) & occupied;
+
+    const u64 white_attackers = ~color & visible & vec::and8(ray_places, geometry::superpieceAttackerMask(Color::black)).nonzero8();
+    const u64 black_attackers = color & visible & vec::and8(ray_places, geometry::superpieceAttackerMask(Color::white)).nonzero8();
+    const int white_attackers_count = std::popcount(white_attackers);
+    const int black_attackers_count = std::popcount(black_attackers);
+    const v128 white_attackers_coord = vec::compress8(white_attackers, ray_coords).to128();
+    const v128 black_attackers_coord = vec::compress8(black_attackers, ray_coords).to128();
+    return {
+        vec::findset8(white_attackers_coord, white_attackers_count, m_piece_list[0].x),
+        vec::findset8(black_attackers_coord, black_attackers_count, m_piece_list[1].x),
+    };
   }
 
   auto Position::prettyPrint() const -> void {
@@ -46,6 +89,7 @@ namespace rose {
     // Parse board
     {
       usize place_index = 0, i = 0;
+      std::array<usize, 2> id{{0, 0}};
       for (; place_index < 64 && i < board_str.size(); i++) {
         const usize file = place_index % 8;
         const usize rank = 7 - place_index / 8;
@@ -60,8 +104,14 @@ namespace rose {
             return std::unexpected(ParseError::invalid_char);
           place_index += spaces;
         } else if (const auto p = Place::parse(ch); p) {
+          const usize color = p->color().toIndex();
+          usize &current_id = id[color];
+          if (current_id >= result.m_piece_list[color].m.size())
+            return std::unexpected(ParseError::too_many_pieces);
           result.m_board.m[sq.raw] = *p;
+          result.m_piece_list[color].m[current_id] = sq;
           place_index++;
+          current_id++;
         } else {
           return std::unexpected(ParseError::invalid_char);
         }
@@ -147,6 +197,8 @@ namespace rose {
     } else {
       return std::unexpected(ParseError::out_of_range);
     }
+
+    result.m_attack_table = result.calcAttacksSlow();
 
     return result;
   }

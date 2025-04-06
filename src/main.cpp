@@ -2,19 +2,22 @@
 
 #include "rose/byteboard.h"
 #include "rose/geometry.h"
+#include "rose/position.h"
 #include "rose/square.h"
 #include "rose/util/types.h"
 
 using namespace rose;
 
 auto main(int argc, char **argv) -> int {
-  Byteboard bb;
-  const auto sq = Square::parse("e4").value();
-  const auto [z, valid] = geometry::superpieceRays(sq);
-  bb.z = z;
+  const Position position = Position::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").value();
 
-  std::print("{:02x} {:02x}\n", sq.raw, geometry::internal::expandSq(sq));
-  bb.dumpSq(valid);
+  position.board().dumpRaw();
+  std::print("\n");
+  position.pieceList(Color::white).dump();
+  position.attackTable(Color::white).dumpRaw();
+  std::print("\n");
+  position.pieceList(Color::black).dump();
+  position.attackTable(Color::black).dumpRaw();
   std::print("\n");
 
   return 0;

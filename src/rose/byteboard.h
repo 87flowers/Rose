@@ -40,87 +40,24 @@ namespace rose {
       return {raycoords, rayplaces, rayattacks};
     }
 
-    auto dumpRaw(u64 mask = ~u64{0}) const -> void {
-      for (int flipped_rank = 0; flipped_rank < 8; flipped_rank++) {
-        for (int file = 0; file < 8; file++) {
-          const int rank = 7 - flipped_rank;
-          const Square sq = Square::fromFileAndRank(file, rank);
-          if ((mask >> sq.raw) & 1) {
-            std::print("{:02x} ", r[sq.raw]);
-          } else {
-            std::print("-- ");
-          }
-        }
-        std::print("\n");
-      }
-    }
+    auto dumpRaw(u64 mask = ~u64{0}) const -> void;
+    auto dumpSq(u64 mask = ~u64{0}) const -> void;
 
-    auto dumpSq(u64 mask = ~u64{0}) const -> void {
-      for (int flipped_rank = 0; flipped_rank < 8; flipped_rank++) {
-        for (int file = 0; file < 8; file++) {
-          const int rank = 7 - flipped_rank;
-          const Square sq = Square::fromFileAndRank(file, rank);
-          if ((mask >> sq.raw) & 1) {
-            std::print("{} ", Square{r[sq.raw]});
-          } else {
-            std::print("-- ");
-          }
-        }
-        std::print("\n");
-      }
-    }
+    constexpr auto operator==(const Byteboard &other) const -> bool { return r == other.r; };
   };
 
-  inline auto dumpRaysSq(v512 z, u64 mask = ~u64{0}) -> void {
-    Byteboard bb;
-    bb.z = z;
-    for (int ray = 0; ray < 8; ray++) {
-      for (int i = 1; i < 8; i++) {
-        const int index = ray * 8 + i;
-        if ((mask >> index) & 1) {
-          std::print("{} ", Square{bb.r[index]});
-        } else {
-          std::print("-- ");
-        }
-      }
-      std::print("\n");
-    }
-    std::print("knight: ");
-    for (int ray = 0; ray < 8; ray++) {
-      const int index = ray * 8;
-      if ((mask >> index) & 1) {
-        std::print("{} ", Square{bb.r[index]});
-      } else {
-        std::print("-- ");
-      }
-    }
-    std::print("\n");
-  }
+  union alignas(64) Wordboard {
+    std::array<v512, 2> z;
+    std::array<u16, 64> r{};
 
-  inline auto dumpRaysRaw(v512 z, u64 mask = ~u64{0}) -> void {
-    Byteboard bb;
-    bb.z = z;
-    for (int ray = 0; ray < 8; ray++) {
-      for (int i = 1; i < 8; i++) {
-        const int index = ray * 8 + i;
-        if ((mask >> index) & 1) {
-          std::print("{:02x} ", bb.r[index]);
-        } else {
-          std::print("-- ");
-        }
-      }
-      std::print("\n");
-    }
-    std::print("knight: ");
-    for (int ray = 0; ray < 8; ray++) {
-      const int index = ray * 8;
-      if ((mask >> index) & 1) {
-        std::print("{:02x} ", bb.r[index]);
-      } else {
-        std::print("-- ");
-      }
-    }
-    std::print("\n");
-  }
+    constexpr Wordboard() = default;
+
+    auto dumpRaw(u64 mask = ~u64{0}) const -> void;
+
+    constexpr auto operator==(const Wordboard &other) const -> bool { return r == other.r; };
+  };
+
+  auto dumpRaysSq(v512 z, u64 mask = ~u64{0}) -> void;
+  auto dumpRaysRaw(v512 z, u64 mask = ~u64{0}) -> void;
 
 } // namespace rose

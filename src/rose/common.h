@@ -19,6 +19,7 @@ namespace rose {
     out_of_range,
     invalid_board,
     too_many_kings,
+    too_many_pieces,
   };
 
   struct Color {
@@ -175,6 +176,8 @@ template <> struct std::formatter<rose::ParseError, char> {
       return std::format_to(ctx.out(), "invalid_board");
     case rose::ParseError::too_many_kings:
       return std::format_to(ctx.out(), "too_many_kings");
+    case rose::ParseError::too_many_pieces:
+      return std::format_to(ctx.out(), "too_many_pieces");
     }
     std::unreachable();
   }

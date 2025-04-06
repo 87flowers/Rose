@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <array>
 
-#include "rose/types.h"
 #include "rose/util/assert.h"
+#include "rose/util/types.h"
 
 namespace rose {
 

@@ -22,10 +22,13 @@ add_link_options(-march=native)
 add_compile_definitions(ROSE_VERSION="${ROSE_VERSION}")
 
 set(srcs
+  src/rose/byteboard.cpp
   src/rose/byteboard.h
   src/rose/common.h
   src/rose/geometry.h
   src/rose/move.h
+  src/rose/movegen.cpp
+  src/rose/movegen.h
   src/rose/position.cpp
   src/rose/position.h
   src/rose/square.h

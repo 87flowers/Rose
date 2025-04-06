@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <format>
 #include <utility>
 
@@ -8,8 +9,18 @@
 #include "rose/square.h"
 #include "rose/util/tokenizer.h"
 #include "rose/util/types.h"
+#include "rose/util/vec.h"
 
 namespace rose {
+
+  union alignas(16) PieceList {
+    v128 x;
+    std::array<Square, 16> m{};
+
+    auto dump() const -> void;
+
+    constexpr auto operator==(const PieceList &other) const -> bool { return m == other.m; }
+  };
 
   enum class Castling {
     none = 0,
@@ -28,6 +39,8 @@ namespace rose {
     friend class std::formatter<rose::Position, char>;
 
     Byteboard m_board{};
+    std::array<Wordboard, 2> m_attack_table{};
+    std::array<PieceList, 2> m_piece_list{};
     Color m_active_color{};
     u16 m_ply{};
     u16 m_irreversible_clock{};
@@ -40,10 +53,15 @@ namespace rose {
     constexpr Position() = default;
 
     constexpr auto board() const -> const Byteboard & { return m_board; }
+    constexpr auto attackTable(Color color) const -> const Wordboard & { return m_attack_table[color.toIndex()]; }
+    constexpr auto pieceList(Color color) const -> PieceList { return m_piece_list[color.toIndex()]; }
     constexpr auto activeColor() const -> Color { return m_active_color; }
-    auto kingSq(Color color) const -> Square { return Square{static_cast<u8>(std::countr_zero(m_board.bitboardFor<PieceType::k>(color)))}; }
 
+    auto kingSq(Color color) const -> Square { return Square{static_cast<u8>(std::countr_zero(m_board.bitboardFor<PieceType::k>(color)))}; }
     auto castlingRights() const -> Castling;
+
+    auto calcAttacksSlow() const -> std::array<Wordboard, 2>;
+    auto calcAttacksSlow(Square sq) const -> std::array<u16, 2>;
 
     auto prettyPrint() const -> void;
 

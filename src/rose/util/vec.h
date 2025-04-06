@@ -31,8 +31,11 @@ namespace rose::vec {
     using Mask8 = u32;
 
     forceinline static auto fromArray(std::array<u8, 32> src) -> v256 { return {_mm256_loadu_epi32(src.data())}; }
+    forceinline static auto from128(v128 src) -> v256 { return {_mm256_castsi128_si256(src.raw)}; }
     forceinline static auto broadcast8(u8 src) -> v256 { return {_mm256_set1_epi8(src)}; }
     forceinline static auto broadcast64(u64 src) -> v256 { return {_mm256_set1_epi64x(src)}; }
+
+    forceinline auto to128() const -> v128 { return {_mm256_castsi256_si128(raw)}; }
 
     forceinline auto msb8() const -> u32 { return _mm256_movepi8_mask(raw); }
 
@@ -49,9 +52,13 @@ namespace rose::vec {
     using Mask8 = u64;
 
     forceinline static auto fromArray(std::array<u8, 64> src) -> v512 { return {_mm512_loadu_epi32(src.data())}; }
+    forceinline static auto from128(v128 src) -> v512 { return {_mm512_castsi128_si512(src.raw)}; }
     forceinline static auto from256(v256 src) -> v512 { return {_mm512_castsi256_si512(src.raw)}; }
     forceinline static auto broadcast8(u8 src) -> v512 { return {_mm512_set1_epi8(src)}; }
     forceinline static auto broadcast64(u64 src) -> v512 { return {_mm512_set1_epi64(src)}; }
+
+    forceinline auto to128() const -> v128 { return {_mm512_castsi512_si128(raw)}; }
+    forceinline auto to256() const -> v256 { return {_mm512_castsi512_si256(raw)}; }
 
     forceinline auto msb8() const -> u64 { return _mm512_movepi8_mask(raw); }
 
@@ -69,6 +76,10 @@ namespace rose::vec {
   forceinline auto and8(v256 a, v256 b) -> v256 { return {_mm256_and_si256(a.raw, b.raw)}; }
   forceinline auto and8(v512 a, v512 b) -> v512 { return {_mm512_and_si512(a.raw, b.raw)}; }
 
+  forceinline auto compress8(u16 mask, v128 a) -> v128 { return {_mm_maskz_compress_epi8(mask, a.raw)}; }
+  forceinline auto compress8(u32 mask, v256 a) -> v256 { return {_mm256_maskz_compress_epi8(mask, a.raw)}; }
+  forceinline auto compress8(u64 mask, v512 a) -> v512 { return {_mm512_maskz_compress_epi8(mask, a.raw)}; }
+
   forceinline auto blend8(u16 mask, v128 a, v128 b) -> v128 { return {_mm_mask_blend_epi8(mask, a.raw, b.raw)}; }
   forceinline auto blend8(u32 mask, v256 a, v256 b) -> v256 { return {_mm256_mask_blend_epi8(mask, a.raw, b.raw)}; }
   forceinline auto blend8(u64 mask, v512 a, v512 b) -> v512 { return {_mm512_mask_blend_epi8(mask, a.raw, b.raw)}; }
@@ -76,6 +87,10 @@ namespace rose::vec {
   forceinline auto eq8(v128 a, v128 b) -> u16 { return {_mm_cmpeq_epu8_mask(a.raw, b.raw)}; }
   forceinline auto eq8(v256 a, v256 b) -> u32 { return {_mm256_cmpeq_epu8_mask(a.raw, b.raw)}; }
   forceinline auto eq8(v512 a, v512 b) -> u64 { return {_mm512_cmpeq_epu8_mask(a.raw, b.raw)}; }
+
+  forceinline auto findset8(v128 haystack, int haystack_len, v128 needles) -> u16 {
+    return _mm_extract_epi16(_mm_cmpestrm(haystack.raw, haystack_len, needles.raw, 16, 0), 0);
+  }
 
   forceinline auto gf2p8affine8(v128 a, v128 b, u8 c) -> v128 { return {_mm_gf2p8affine_epi64_epi8(a.raw, b.raw, c)}; }
   forceinline auto gf2p8affine8(v256 a, v256 b, u8 c) -> v256 { return {_mm256_gf2p8affine_epi64_epi8(a.raw, b.raw, c)}; }
