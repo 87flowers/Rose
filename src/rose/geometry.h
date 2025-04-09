@@ -43,6 +43,8 @@ namespace rose::geometry {
     return x & rayvalid;
   }
 
+  inline constexpr u64 non_horse_attack_mask = 0xFEFEFEFEFEFEFEFE;
+
   inline auto superpieceAttackerMask(Color color) -> v512 {
     constexpr u8 diag = PieceType::b;
     constexpr u8 orth = PieceType::r;

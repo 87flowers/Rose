@@ -38,14 +38,15 @@ namespace rose {
   private:
     friend class std::formatter<rose::Position, char>;
 
-    Byteboard m_board{};
     std::array<Wordboard, 2> m_attack_table{};
     std::array<PieceList, 2> m_piece_list{};
-    Color m_active_color{};
+    Byteboard m_board{};
+    u64 m_pinned{};
+    u64 m_hash{};
     u16 m_ply{};
     u16 m_irreversible_clock{};
+    Color m_active_color{};
     Square m_enpassant = Square::invalid();
-    u64 m_hash{};
 
   public:
     static const Position startpos;
@@ -59,6 +60,8 @@ namespace rose {
 
     auto kingSq(Color color) const -> Square { return Square{static_cast<u8>(std::countr_zero(m_board.bitboardFor<PieceType::k>(color)))}; }
     auto castlingRights() const -> Castling;
+
+    auto calcPinned() const -> u64;
 
     auto calcAttacksSlow() const -> std::array<Wordboard, 2>;
     auto calcAttacksSlow(Square sq) const -> std::array<u16, 2>;
