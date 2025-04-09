@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <bit>
 #include <format>
 #include <utility>
 
@@ -57,11 +58,12 @@ namespace rose {
     constexpr auto attackTable(Color color) const -> const Wordboard & { return m_attack_table[color.toIndex()]; }
     constexpr auto pieceList(Color color) const -> PieceList { return m_piece_list[color.toIndex()]; }
     constexpr auto activeColor() const -> Color { return m_active_color; }
+    constexpr auto pinned() const -> u64 { return m_pinned; }
 
     auto kingSq(Color color) const -> Square { return Square{static_cast<u8>(std::countr_zero(m_board.bitboardFor<PieceType::k>(color)))}; }
     auto castlingRights() const -> Castling;
 
-    auto calcPinned() const -> u64;
+    auto calcPinnedSlow(Color active_color, Square king_sq) const -> u64;
 
     auto calcAttacksSlow() const -> std::array<Wordboard, 2>;
     auto calcAttacksSlow(Square sq) const -> std::array<u16, 2>;

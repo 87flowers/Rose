@@ -35,22 +35,20 @@ namespace rose {
     return result;
   }
 
-  auto Position::calcPinned() const -> u64 {
-    const Square king_sq{kingSq(m_active_color)};
-
+  auto Position::calcPinnedSlow(Color active_color, Square king_sq) const -> u64 {
     const auto [ray_coords, ray_valid] = geometry::superpieceRays(king_sq);
     const v512 ray_places = vec::permute8(ray_coords, m_board.z);
 
     const u64 occupied = ray_places.nonzero8() & ray_valid & geometry::non_horse_attack_mask;
     const u64 color = ray_places.msb8();
-    const u64 enemy_pieces = (color ^ m_active_color.toBitboard()) & occupied;
+    const u64 enemy_pieces = (color ^ active_color.toBitboard()) & occupied;
     const u64 friendly_pieces = occupied & ~enemy_pieces;
 
     // TODO: consider if pinned enpassants should be handled here or elsewhere
 
-    const u64 potential_attackers = enemy_pieces & vec::and8(ray_places, geometry::superpieceAttackerMask(m_active_color)).nonzero8();
+    const u64 potential_attackers = enemy_pieces & vec::and8(ray_places, geometry::superpieceAttackerMask(active_color)).nonzero8();
 
-    const u64 attackers = potential_attackers & geometry::superpieceAttacks(potential_attackers, ray_valid);
+    const u64 attackers = potential_attackers & geometry::superpieceAttacks(enemy_pieces, ray_valid);
     const u64 attacker_rays = (attackers | 0x0101010101010101) - 0x0202020202020202;
     const u16 has_attacker_vecmask = ~v128::from64(attacker_rays).msb8();
     const u64 potentially_pinned = attacker_rays & friendly_pieces;
@@ -331,6 +329,7 @@ namespace rose {
     }
 
     result.m_attack_table = result.calcAttacksSlow();
+    result.m_pinned = result.calcPinnedSlow(result.m_active_color, result.kingSq(result.m_active_color));
 
     return result;
   }
