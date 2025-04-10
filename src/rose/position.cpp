@@ -42,21 +42,23 @@ namespace rose {
     const u64 occupied = ray_places.nonzero8() & ray_valid & geometry::non_horse_attack_mask;
     const u64 color = ray_places.msb8();
     const u64 enemy_pieces = (color ^ active_color.toBitboard()) & occupied;
-    const u64 friendly_pieces = occupied & ~enemy_pieces;
 
-    // TODO: consider if pinned enpassants should be handled here or elsewhere
+    // Closest blockers (color doesn't matter, because we want to use this to detect pinned en passant pawns as well).
+    const u64 potentially_pinned = occupied & geometry::superpieceAttacks(occupied, ray_valid);
 
-    const u64 potential_attackers = enemy_pieces & vec::and8(ray_places, geometry::superpieceAttackerMask(active_color)).nonzero8();
+    // Find all enemy sliders with the correct attacks for the rays they're on
+    const u64 maybe_attacking = enemy_pieces & vec::and8(ray_places, geometry::superpieceAttackerMask(active_color)).nonzero8();
+    // Second closest blockers
+    const u64 not_closest = occupied & ~potentially_pinned;
+    const u64 potential_attackers = not_closest & geometry::superpieceAttacks(not_closest, ray_valid);
+    // Second closest blockers that are of the correct type to be pinning attackers.
+    const u64 attackers = maybe_attacking & potential_attackers;
 
-    const u64 attackers = potential_attackers & geometry::superpieceAttacks(enemy_pieces, ray_valid);
-    const u64 attacker_rays = (attackers | 0x0101010101010101) - 0x0202020202020202;
-    const u16 has_attacker_vecmask = ~v128::from64(attacker_rays).msb8();
-    const u64 potentially_pinned = attacker_rays & friendly_pieces;
+    // A closest blocker is pinned if it has a valid pinning attacker.
+    const u16 has_attacker_vecmask = v128::from64(attackers).nonzero8();
+    const u64 pinned = vec::mask8(has_attacker_vecmask, v128::from64(potentially_pinned)).to64();
 
-    const v128 potentially_pinned_vec = v128::from64(potentially_pinned);
-    const u16 pinned_vecmask = vec::eq8(vec::popcount8(potentially_pinned_vec), v128::broadcast8(1)) & has_attacker_vecmask;
-    const u64 pinned = vec::mask8(pinned_vecmask, potentially_pinned_vec).to64();
-
+    // Convert from ray layout to bitboard
     return vec::permute8(geometry::superpieceInverseRays(king_sq), v512::expandMask8(pinned)).msb8();
   }
 

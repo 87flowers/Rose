@@ -22,6 +22,8 @@ namespace rose::vec {
 
     forceinline auto msb8() const -> u16 { return _mm_movepi8_mask(raw); }
 
+    forceinline auto nonzero8() const -> u16 { return _mm_cmpneq_epu8_mask(raw, _mm_setzero_si128()); }
+
     forceinline constexpr auto operator==(const v128 &other) const -> bool {
       const __m128i t = _mm_xor_si128(raw, other.raw);
       return _mm_testz_si128(t, t);
@@ -43,6 +45,8 @@ namespace rose::vec {
     forceinline auto to128() const -> v128 { return {_mm256_castsi256_si128(raw)}; }
 
     forceinline auto msb8() const -> u32 { return _mm256_movepi8_mask(raw); }
+
+    forceinline auto nonzero8() const -> u32 { return _mm256_cmpneq_epu8_mask(raw, _mm256_setzero_si256()); }
 
     forceinline constexpr auto operator==(const v256 &other) const -> bool {
       const __m256i t = _mm256_xor_si256(raw, other.raw);
