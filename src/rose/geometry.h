@@ -10,17 +10,17 @@ namespace rose::geometry {
 
   namespace internal {
     // 00rrrfff → 0rrr0fff
-    inline auto expandSq(Square sq) -> u8 { return sq.raw + (sq.raw & 0b111000); }
+    forceinline auto expandSq(Square sq) -> u8 { return sq.raw + (sq.raw & 0b111000); }
 
     // 0rrr0fff → 00rrrfff
-    template <typename V> inline auto compressCoords(V list) -> std::tuple<V, typename V::Mask8> {
+    template <typename V> forceinline auto compressCoords(V list) -> std::tuple<V, typename V::Mask8> {
       const typename V::Mask8 valid = vec::testn8(list, V::broadcast8(0x88));
       const V compressed = vec::gf2p8affine8(list, V::broadcast64(0x0102041020400000), 0);
       return {compressed, valid};
     }
   } // namespace internal
 
-  inline auto superpieceRays(Square sq) -> std::tuple<v512, u64> {
+  forceinline auto superpieceRays(Square sq) -> std::tuple<v512, u64> {
     const v512 offsets = v512::fromArray({
         // clang-format off
         0xDF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, // north-east
@@ -37,7 +37,7 @@ namespace rose::geometry {
     return internal::compressCoords(uncompressed);
   }
 
-  inline auto superpieceAttacks(u64 occupied, u64 rayvalid) -> u64 {
+  forceinline auto superpieceAttacks(u64 occupied, u64 rayvalid) -> u64 {
     const u64 o = occupied | 0x8181818181818181;
     const u64 x = o ^ (o - 0x0303030303030303);
     return x & rayvalid;
@@ -45,7 +45,7 @@ namespace rose::geometry {
 
   inline constexpr u64 non_horse_attack_mask = 0xFEFEFEFEFEFEFEFE;
 
-  inline auto superpieceAttackerMask(Color color) -> v512 {
+  forceinline auto superpieceAttackerMask(Color color) -> v512 {
     constexpr u8 diag = PieceType::b;
     constexpr u8 orth = PieceType::r;
     constexpr u8 pawn = PieceType::b | PieceType::p | PieceType::k;
@@ -85,7 +85,7 @@ namespace rose::geometry {
     std::unreachable();
   }
 
-  inline auto superpieceInverseRays(Square sq) -> v512 {
+  forceinline auto superpieceInverseRays(Square sq) -> v512 {
     // clang-format off
     constexpr u8 none = 0xFF;
     const v512 table0 = v512::fromArray({

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <format>
+
 #include "rose/common.h"
 #include "rose/square.h"
 #include "rose/util/types.h"
@@ -67,3 +69,14 @@ namespace rose {
   };
 
 } // namespace rose
+
+template <> struct std::formatter<rose::Move, char> {
+  template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
+
+  template <class FmtContext> auto format(rose::Move m, FmtContext &ctx) const -> FmtContext::iterator {
+    if (m.promo())
+      return std::format_to(ctx.out(), "{}{}{}", m.from(), m.to(), m.ptype());
+    else
+      return std::format_to(ctx.out(), "{}{}", m.from(), m.to());
+  }
+};

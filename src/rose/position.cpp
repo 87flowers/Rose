@@ -47,7 +47,7 @@ namespace rose {
     const u64 potentially_pinned = occupied & geometry::superpieceAttacks(occupied, ray_valid);
 
     // Find all enemy sliders with the correct attacks for the rays they're on
-    const u64 maybe_attacking = enemy_pieces & vec::and8(ray_places, geometry::superpieceAttackerMask(active_color)).nonzero8();
+    const u64 maybe_attacking = enemy_pieces & (ray_places & geometry::superpieceAttackerMask(active_color)).nonzero8();
     // Second closest blockers
     const u64 not_closest = occupied & ~potentially_pinned;
     const u64 potential_attackers = not_closest & geometry::superpieceAttacks(not_closest, ray_valid);
@@ -82,8 +82,8 @@ namespace rose {
 
     const u64 visible = geometry::superpieceAttacks(occupied, ray_valid) & occupied;
 
-    const u64 white_attackers = ~color & visible & vec::and8(ray_places, geometry::superpieceAttackerMask(Color::black)).nonzero8();
-    const u64 black_attackers = color & visible & vec::and8(ray_places, geometry::superpieceAttackerMask(Color::white)).nonzero8();
+    const u64 white_attackers = ~color & visible & (ray_places & geometry::superpieceAttackerMask(Color::black)).nonzero8();
+    const u64 black_attackers = color & visible & (ray_places & geometry::superpieceAttackerMask(Color::white)).nonzero8();
     const int white_attackers_count = std::popcount(white_attackers);
     const int black_attackers_count = std::popcount(black_attackers);
     const v128 white_attackers_coord = vec::compress8(white_attackers, ray_coords).to128();

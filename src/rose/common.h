@@ -65,6 +65,10 @@ namespace rose {
 
     constexpr auto isNone() const -> bool { return raw == none; }
     constexpr auto toIndex() const -> usize { return std::bit_width(std::to_underlying(raw)); }
+    constexpr auto toChar() const -> char {
+      constexpr std::string_view str = ".pnbrqk";
+      return str[toIndex()];
+    }
 
     constexpr auto operator==(const PieceType &) const -> bool = default;
   };
@@ -191,10 +195,18 @@ template <> struct std::formatter<rose::Color, char> {
   }
 };
 
+template <> struct std::formatter<rose::PieceType, char> {
+  template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
+
+  template <class FmtContext> auto format(rose::PieceType ptype, FmtContext &ctx) const -> FmtContext::iterator {
+    return std::format_to(ctx.out(), "{}", ptype.toChar());
+  }
+};
+
 template <> struct std::formatter<rose::Place, char> {
   template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
 
-  template <class FmtContext> auto format(rose::Place ptype, FmtContext &ctx) const -> FmtContext::iterator {
-    return std::format_to(ctx.out(), "{}", ptype.toChar());
+  template <class FmtContext> auto format(rose::Place place, FmtContext &ctx) const -> FmtContext::iterator {
+    return std::format_to(ctx.out(), "{}", place.toChar());
   }
 };

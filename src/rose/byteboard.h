@@ -23,7 +23,7 @@ namespace rose {
       v512 board = z;
       if constexpr (ptype == PieceType::k || ptype == PieceType::r) {
         constexpr u8 place_mask = Place::color_mask | Place::ptype_mask;
-        board = vec::and8(board, v512::broadcast8(place_mask));
+        board = board & v512::broadcast8(place_mask);
       }
       const u8 expected_place = Place::fromColorAndPtype(color, ptype).raw;
       return vec::eq8(board, v512::broadcast8(expected_place));
