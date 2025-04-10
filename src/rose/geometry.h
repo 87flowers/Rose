@@ -23,14 +23,14 @@ namespace rose::geometry {
   forceinline auto superpieceRays(Square sq) -> std::tuple<v512, u64> {
     const v512 offsets = v512::fromArray({
         // clang-format off
-        0xDF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, // north-east
         0xE1, 0x0F, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, // north-west
         0xEE, 0xF1, 0xE2, 0xD3, 0xC4, 0xB5, 0xA6, 0x97, // south-east
+        0xDF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, // north-east
         0x0E, 0xEF, 0xDE, 0xCD, 0xBC, 0xAB, 0x9A, 0x89, // south-west
-        0xF2, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, // east
         0x12, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, // north
-        0x1F, 0xFF, 0xFE, 0xFD, 0xFC, 0xFB, 0xFA, 0xF9, // west
         0x21, 0xF0, 0xE0, 0xD0, 0xC0, 0xB0, 0xA0, 0x90, // south
+        0xF2, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, // east
+        0x1F, 0xFF, 0xFE, 0xFD, 0xFC, 0xFB, 0xFA, 0xF9, // west
         // clang-format on
     });
     const v512 uncompressed = vec::add8(v512::broadcast8(internal::expandSq(sq)), offsets);
@@ -58,8 +58,8 @@ namespace rose::geometry {
       return v512::fromArray({
           // clang-format off
           horse, pawn, diag, diag, diag, diag, diag, diag,
-          horse, pawn, diag, diag, diag, diag, diag, diag,
           horse, dadj, diag, diag, diag, diag, diag, diag,
+          horse, pawn, diag, diag, diag, diag, diag, diag,
           horse, dadj, diag, diag, diag, diag, diag, diag,
           horse, oadj, orth, orth, orth, orth, orth, orth,
           horse, oadj, orth, orth, orth, orth, orth, orth,
@@ -71,8 +71,8 @@ namespace rose::geometry {
       return v512::fromArray({
           // clang-format off
           horse, dadj, diag, diag, diag, diag, diag, diag,
-          horse, dadj, diag, diag, diag, diag, diag, diag,
           horse, pawn, diag, diag, diag, diag, diag, diag,
+          horse, dadj, diag, diag, diag, diag, diag, diag,
           horse, pawn, diag, diag, diag, diag, diag, diag,
           horse, oadj, orth, orth, orth, orth, orth, orth,
           horse, oadj, orth, orth, orth, orth, orth, orth,
@@ -90,27 +90,27 @@ namespace rose::geometry {
     constexpr u8 none = 0xFF;
     const v512 table0 = v512::fromArray({
         none, none, none, none, none, none, none, none, none, none, none, none, none, none, none, none,
-        none, 0x1F, none, none, none, none, none, none, 0x3F, none, none, none, none, none, none, 0x17,
-        none, none, 0x1E, none, none, none, none, none, 0x3E, none, none, none, none, none, 0x16, none,
-        none, none, none, 0x1D, none, none, none, none, 0x3D, none, none, none, none, 0x15, none, none,
+        none, 0x1F, none, none, none, none, none, none, 0x2F, none, none, none, none, none, none, 0x0F,
+        none, none, 0x1E, none, none, none, none, none, 0x2E, none, none, none, none, none, 0x0E, none,
+        none, none, none, 0x1D, none, none, none, none, 0x2D, none, none, none, none, 0x0D, none, none,
     });
     const v512 table1 = v512::fromArray({
-        none, none, none, none, 0x1C, none, none, none, 0x3C, none, none, none, 0x14, none, none, none,
-        none, none, none, none, none, 0x1B, none, none, 0x3B, none, none, 0x13, none, none, none, none,
-        none, none, none, none, none, none, 0x1A, 0x00, 0x3A, 0x08, 0x12, none, none, none, none, none,
-        none, none, none, none, none, none, 0x10, 0x19, 0x39, 0x11, 0x20, none, none, none, none, none,
+        none, none, none, none, 0x1C, none, none, none, 0x2C, none, none, none, 0x0C, none, none, none,
+        none, none, none, none, none, 0x1B, none, none, 0x2B, none, none, 0x0B, none, none, none, none,
+        none, none, none, none, none, none, 0x1A, 0x10, 0x2A, 0x00, 0x0A, none, none, none, none, none,
+        none, none, none, none, none, none, 0x08, 0x19, 0x29, 0x09, 0x30, none, none, none, none, none,
     });
     const v512 table2 = v512::fromArray({
-        none, 0x37, 0x36, 0x35, 0x34, 0x33, 0x32, 0x31, none, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
-        none, none, none, none, none, none, 0x18, 0x09, 0x29, 0x01, 0x28, none, none, none, none, none,
-        none, none, none, none, none, none, 0x0A, 0x30, 0x2A, 0x38, 0x02, none, none, none, none, none,
-        none, none, none, none, none, 0x0B, none, none, 0x2B, none, none, 0x03, none, none, none, none,
+        none, 0x3F, 0x3E, 0x3D, 0x3C, 0x3B, 0x3A, 0x39, none, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+        none, none, none, none, none, none, 0x18, 0x01, 0x21, 0x11, 0x20, none, none, none, none, none,
+        none, none, none, none, none, none, 0x02, 0x38, 0x22, 0x28, 0x12, none, none, none, none, none,
+        none, none, none, none, none, 0x03, none, none, 0x23, none, none, 0x13, none, none, none, none,
     });
     const v512 table3 = v512::fromArray({
-        none, none, none, none, 0x0C, none, none, none, 0x2C, none, none, none, 0x04, none, none, none,
-        none, none, none, 0x0D, none, none, none, none, 0x2D, none, none, none, none, 0x05, none, none,
-        none, none, 0x0E, none, none, none, none, none, 0x2E, none, none, none, none, none, 0x06, none,
-        none, 0x0F, none, none, none, none, none, none, 0x2F, none, none, none, none, none, none, 0x07,
+        none, none, none, none, 0x04, none, none, none, 0x24, none, none, none, 0x14, none, none, none,
+        none, none, none, 0x05, none, none, none, none, 0x25, none, none, none, none, 0x15, none, none,
+        none, none, 0x06, none, none, none, none, none, 0x26, none, none, none, none, none, 0x16, none,
+        none, 0x07, none, none, none, none, none, none, 0x27, none, none, none, none, none, none, 0x17,
     });
     const v512 offsets = v512::fromArray({
         0210, 0211, 0212, 0213, 0214, 0215, 0216, 0217,
