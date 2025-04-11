@@ -13,10 +13,10 @@ auto main(int argc, char **argv) -> int {
 
   position.board().dumpRaw();
   std::print("\n");
-  position.pieceList(Color::white).dump();
+  position.pieceListSq(Color::white).dump();
   position.attackTable(Color::white).dumpRaw();
   std::print("\n");
-  position.pieceList(Color::black).dump();
+  position.pieceListSq(Color::black).dump();
   position.attackTable(Color::black).dumpRaw();
   std::print("\n");
   position.printAttackTable();

@@ -68,7 +68,7 @@ namespace rose {
     constexpr auto end() const -> const_iterator { return &data[len]; }
     constexpr auto cend() const -> const_iterator { return end(); }
 
-  private:
+  protected:
     usize len = 0;
     std::array<T, cap> data;
   };

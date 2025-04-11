@@ -4,12 +4,10 @@
 #include <expected>
 #include <string_view>
 #include <tuple>
-#include <x86intrin.h>
 
 #include "rose/common.h"
 #include "rose/util/assert.h"
 #include "rose/util/types.h"
-#include "rose/util/vec.h"
 
 namespace rose {
 

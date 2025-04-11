@@ -14,9 +14,9 @@
 
 namespace rose {
 
-  union alignas(16) PieceList {
+  template <typename T> union alignas(16) PieceList {
     v128 x;
-    std::array<Square, 16> m{};
+    std::array<T, 16> m{};
 
     auto dump() const -> void;
 
@@ -40,7 +40,8 @@ namespace rose {
     friend class std::formatter<rose::Position, char>;
 
     std::array<Wordboard, 2> m_attack_table{};
-    std::array<PieceList, 2> m_piece_list{};
+    std::array<PieceList<Square>, 2> m_piece_list_sq{};
+    std::array<PieceList<PieceType>, 2> m_piece_list_ptype{};
     Byteboard m_board{};
     u64 m_pinned{};
     u64 m_hash{};
@@ -56,7 +57,8 @@ namespace rose {
 
     constexpr auto board() const -> const Byteboard & { return m_board; }
     constexpr auto attackTable(Color color) const -> const Wordboard & { return m_attack_table[color.toIndex()]; }
-    constexpr auto pieceList(Color color) const -> PieceList { return m_piece_list[color.toIndex()]; }
+    constexpr auto pieceListSq(Color color) const -> PieceList<Square> { return m_piece_list_sq[color.toIndex()]; }
+    constexpr auto pieceListType(Color color) const -> PieceList<PieceType> { return m_piece_list_ptype[color.toIndex()]; }
     constexpr auto activeColor() const -> Color { return m_active_color; }
     constexpr auto pinned() const -> u64 { return m_pinned; }
 

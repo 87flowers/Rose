@@ -106,6 +106,10 @@ namespace rose::vec {
   forceinline auto compress8(u32 mask, v256 a) -> v256 { return {_mm256_maskz_compress_epi8(mask, a.raw)}; }
   forceinline auto compress8(u64 mask, v512 a) -> v512 { return {_mm512_maskz_compress_epi8(mask, a.raw)}; }
 
+  forceinline auto concatlo16(u16 a, u16 b) -> u16 { return _mm512_kunpackb(a, b); }
+  forceinline auto concatlo32(u32 a, u32 b) -> u32 { return _mm512_kunpackw(a, b); }
+  forceinline auto concatlo64(u64 a, u64 b) -> u64 { return _mm512_kunpackd(a, b); }
+
   forceinline auto compressstore16(void *dest, u8 mask, v128 a) -> void { _mm_mask_compressstoreu_epi16(dest, mask, a.raw); }
   forceinline auto compressstore16(void *dest, u16 mask, v256 a) -> void { _mm256_mask_compressstoreu_epi16(dest, mask, a.raw); }
   forceinline auto compressstore16(void *dest, u32 mask, v512 a) -> void { _mm512_mask_compressstoreu_epi16(dest, mask, a.raw); }
@@ -172,6 +176,10 @@ namespace rose::vec {
   forceinline auto testn16(v128 a, v128 b) -> u16 { return {_mm_testn_epi16_mask(a.raw, b.raw)}; }
   forceinline auto testn16(v256 a, v256 b) -> u32 { return {_mm256_testn_epi16_mask(a.raw, b.raw)}; }
   forceinline auto testn16(v512 a, v512 b) -> u64 { return {_mm512_testn_epi16_mask(a.raw, b.raw)}; }
+
+  forceinline auto truncate64to16(v128 a) -> v128 { return {_mm_cvtepi64_epi16(a.raw)}; }
+  forceinline auto truncate64to16(v256 a) -> v128 { return {_mm256_cvtepi64_epi16(a.raw)}; }
+  forceinline auto truncate64to16(v512 a) -> v128 { return {_mm512_cvtepi64_epi16(a.raw)}; }
 
   forceinline auto zext8to16_lo(v128 a) -> v128 { return {_mm_cvtepu8_epi16(a.raw)}; }
   forceinline auto zext8to16(v128 a) -> v256 { return {_mm256_cvtepu8_epi16(a.raw)}; }

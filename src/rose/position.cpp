@@ -5,13 +5,20 @@
 
 namespace rose {
 
-  auto PieceList::dump() const -> void {
+  template <> auto PieceList<Square>::dump() const -> void {
     for (const Square sq : m) {
       if (sq.isValid()) {
         std::print("{} ", sq);
       } else {
         std::print("-- ");
       }
+    }
+    std::print("\n");
+  }
+
+  template <> auto PieceList<PieceType>::dump() const -> void {
+    for (const PieceType ptype : m) {
+      std::print("{} ", ptype);
     }
     std::print("\n");
   }
@@ -89,8 +96,8 @@ namespace rose {
     const v128 white_attackers_coord = vec::compress8(white_attackers, ray_coords).to128();
     const v128 black_attackers_coord = vec::compress8(black_attackers, ray_coords).to128();
     return {
-        vec::findset8(white_attackers_coord, white_attackers_count, m_piece_list[0].x),
-        vec::findset8(black_attackers_coord, black_attackers_count, m_piece_list[1].x),
+        vec::findset8(white_attackers_coord, white_attackers_count, m_piece_list_sq[0].x),
+        vec::findset8(black_attackers_coord, black_attackers_count, m_piece_list_sq[1].x),
     };
   }
 
@@ -165,13 +172,13 @@ namespace rose {
         const u16 attackers = m_attack_table[color].r[sq.raw];
         for (int id = 0; id < 16; id++) {
           if ((attackers >> id) & 1) {
-            const Square attacker = m_piece_list[color].m[id];
+            const Square attacker = m_piece_list_sq[color].m[id];
             const auto [valid, index, distance] = get(sq, attacker);
             if (!valid || result[sq_raw][index] != 0) {
               std::print("error: invalid attack to {}: piece id {}:{} is at {}\n", sq, color, id, attacker);
               std::print("m_attack_table[{}].m[{}] = 0x{:04x}\n", color, sq, attackers);
-              std::print("m_piece_list[{}] = ", color);
-              m_piece_list[color].dump();
+              std::print("m_piece_list_sq[{}] = ", color);
+              m_piece_list_sq[color].dump();
               continue;
             }
             result[sq_raw][index] = distance;
@@ -238,10 +245,11 @@ namespace rose {
         } else if (const auto p = Place::parse(ch); p) {
           const usize color = p->color().toIndex();
           usize &current_id = id[color];
-          if (current_id >= result.m_piece_list[color].m.size())
+          if (current_id >= result.m_piece_list_sq[color].m.size())
             return std::unexpected(ParseError::too_many_pieces);
           result.m_board.m[sq.raw] = *p;
-          result.m_piece_list[color].m[current_id] = sq;
+          result.m_piece_list_sq[color].m[current_id] = sq;
+          result.m_piece_list_ptype[color].m[current_id] = p->ptype();
           place_index++;
           current_id++;
         } else {

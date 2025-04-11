@@ -18,6 +18,12 @@ namespace rose::geometry {
       const V compressed = vec::gf2p8affine8(list, V::broadcast64(0x0102041020400000), 0);
       return {compressed, valid};
     }
+
+    template <typename V> forceinline auto compressCoordsWide(V list) -> std::tuple<V, typename V::Mask16> {
+      const typename V::Mask8 valid = vec::testn16(list, V::broadcast16(0xFF88));
+      const V compressed = vec::gf2p8affine8(list, V::broadcast64(0x0102041020400000), 0);
+      return {compressed, valid};
+    }
   } // namespace internal
 
   forceinline auto superpieceRays(Square sq) -> std::tuple<v512, u64> {
@@ -35,6 +41,24 @@ namespace rose::geometry {
     });
     const v512 uncompressed = vec::add8(v512::broadcast8(internal::expandSq(sq)), offsets);
     return internal::compressCoords(uncompressed);
+  }
+
+  inline constexpr u16 adjacents_same_file_mask = 0b00010001;
+  inline constexpr u16 adjacents_same_rank_mask = 0b01000100;
+  inline constexpr u16 adjacents_diagonal_mask = 0b00100010;
+  inline constexpr u16 adjacents_antidiagonal_mask = 0b10001000;
+
+  forceinline auto adjacents(Square sq) -> std::tuple<v128, u16> {
+    //                                       n,   ne,    e,   se,    s,   sw,    w,   nw,
+    const v128 offsets = v128::fromArray({0x10, 0x11, 0x01, 0xF1, 0xF0, 0xEF, 0xFF, 0x0F, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88});
+    const v128 uncompressed = vec::add8(v128::broadcast8(internal::expandSq(sq)), offsets);
+    return internal::compressCoords(uncompressed);
+  }
+
+  forceinline auto adjacentsWide(Square sq) -> std::tuple<v128, u8> {
+    const v128 offsets = v128::fromArray({0x0F, 0, 0xF1, 0, 0x11, 0, 0xEF, 0, 0x10, 0, 0xF0, 0, 0x01, 0, 0xFF, 0});
+    const v128 uncompressed = vec::add16(v128::broadcast16(internal::expandSq(sq)), offsets);
+    return internal::compressCoordsWide(uncompressed);
   }
 
   forceinline auto superpieceAttacks(u64 occupied, u64 rayvalid) -> u64 {

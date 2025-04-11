@@ -10,7 +10,9 @@ namespace rose {
 
 namespace rose::movegen {
 
-  using MoveList = StaticVector<Move, max_legal_moves>;
+  struct MoveList : StaticVector<Move, max_legal_moves> {
+    template <typename T> auto write(typename T::Mask16 mask, T v) -> void;
+  };
 
   auto generateMoves(MoveList &moves, const Position &position) -> void;
 
