@@ -30,8 +30,9 @@ auto pinned() -> void {
       {"8/8/5b2/4n3/3P4/8/1K6/8 w - - 0 1", 0},
   }};
   for (const auto [fen, expected_pins] : cases) {
+    std::print("{}:\n", fen);
     const Position position = Position::parse(fen).value();
-    rose_assert(expected_pins == position.pinned());
+    rose_assert(expected_pins == position.pinned(), "{}: {:016x} != {:016x}", fen, expected_pins, position.pinned());
   }
 }
 
