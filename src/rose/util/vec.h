@@ -26,6 +26,7 @@ namespace rose::vec {
 
     forceinline auto nonzero8() const -> u16 { return _mm_cmpneq_epu8_mask(raw, _mm_setzero_si128()); }
     forceinline auto zero16() const -> u8 { return _mm_cmpeq_epu16_mask(raw, _mm_setzero_si128()); }
+    forceinline auto nonzero16() const -> u8 { return _mm_cmpneq_epu16_mask(raw, _mm_setzero_si128()); }
 
     forceinline constexpr auto operator==(const v128 &other) const -> bool {
       const __m128i t = _mm_xor_si128(raw, other.raw);
@@ -53,6 +54,7 @@ namespace rose::vec {
 
     forceinline auto nonzero8() const -> u32 { return _mm256_cmpneq_epu8_mask(raw, _mm256_setzero_si256()); }
     forceinline auto zero16() const -> u16 { return _mm256_cmpeq_epu16_mask(raw, _mm256_setzero_si256()); }
+    forceinline auto nonzero16() const -> u16 { return _mm256_cmpneq_epu16_mask(raw, _mm256_setzero_si256()); }
 
     forceinline constexpr auto operator==(const v256 &other) const -> bool {
       const __m256i t = _mm256_xor_si256(raw, other.raw);
@@ -82,6 +84,7 @@ namespace rose::vec {
 
     forceinline auto nonzero8() const -> u64 { return _mm512_cmpneq_epu8_mask(raw, _mm512_setzero_si512()); }
     forceinline auto zero16() const -> u32 { return _mm512_cmpeq_epu16_mask(raw, _mm512_setzero_si512()); }
+    forceinline auto nonzero16() const -> u32 { return _mm512_cmpneq_epu16_mask(raw, _mm512_setzero_si512()); }
 
     forceinline constexpr auto operator==(const v512 &other) const -> bool { return _mm512_cmpeq_epu64_mask(raw, other.raw) == 0xFF; }
   };

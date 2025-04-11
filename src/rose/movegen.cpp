@@ -4,12 +4,13 @@
 #include <tuple>
 
 #include "rose/common.h"
+#include "rose/geometry.h"
 #include "rose/position.h"
 #include "rose/util/pext.h"
 #include "rose/util/types.h"
 #include "rose/util/vec.h"
 
-namespace rose::movegen {
+namespace rose {
 
   template <typename T> auto MoveList::write(typename T::Mask16 mask, T v) -> void {
     const usize count = std::popcount(mask);
@@ -18,29 +19,73 @@ namespace rose::movegen {
     len += count;
   }
 
+  auto MoveGen::calculatePinInfo() -> void {
+    const Color active_color = m_position.activeColor();
+
+    std::tie(m_king_ray_coords, m_king_ray_valid) = geometry::superpieceRays(m_king_sq);
+    m_king_ray_places = vec::permute8(m_king_ray_coords, m_position.board().z);
+
+    const u64 occupied = m_king_ray_places.nonzero8() & m_king_ray_valid & geometry::non_horse_attack_mask;
+    const u64 color = m_king_ray_places.msb8();
+    const u64 enemy_pieces = (color ^ active_color.toBitboard()) & occupied;
+
+    // Closest blockers (color doesn't matter, because we want to use this to detect pinned en passant pawns as well).
+    const u64 potentially_pinned = occupied & geometry::superpieceAttacks(occupied, m_king_ray_valid);
+
+    // Find all enemy sliders with the correct attacks for the rays they're on
+    const u64 maybe_attacking = enemy_pieces & (m_king_ray_places & geometry::superpieceAttackerMask(active_color)).nonzero8();
+    // Second closest blockers
+    const u64 not_closest = occupied & ~potentially_pinned;
+    m_pin_raymasks = geometry::superpieceAttacks(not_closest, m_king_ray_valid);
+    const u64 potential_attackers = not_closest & m_pin_raymasks;
+    // Second closest blockers that are of the correct type to be pinning attackers.
+    const u64 attackers = maybe_attacking & potential_attackers;
+
+    // A closest blocker is pinned if it has a valid pinning attacker.
+    const u16 has_attacker_vecmask = v128::from64(attackers).nonzero8();
+    m_pinned = vec::mask8(has_attacker_vecmask, v128::from64(potentially_pinned)).to64();
+    m_pinned_friendly = m_pinned & ~enemy_pieces;
+
+    // Convert from list of squares to piecemask
+    const int pinned_count = std::popcount(m_pinned);
+    const v128 pinned_coord = vec::compress8(m_pinned, m_king_ray_coords).to128();
+    m_pinned_piece_mask = vec::findset8(pinned_coord, pinned_count, m_position.pieceListSq(active_color).x);
+  }
+
   static auto generateMovesNoCheckers(MoveList &moves, const Position &position, Square king_sq) -> void;
   static auto generateMovesOneCheckers(MoveList &moves, const Position &position, Square king_sq, u16 checkers) -> void;
   static auto generateMovesTwoCheckers(MoveList &moves, const Position &position, Square king_sq, u16 checkers) -> void;
 
   static auto writeKingMovesWithCheckers(MoveList &moves, const Position &position, Square king_sq, u16 checkers) -> void;
 
-  auto generateMoves(MoveList &moves, const Position &position) -> void {
-    const Color active_color = position.activeColor();
-    const Square king_sq = position.kingSq(active_color);
-    const u16 checkers = position.attackTable(active_color.invert()).r[king_sq.raw];
+  auto MoveGen::generateMoves(MoveList &moves) -> void {
+    const Color active_color = m_position.activeColor();
+    const Square king_sq = m_position.kingSq(active_color);
+    const u16 checkers = m_position.attackTable(active_color.invert()).r[king_sq.raw];
     const int checkers_count = std::popcount(checkers);
 
     switch (checkers_count) {
     case 0:
-      return generateMovesNoCheckers(moves, position, king_sq);
+      return generateMovesNoCheckers(moves, m_position, king_sq);
     case 1:
-      return generateMovesOneCheckers(moves, position, king_sq, checkers);
+      return generateMovesOneCheckers(moves, m_position, king_sq, checkers);
     default:
-      return generateMovesTwoCheckers(moves, position, king_sq, checkers);
+      return generateMovesTwoCheckers(moves, m_position, king_sq, checkers);
     }
   }
 
-  static auto generateMovesNoCheckers(MoveList &moves, const Position &position, Square king_sq) -> void {}
+  static auto generateMovesNoCheckers(MoveList &moves, const Position &position, Square king_sq) -> void {
+    const Color active_color = position.activeColor();
+
+    const Wordboard &my_attacks = position.attackTable(active_color);
+    const Wordboard &their_attacks = position.attackTable(active_color.invert());
+
+    const u64 friendly = position.board().getColorBitboard(active_color);
+    const u64 enemy = position.board().getColorBitboard(active_color.invert());
+
+    const u16 king_mask = position.pieceListType(active_color).maskEq(PieceType::k);
+    const u16 pawn_mask = position.pieceListType(active_color).maskEq(PieceType::p);
+  }
 
   static auto generateMovesOneCheckers(MoveList &moves, const Position &position, Square king_sq, u16 checkers) -> void {}
 
@@ -94,4 +139,4 @@ namespace rose::movegen {
     moves.write(destinations, write_vector);
   }
 
-} // namespace rose::movegen
+} // namespace rose

@@ -23,21 +23,7 @@ auto roundtrip() -> void {
   }
 }
 
-auto pinned() -> void {
-  const std::vector<std::tuple<std::string_view, u64>> cases{{
-      {"3r4/B2R2q1/1b1Rn3/2N5/Rr1K1rPP/2BP4/2NP1P2/q2r4 w - - 0 1", 0x0000000400040000},
-      {"r7/8/8/4b3/8/8/8/K3R1b1 w - - 0 1", 0},
-      {"8/8/5b2/4n3/3P4/8/1K6/8 w - - 0 1", 0},
-  }};
-  for (const auto [fen, expected_pins] : cases) {
-    std::print("{}:\n", fen);
-    const Position position = Position::parse(fen).value();
-    rose_assert(expected_pins == position.pinned(), "{}: {:016x} != {:016x}", fen, expected_pins, position.pinned());
-  }
-}
-
 auto main() -> int {
   roundtrip();
-  pinned();
   return 0;
 }

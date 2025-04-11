@@ -18,6 +18,8 @@ namespace rose {
     v128 x;
     std::array<T, 16> m{};
 
+    auto maskEq(T value) const -> u16 { return vec::eq8(x, v128::broadcast8(value.raw)); }
+
     auto dump() const -> void;
 
     constexpr auto operator==(const PieceList &other) const -> bool { return m == other.m; }
@@ -43,7 +45,6 @@ namespace rose {
     std::array<PieceList<Square>, 2> m_piece_list_sq{};
     std::array<PieceList<PieceType>, 2> m_piece_list_ptype{};
     Byteboard m_board{};
-    u64 m_pinned{};
     u64 m_hash{};
     u16 m_ply{};
     u16 m_irreversible_clock{};
@@ -60,12 +61,9 @@ namespace rose {
     constexpr auto pieceListSq(Color color) const -> PieceList<Square> { return m_piece_list_sq[color.toIndex()]; }
     constexpr auto pieceListType(Color color) const -> PieceList<PieceType> { return m_piece_list_ptype[color.toIndex()]; }
     constexpr auto activeColor() const -> Color { return m_active_color; }
-    constexpr auto pinned() const -> u64 { return m_pinned; }
 
     auto kingSq(Color color) const -> Square { return Square{static_cast<u8>(std::countr_zero(m_board.bitboardFor<PieceType::k>(color)))}; }
     auto castlingRights() const -> Castling;
-
-    auto calcPinnedSlow(Color active_color, Square king_sq) const -> u64;
 
     auto calcAttacksSlow() const -> std::array<Wordboard, 2>;
     auto calcAttacksSlow(Square sq) const -> std::array<u16, 2>;

@@ -54,6 +54,8 @@ namespace rose {
 
     auto dumpRaw(u64 mask = ~u64{0}) const -> void;
 
+    auto getAttackedBitboard() const -> u64 { return vec::concatlo64(z[0].nonzero16(), z[1].nonzero16()); }
+
     constexpr auto operator==(const Wordboard &other) const -> bool { return r == other.r; };
   };
 
