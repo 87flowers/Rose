@@ -122,6 +122,7 @@ namespace rose {
     const u64 enemy = position.board().getColorBitboard(active_color.invert());
 
     const Wordboard &attack_table = position.attackTable(active_color);
+    const u64 active = position.attackTable(active_color).getAttackedBitboard();
     const u64 danger = position.attackTable(active_color.invert()).getAttackedBitboard();
 
     const u16 valid_plist = position.pieceListType(active_color).x.nonzero8();
@@ -135,9 +136,9 @@ namespace rose {
     // TODO: Pinned masking
 
     // Unprotected captures
-    generateSubsetCaps(moves, attack_table, srcs, enemy & ~danger, valid_plist & ~pawn_mask);
+    generateSubsetCaps(moves, attack_table, srcs, active & enemy & ~danger, valid_plist & ~pawn_mask);
     // Capture-with-promotion
-    generateSubsetPCap(moves, attack_table, enemy & pawn_info.promo_zone, pawn_mask);
+    generateSubsetPCap(moves, attack_table, active & enemy & pawn_info.promo_zone, pawn_mask);
     // Enpassant
     if (position.enpassant().isValid()) {
       const Square sq = position.enpassant();
@@ -146,13 +147,13 @@ namespace rose {
       moves.write(mask, srcs | dest);
     }
     // Pawn captures
-    generateSubsetCaps(moves, attack_table, srcs, enemy & pawn_info.non_promo_dest, pawn_mask);
+    generateSubsetCaps(moves, attack_table, srcs, active & enemy & pawn_info.non_promo_dest, pawn_mask);
     // Protected captures
-    generateSubsetCaps(moves, attack_table, srcs, enemy & danger, valid_plist & ~pawn_mask & ~king_mask);
+    generateSubsetCaps(moves, attack_table, srcs, active & enemy & danger, valid_plist & ~pawn_mask & ~king_mask);
     // Unprotected non-pawn quiets
-    generateSubsetNorm(moves, attack_table, srcs, empty & ~danger, valid_plist & ~pawn_mask);
+    generateSubsetNorm(moves, attack_table, srcs, active & empty & ~danger, valid_plist & ~pawn_mask);
     // Protected non-pawn quiets
-    generateSubsetNorm(moves, attack_table, srcs, empty & danger, valid_plist & ~pawn_mask & ~king_mask);
+    generateSubsetNorm(moves, attack_table, srcs, active & empty & danger, valid_plist & ~pawn_mask & ~king_mask);
     // Do pawns
     {
       const u64 bb = position.board().bitboardFor<PieceType::p>(active_color);
