@@ -399,6 +399,7 @@ namespace rose {
           if (current_id >= result.m_piece_list_sq[color].m.size())
             return std::unexpected(ParseError::too_many_pieces);
           result.m_board.m[sq.raw] = *p;
+          result.m_id.r[sq.raw] = current_id;
           result.m_piece_list_sq[color].m[current_id] = sq;
           result.m_piece_list_ptype[color].m[current_id] = p->ptype();
           place_index++;
