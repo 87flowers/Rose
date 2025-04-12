@@ -32,8 +32,9 @@ namespace rose {
 
     auto calculatePinInfo() -> void;
 
-    auto generateMoveSubset(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void;
-    auto generatePromoMoveSubset(MoveList &moves, const Wordboard &attack_table, u64 bitboard, u16 piecemask) -> void;
+    auto generateSubsetNorm(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void;
+    auto generateSubsetCaps(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void;
+    auto generateSubsetPCap(MoveList &moves, const Wordboard &attack_table, u64 bitboard, u16 piecemask) -> void;
 
     auto generateMovesNoCheckers(MoveList &moves, const Position &position, Square king_sq) -> void;
 

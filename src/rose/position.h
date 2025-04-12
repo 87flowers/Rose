@@ -7,6 +7,7 @@
 
 #include "rose/byteboard.h"
 #include "rose/common.h"
+#include "rose/move.h"
 #include "rose/square.h"
 #include "rose/util/tokenizer.h"
 #include "rose/util/types.h"
@@ -45,9 +46,10 @@ namespace rose {
     std::array<PieceList<Square>, 2> m_piece_list_sq{};
     std::array<PieceList<PieceType>, 2> m_piece_list_ptype{};
     Byteboard m_board{};
+    Byteboard m_id{};
     u64 m_hash{};
-    u16 m_ply{};
     u16 m_irreversible_clock{};
+    u16 m_ply{};
     Color m_active_color{};
     Square m_enpassant = Square::invalid();
 
@@ -66,10 +68,18 @@ namespace rose {
     auto castlingRights() const -> Castling;
     auto enpassant() const -> Square { return m_enpassant; }
 
+    auto isValid() const -> bool { return attackTable(m_active_color.invert()).r[kingSq(m_active_color.invert()).raw] == 0; }
+
+    auto mutMove(Move m) -> void;
+
+    forceinline auto move(Move m) const -> Position {
+      Position position = *this;
+      position.mutMove(m);
+      return position;
+    }
+
     auto calcAttacksSlow() const -> std::array<Wordboard, 2>;
     auto calcAttacksSlow(Square sq) const -> std::array<u16, 2>;
-
-    auto isValid() const -> bool { return attackTable(m_active_color.invert()).r[kingSq(m_active_color.invert()).raw] == 0; }
 
     auto prettyPrint() const -> void;
     auto printAttackTable() const -> void;

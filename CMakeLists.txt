@@ -29,6 +29,9 @@ set(srcs
   src/rose/move.h
   src/rose/movegen.cpp
   src/rose/movegen.h
+  src/rose/pawns.h
+  src/rose/perft.cpp
+  src/rose/perft.h
   src/rose/position.cpp
   src/rose/position.h
   src/rose/square.h

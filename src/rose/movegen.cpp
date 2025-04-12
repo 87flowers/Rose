@@ -75,7 +75,7 @@ namespace rose {
     m_pinned_piece_mask = vec::findset8(pinned_coord, pinned_count, m_position.pieceListSq(active_color).x);
   }
 
-  auto MoveGen::generateMoveSubset(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void {
+  auto MoveGen::generateSubsetNorm(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void {
     const Color active_color = m_position.activeColor();
     for (; bitboard != 0; bitboard &= bitboard - 1) {
       const Square sq{narrow_cast<u8>(std::countr_zero(bitboard))};
@@ -87,7 +87,19 @@ namespace rose {
     }
   }
 
-  auto MoveGen::generatePromoMoveSubset(MoveList &moves, const Wordboard &attack_table, u64 bitboard, u16 piecemask) -> void {
+  auto MoveGen::generateSubsetCaps(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void {
+    const Color active_color = m_position.activeColor();
+    for (; bitboard != 0; bitboard &= bitboard - 1) {
+      const Square sq{narrow_cast<u8>(std::countr_zero(bitboard))};
+      const u16 mask = piecemask & attack_table.r[sq.raw];
+      if (mask) {
+        const v256 dest = v256::broadcast16(static_cast<u16>(MoveFlags::capture) | (static_cast<u16>(sq.raw) << 6));
+        moves.write(mask, srcs | dest);
+      }
+    }
+  }
+
+  auto MoveGen::generateSubsetPCap(MoveList &moves, const Wordboard &attack_table, u64 bitboard, u16 piecemask) -> void {
     const Color active_color = m_position.activeColor();
     for (; bitboard != 0; bitboard &= bitboard - 1) {
       const Square sq{narrow_cast<u8>(std::countr_zero(bitboard))};
@@ -96,8 +108,8 @@ namespace rose {
         const int pindex = std::countr_zero(mask);
         const Square src = m_position.pieceListSq(active_color).m[pindex];
         const u16 base_move = (static_cast<u16>(sq.raw) << 6) | src.raw;
-        constexpr u64 promos = (static_cast<u64>(PieceType::q) << 12) | (static_cast<u64>(PieceType::n) << (12 + 16)) |
-                               (static_cast<u64>(PieceType::r) << (12 + 32)) | (static_cast<u64>(PieceType::b) << (12 + 48));
+        constexpr u64 promos = static_cast<u64>(MoveFlags::cap_promo_q) | (static_cast<u64>(MoveFlags::cap_promo_n) << 16) |
+                               (static_cast<u64>(MoveFlags::cap_promo_r) << 32) | (static_cast<u64>(MoveFlags::cap_promo_b) << 48);
         moves.write4(promos + 0x0001000100010001 * base_move);
       }
     }
@@ -122,25 +134,25 @@ namespace rose {
 
     // TODO: Pinned masking
 
+    // Unprotected captures
+    generateSubsetCaps(moves, attack_table, srcs, enemy & ~danger, valid_plist & ~pawn_mask);
+    // Capture-with-promotion
+    generateSubsetPCap(moves, attack_table, enemy & pawn_info.promo_zone, pawn_mask);
+    // Enpassant
     if (position.enpassant().isValid()) {
       const Square sq = position.enpassant();
       const u16 mask = attack_table.r[sq.raw] & pawn_mask;
-      const v256 dest = v256::broadcast16(static_cast<u16>(sq.raw) << 6);
+      const v256 dest = v256::broadcast16(static_cast<u16>(MoveFlags::enpassant) | (static_cast<u16>(sq.raw) << 6));
       moves.write(mask, srcs | dest);
     }
-
-    // Unprotected captures
-    generateMoveSubset(moves, attack_table, srcs, enemy & ~danger, valid_plist & ~pawn_mask);
-    // Capture-with-promotion
-    generatePromoMoveSubset(moves, attack_table, enemy & pawn_info.promo_zone, pawn_mask);
     // Pawn captures
-    generateMoveSubset(moves, attack_table, srcs, enemy & pawn_info.non_promo_dest, pawn_mask);
+    generateSubsetCaps(moves, attack_table, srcs, enemy & pawn_info.non_promo_dest, pawn_mask);
     // Protected captures
-    generateMoveSubset(moves, attack_table, srcs, enemy & danger, valid_plist & ~pawn_mask & ~king_mask);
+    generateSubsetCaps(moves, attack_table, srcs, enemy & danger, valid_plist & ~pawn_mask & ~king_mask);
     // Unprotected non-pawn quiets
-    generateMoveSubset(moves, attack_table, srcs, empty & ~danger, valid_plist & ~pawn_mask);
+    generateSubsetNorm(moves, attack_table, srcs, empty & ~danger, valid_plist & ~pawn_mask);
     // Protected non-pawn quiets
-    generateMoveSubset(moves, attack_table, srcs, empty & danger, valid_plist & ~pawn_mask & ~king_mask);
+    generateSubsetNorm(moves, attack_table, srcs, empty & danger, valid_plist & ~pawn_mask & ~king_mask);
     // Do pawns
     {
       const u64 bb = position.board().bitboardFor<PieceType::p>(active_color);

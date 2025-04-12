@@ -3,6 +3,7 @@
 #include <print>
 
 #include "rose/common.h"
+#include "rose/move.h"
 #include "rose/movegen.h"
 #include "rose/position.h"
 #include "rose/util/types.h"

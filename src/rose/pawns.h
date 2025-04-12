@@ -52,8 +52,8 @@ namespace rose::pawns {
     constexpr std::array<std::array<u16, 32>, 2> normal_moves = [] {
       std::array<std::array<u16, 32>, 2> normal_moves;
       for (u8 i = 16; i < 48; i++) {
-        normal_moves[0][i - 16] = Move::make(Square{i}, Square{narrow_cast<u8>(i + 8)}).raw;
-        normal_moves[1][i - 16] = Move::make(Square{i}, Square{narrow_cast<u8>(i - 8)}).raw;
+        normal_moves[0][i - 16] = Move::make(Square{i}, Square{narrow_cast<u8>(i + 8)}, MoveFlags::normal).raw;
+        normal_moves[1][i - 16] = Move::make(Square{i}, Square{narrow_cast<u8>(i - 8)}, MoveFlags::normal).raw;
       }
       return normal_moves;
     }();
@@ -61,11 +61,11 @@ namespace rose::pawns {
       std::array<std::array<u16, 16>, 2> double_moves;
       for (u8 i = 0; i < 8; i++) {
         const u8 wsrc = 8 + i;
-        double_moves[0][i + 0] = Move::make(Square{wsrc}, Square{narrow_cast<u8>(wsrc + 8)}).raw;
-        double_moves[0][i + 8] = Move::make(Square{wsrc}, Square{narrow_cast<u8>(wsrc + 16)}).raw;
+        double_moves[0][i + 0] = Move::make(Square{wsrc}, Square{narrow_cast<u8>(wsrc + 8)}, MoveFlags::normal).raw;
+        double_moves[0][i + 8] = Move::make(Square{wsrc}, Square{narrow_cast<u8>(wsrc + 16)}, MoveFlags::double_push).raw;
         const u8 bsrc = 48 + i;
-        double_moves[1][i + 0] = Move::make(Square{bsrc}, Square{narrow_cast<u8>(bsrc - 8)}).raw;
-        double_moves[1][i + 8] = Move::make(Square{bsrc}, Square{narrow_cast<u8>(bsrc - 16)}).raw;
+        double_moves[1][i + 0] = Move::make(Square{bsrc}, Square{narrow_cast<u8>(bsrc - 8)}, MoveFlags::normal).raw;
+        double_moves[1][i + 8] = Move::make(Square{bsrc}, Square{narrow_cast<u8>(bsrc - 16)}, MoveFlags::double_push).raw;
       }
       return double_moves;
     }();
@@ -73,15 +73,15 @@ namespace rose::pawns {
       std::array<std::array<u16, 32>, 2> promotions;
       for (u8 i = 0; i < 8; i++) {
         const u8 wsrc = 48 + i;
-        promotions[0][i * 4 + 0] = Move::makePromotion(Square{wsrc}, Square{narrow_cast<u8>(wsrc + 8)}, PieceType::q).raw;
-        promotions[0][i * 4 + 1] = Move::makePromotion(Square{wsrc}, Square{narrow_cast<u8>(wsrc + 8)}, PieceType::n).raw;
-        promotions[0][i * 4 + 2] = Move::makePromotion(Square{wsrc}, Square{narrow_cast<u8>(wsrc + 8)}, PieceType::r).raw;
-        promotions[0][i * 4 + 3] = Move::makePromotion(Square{wsrc}, Square{narrow_cast<u8>(wsrc + 8)}, PieceType::b).raw;
+        promotions[0][i * 4 + 0] = Move::make(Square{wsrc}, Square{narrow_cast<u8>(wsrc + 8)}, MoveFlags::promo_q).raw;
+        promotions[0][i * 4 + 1] = Move::make(Square{wsrc}, Square{narrow_cast<u8>(wsrc + 8)}, MoveFlags::promo_n).raw;
+        promotions[0][i * 4 + 2] = Move::make(Square{wsrc}, Square{narrow_cast<u8>(wsrc + 8)}, MoveFlags::promo_r).raw;
+        promotions[0][i * 4 + 3] = Move::make(Square{wsrc}, Square{narrow_cast<u8>(wsrc + 8)}, MoveFlags::promo_b).raw;
         const u8 bsrc = 8 + i;
-        promotions[1][i * 4 + 0] = Move::makePromotion(Square{bsrc}, Square{narrow_cast<u8>(bsrc - 8)}, PieceType::q).raw;
-        promotions[1][i * 4 + 1] = Move::makePromotion(Square{bsrc}, Square{narrow_cast<u8>(bsrc - 8)}, PieceType::n).raw;
-        promotions[1][i * 4 + 2] = Move::makePromotion(Square{bsrc}, Square{narrow_cast<u8>(bsrc - 8)}, PieceType::r).raw;
-        promotions[1][i * 4 + 3] = Move::makePromotion(Square{bsrc}, Square{narrow_cast<u8>(bsrc - 8)}, PieceType::b).raw;
+        promotions[1][i * 4 + 0] = Move::make(Square{bsrc}, Square{narrow_cast<u8>(bsrc - 8)}, MoveFlags::promo_q).raw;
+        promotions[1][i * 4 + 1] = Move::make(Square{bsrc}, Square{narrow_cast<u8>(bsrc - 8)}, MoveFlags::promo_n).raw;
+        promotions[1][i * 4 + 2] = Move::make(Square{bsrc}, Square{narrow_cast<u8>(bsrc - 8)}, MoveFlags::promo_r).raw;
+        promotions[1][i * 4 + 3] = Move::make(Square{bsrc}, Square{narrow_cast<u8>(bsrc - 8)}, MoveFlags::promo_b).raw;
       }
       return promotions;
     }();
