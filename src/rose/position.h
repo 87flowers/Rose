@@ -26,17 +26,24 @@ namespace rose {
     constexpr auto operator==(const PieceList &other) const -> bool { return m == other.m; }
   };
 
-  enum class Castling {
-    none = 0,
-    wq = 0b0001,
-    wk = 0b0010,
-    bq = 0b0100,
-    bk = 0b1000,
+  struct RookInfo {
+    Square aside = Square::invalid();
+    Square hside = Square::invalid();
+
+    constexpr auto clear() -> void {
+      aside = Square::invalid();
+      hside = Square::invalid();
+    }
+
+    constexpr auto unset(Square sq) -> void {
+      aside = aside == sq ? Square::invalid() : aside;
+      hside = hside == sq ? Square::invalid() : hside;
+    }
+
+    constexpr auto isClear() const -> bool { return !aside.isValid() && !hside.isValid(); }
+
+    constexpr auto operator==(const RookInfo &) const -> bool = default;
   };
-  inline constexpr auto operator|(Castling a, Castling b) -> Castling { return static_cast<Castling>(std::to_underlying(a) | std::to_underlying(b)); }
-  inline constexpr auto operator&(Castling a, Castling b) -> Castling { return static_cast<Castling>(std::to_underlying(a) & std::to_underlying(b)); }
-  inline constexpr auto operator|=(Castling &a, Castling b) -> Castling & { return a = a | b; }
-  inline constexpr auto operator&=(Castling &a, Castling b) -> Castling & { return a = a & b; }
 
   struct Position {
   private:
@@ -52,6 +59,7 @@ namespace rose {
     u16 m_ply{};
     Color m_active_color{};
     Square m_enpassant = Square::invalid();
+    std::array<RookInfo, 2> m_rook_info;
 
   public:
     static const Position startpos;
@@ -65,18 +73,12 @@ namespace rose {
     constexpr auto activeColor() const -> Color { return m_active_color; }
 
     auto kingSq(Color color) const -> Square { return Square{static_cast<u8>(std::countr_zero(m_board.bitboardFor<PieceType::k>(color)))}; }
-    auto castlingRights() const -> Castling;
     auto enpassant() const -> Square { return m_enpassant; }
+    auto rookInfo(Color color) const -> RookInfo { return m_rook_info[color.toIndex()]; }
 
     auto isValid() const -> bool { return attackTable(m_active_color.invert()).r[kingSq(m_active_color.invert()).raw] == 0; }
 
-    auto mutMove(Move m) -> void;
-
-    forceinline auto move(Move m) const -> Position {
-      Position position = *this;
-      position.mutMove(m);
-      return position;
-    }
+    auto move(Move m) const -> Position;
 
     auto calcAttacksSlow() const -> std::array<Wordboard, 2>;
     auto calcAttacksSlow(Square sq) const -> std::array<u16, 2>;
@@ -141,16 +143,18 @@ template <> struct std::formatter<rose::Position, char> {
 
     ctx.advance_to(std::format_to(ctx.out(), " {} ", position.m_active_color));
 
-    const Castling castling_rights = position.castlingRights();
-    if (castling_rights == Castling::none)
+    // FIXME: Print in Shredder FRC format
+    const RookInfo white_rook_info = position.rookInfo(Color::white);
+    const RookInfo black_rook_info = position.rookInfo(Color::black);
+    if (white_rook_info.isClear() && black_rook_info.isClear())
       ctx.advance_to(std::format_to(ctx.out(), "-"));
-    if ((castling_rights & Castling::wk) != Castling::none)
+    if (white_rook_info.hside.isValid())
       ctx.advance_to(std::format_to(ctx.out(), "K"));
-    if ((castling_rights & Castling::wq) != Castling::none)
+    if (white_rook_info.aside.isValid())
       ctx.advance_to(std::format_to(ctx.out(), "Q"));
-    if ((castling_rights & Castling::bk) != Castling::none)
+    if (black_rook_info.hside.isValid())
       ctx.advance_to(std::format_to(ctx.out(), "k"));
-    if ((castling_rights & Castling::bq) != Castling::none)
+    if (black_rook_info.aside.isValid())
       ctx.advance_to(std::format_to(ctx.out(), "q"));
 
     if (position.m_enpassant.isValid()) {

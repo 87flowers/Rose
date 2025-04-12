@@ -26,111 +26,114 @@ namespace rose {
 
   const Position Position::startpos = Position::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").value();
 
-  auto Position::castlingRights() const -> Castling {
-    Castling result = Castling::none;
-    if (m_board.m[Square::fromFileAndRank(4, 0).raw] == Place::unmoved_wk) {
-      if (m_board.m[Square::fromFileAndRank(0, 0).raw] == Place::unmoved_wr)
-        result |= Castling::wq;
-      if (m_board.m[Square::fromFileAndRank(7, 0).raw] == Place::unmoved_wr)
-        result |= Castling::wk;
-    }
-    if (m_board.m[Square::fromFileAndRank(4, 7).raw] == Place::unmoved_bk) {
-      if (m_board.m[Square::fromFileAndRank(0, 7).raw] == Place::unmoved_br)
-        result |= Castling::bq;
-      if (m_board.m[Square::fromFileAndRank(7, 7).raw] == Place::unmoved_br)
-        result |= Castling::bk;
-    }
-    return result;
-  }
+  auto Position::move(Move m) const -> Position {
+    Position new_pos = *this;
 
-  auto Position::mutMove(Move m) -> void {
     const Square from = m.from();
     const Square to = m.to();
     const u8 src_id = m_id.r[from.raw];
     const u8 dest_id = m_id.r[to.raw];
-    const Place src_place = m_board.m[from.raw].toMoved();
+    const Place src_place = m_board.m[from.raw];
     const Place dest_place = m_board.m[to.raw];
     const bool color = m_active_color.toIndex();
 
     if (m_enpassant.isValid()) {
       // TODO: m_hash
-      m_enpassant = Square::invalid();
+      new_pos.m_enpassant = Square::invalid();
     }
 
-    const auto normal = [&] {
-      m_piece_list_sq[color].m[src_id] = to;
-      m_board.m[from.raw] = Place::empty;
-      m_board.m[to.raw] = src_place;
-      m_id.r[from.raw] = 0x80;
-      m_id.r[to.raw] = src_id;
-      // TODO: m_hash
-      if (src_place.ptype() != PieceType::p) {
-        m_irreversible_clock++;
-      } else {
-        m_irreversible_clock = 0;
+    const auto check_src_castling_rights = [&] {
+      if (src_place.ptype() == PieceType::r) {
+        new_pos.m_rook_info[color].unset(from);
+      } else if (src_place.ptype() == PieceType::k) {
+        new_pos.m_rook_info[color].clear();
       }
     };
 
-    const auto capture = [&] {
-      m_piece_list_sq[color].m[src_id] = to;
-      m_piece_list_sq[!color].m[dest_id] = Square::invalid();
-      m_piece_list_ptype[!color].m[dest_id] = PieceType::none;
-      m_board.m[from.raw] = Place::empty;
-      m_board.m[to.raw] = src_place;
-      m_id.r[from.raw] = 0x80;
-      m_id.r[to.raw] = src_id;
+    const auto check_dest_castling_rights = [&] {
+      if (dest_place.ptype() == PieceType::r) {
+        new_pos.m_rook_info[color].unset(to);
+      }
+    };
+
+    const auto normal = [&] {
+      new_pos.m_piece_list_sq[color].m[src_id] = to;
+      new_pos.m_board.m[from.raw] = Place::empty;
+      new_pos.m_board.m[to.raw] = src_place;
+      new_pos.m_id.r[from.raw] = 0x80;
+      new_pos.m_id.r[to.raw] = src_id;
       // TODO: m_hash
-      m_irreversible_clock = 0;
+      if (src_place.ptype() != PieceType::p) {
+        new_pos.m_irreversible_clock++;
+      } else {
+        new_pos.m_irreversible_clock = 0;
+      }
+      check_src_castling_rights();
+    };
+
+    const auto capture = [&] {
+      new_pos.m_piece_list_sq[color].m[src_id] = to;
+      new_pos.m_piece_list_sq[!color].m[dest_id] = Square::invalid();
+      new_pos.m_piece_list_ptype[!color].m[dest_id] = PieceType::none;
+      new_pos.m_board.m[from.raw] = Place::empty;
+      new_pos.m_board.m[to.raw] = src_place;
+      new_pos.m_id.r[from.raw] = 0x80;
+      new_pos.m_id.r[to.raw] = src_id;
+      // TODO: m_hash
+      new_pos.m_irreversible_clock = 0;
+      check_src_castling_rights();
+      check_dest_castling_rights();
     };
 
     const auto promo = [&](PieceType ptype) {
-      m_piece_list_sq[color].m[src_id] = to;
-      m_piece_list_ptype[color].m[src_id] = ptype;
-      m_board.m[from.raw] = Place::empty;
-      m_board.m[to.raw] = Place::fromColorAndPtype(m_active_color, ptype);
-      m_id.r[from.raw] = 0x80;
-      m_id.r[to.raw] = src_id;
+      new_pos.m_piece_list_sq[color].m[src_id] = to;
+      new_pos.m_piece_list_ptype[color].m[src_id] = ptype;
+      new_pos.m_board.m[from.raw] = Place::empty;
+      new_pos.m_board.m[to.raw] = Place::fromColorAndPtype(m_active_color, ptype);
+      new_pos.m_id.r[from.raw] = 0x80;
+      new_pos.m_id.r[to.raw] = src_id;
       // TODO: m_hash
-      m_irreversible_clock = 0;
+      new_pos.m_irreversible_clock = 0;
     };
 
     const auto cap_promo = [&](PieceType ptype) {
-      m_piece_list_sq[color].m[src_id] = to;
-      m_piece_list_sq[!color].m[dest_id] = Square::invalid();
-      m_piece_list_ptype[color].m[src_id] = ptype;
-      m_piece_list_ptype[!color].m[dest_id] = PieceType::none;
-      m_board.m[from.raw] = Place::empty;
-      m_board.m[to.raw] = Place::fromColorAndPtype(m_active_color, ptype);
-      m_id.r[from.raw] = 0x80;
-      m_id.r[to.raw] = src_id;
+      new_pos.m_piece_list_sq[color].m[src_id] = to;
+      new_pos.m_piece_list_sq[!color].m[dest_id] = Square::invalid();
+      new_pos.m_piece_list_ptype[color].m[src_id] = ptype;
+      new_pos.m_piece_list_ptype[!color].m[dest_id] = PieceType::none;
+      new_pos.m_board.m[from.raw] = Place::empty;
+      new_pos.m_board.m[to.raw] = Place::fromColorAndPtype(m_active_color, ptype);
+      new_pos.m_id.r[from.raw] = 0x80;
+      new_pos.m_id.r[to.raw] = src_id;
       // TODO: m_hash
-      m_irreversible_clock = 0;
+      new_pos.m_irreversible_clock = 0;
+      check_dest_castling_rights();
     };
 
     const auto double_push = [&] {
-      m_piece_list_sq[color].m[src_id] = to;
-      m_board.m[from.raw] = Place::empty;
-      m_board.m[to.raw] = src_place;
-      m_id.r[to.raw] = src_id;
+      new_pos.m_piece_list_sq[color].m[src_id] = to;
+      new_pos.m_board.m[from.raw] = Place::empty;
+      new_pos.m_board.m[to.raw] = src_place;
+      new_pos.m_id.r[to.raw] = src_id;
       // TODO: m_hash
-      m_irreversible_clock = 0;
-      m_enpassant = Square{narrow_cast<u8>((from.raw + to.raw) >> 1)};
+      new_pos.m_irreversible_clock = 0;
+      new_pos.m_enpassant = Square{narrow_cast<u8>((from.raw + to.raw) >> 1)};
     };
 
     const auto enpassant = [&] {
       const Square victim{narrow_cast<u8>((from.raw & 0x38) | (to.raw & 7))};
       const u8 victim_id = m_id.r[victim.raw];
-      m_piece_list_sq[color].m[src_id] = to;
-      m_piece_list_sq[!color].m[victim_id] = Square::invalid();
-      m_piece_list_ptype[!color].m[victim_id] = PieceType::none;
-      m_board.m[from.raw] = Place::empty;
-      m_board.m[victim.raw] = Place::empty;
-      m_board.m[to.raw] = src_place;
-      m_id.r[from.raw] = 0x80;
-      m_id.r[victim.raw] = 0x80;
-      m_id.r[to.raw] = src_id;
+      new_pos.m_piece_list_sq[color].m[src_id] = to;
+      new_pos.m_piece_list_sq[!color].m[victim_id] = Square::invalid();
+      new_pos.m_piece_list_ptype[!color].m[victim_id] = PieceType::none;
+      new_pos.m_board.m[from.raw] = Place::empty;
+      new_pos.m_board.m[victim.raw] = Place::empty;
+      new_pos.m_board.m[to.raw] = src_place;
+      new_pos.m_id.r[from.raw] = 0x80;
+      new_pos.m_id.r[victim.raw] = 0x80;
+      new_pos.m_id.r[to.raw] = src_id;
       // TODO: m_hash
-      m_irreversible_clock = 0;
+      new_pos.m_irreversible_clock = 0;
     };
 
     const auto castle = [&](u8 king_dest_file, u8 rook_dest_file) {
@@ -140,18 +143,19 @@ namespace rose {
       const Square rook_src = m.to();
       const u8 king_id = m_id.r[king_src.raw];
       const u8 rook_id = m_id.r[rook_src.raw];
-      m_piece_list_sq[color].m[king_id] = king_dest;
-      m_piece_list_sq[color].m[rook_id] = rook_dest;
-      m_board.m[king_src.raw] = Place::empty;
-      m_board.m[rook_src.raw] = Place::empty;
-      m_board.m[king_dest.raw] = Place::fromColorAndPtype(m_active_color, PieceType::k);
-      m_board.m[rook_dest.raw] = Place::fromColorAndPtype(m_active_color, PieceType::r);
-      m_id.r[king_src.raw] = 0x80;
-      m_id.r[rook_src.raw] = 0x80;
-      m_id.r[king_dest.raw] = king_id;
-      m_id.r[rook_dest.raw] = rook_id;
+      new_pos.m_piece_list_sq[color].m[king_id] = king_dest;
+      new_pos.m_piece_list_sq[color].m[rook_id] = rook_dest;
+      new_pos.m_board.m[king_src.raw] = Place::empty;
+      new_pos.m_board.m[rook_src.raw] = Place::empty;
+      new_pos.m_board.m[king_dest.raw] = Place::fromColorAndPtype(m_active_color, PieceType::k);
+      new_pos.m_board.m[rook_dest.raw] = Place::fromColorAndPtype(m_active_color, PieceType::r);
+      new_pos.m_id.r[king_src.raw] = 0x80;
+      new_pos.m_id.r[rook_src.raw] = 0x80;
+      new_pos.m_id.r[king_dest.raw] = king_id;
+      new_pos.m_id.r[rook_dest.raw] = rook_id;
       // TODO: m_hash
-      m_irreversible_clock = 0;
+      new_pos.m_irreversible_clock = 0;
+      new_pos.m_rook_info[color].clear();
     };
 
 #define MF(x) (static_cast<int>(MoveFlags::x) >> 12)
@@ -203,11 +207,17 @@ namespace rose {
     }
 #undef MF
 
-    m_ply++;
-    m_active_color = m_active_color.invert();
+    if (m_rook_info[color] != new_pos.m_rook_info[color]) {
+      // TODO: m_hash castling change
+    }
+
+    new_pos.m_ply++;
+    new_pos.m_active_color = m_active_color.invert();
     // TODO: m_hash side change
 
-    m_attack_table = calcAttacksSlow();
+    new_pos.m_attack_table = calcAttacksSlow();
+
+    return new_pos;
   }
 
   auto Position::calcAttacksSlow() const -> std::array<Wordboard, 2> {
@@ -418,6 +428,7 @@ namespace rose {
     }
 
     // Parse castling rights
+    // TODO: Support FRC
     if (castle_str != "-") {
       for (const char ch : castle_str) {
         const auto castle_rights = [&](Color color, u8 rook_file) -> std::optional<ParseError> {
@@ -426,8 +437,10 @@ namespace rose {
           if (result.m_board.m[rook_sq.raw].color() != color || result.m_board.m[rook_sq.raw].ptype() != PieceType::r ||
               result.m_board.m[king_sq.raw].color() != color || result.m_board.m[king_sq.raw].ptype() != PieceType::k)
             return ParseError::invalid_board;
-          result.m_board.m[rook_sq.raw] = result.m_board.m[rook_sq.raw].toPristine();
-          result.m_board.m[king_sq.raw] = result.m_board.m[king_sq.raw].toPristine();
+          if (rook_file == 7)
+            result.m_rook_info[color.toIndex()].hside = rook_sq;
+          if (rook_file == 0)
+            result.m_rook_info[color.toIndex()].aside = rook_sq;
           return std::nullopt;
         };
         switch (ch) {

@@ -83,8 +83,6 @@ namespace rose {
       white = 0x00,
       black = 0x80,
 
-      unmoved = 0x40,
-
       ptype_mask = 0x3F,
 
       wp = white | PieceType::p,
@@ -100,11 +98,6 @@ namespace rose {
       br = black | PieceType::r,
       bq = black | PieceType::q,
       bk = black | PieceType::k,
-
-      unmoved_wr = unmoved | wr,
-      unmoved_wk = unmoved | wk,
-      unmoved_br = unmoved | br,
-      unmoved_bk = unmoved | bk,
     };
 
     Inner raw = empty;
@@ -117,10 +110,6 @@ namespace rose {
     constexpr auto isEmpty() const -> bool { return raw == empty; }
     constexpr auto color() const -> Color { return static_cast<Color::Inner>((raw & black) != 0); }
     constexpr auto ptype() const -> PieceType { return static_cast<PieceType::Inner>(raw & ptype_mask); }
-    constexpr auto moved() const -> bool { return !(raw & unmoved); }
-
-    constexpr auto toMoved() const -> Place { return static_cast<Inner>(raw & ~unmoved); }
-    constexpr auto toPristine() const -> Place { return static_cast<Inner>(raw | unmoved); }
 
     constexpr auto toColorIndex() const -> usize { return color().toIndex(); }
     constexpr auto toPtypeIndex() const -> usize { return ptype().toIndex(); }
