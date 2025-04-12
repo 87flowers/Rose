@@ -1,5 +1,6 @@
 #include "rose/movegen.h"
 
+#include <algorithm>
 #include <bit>
 #include <cstring>
 #include <tuple>
@@ -40,6 +41,30 @@ namespace rose {
     rose_assert(len + count < capacity());
     std::memcpy(data.data() + len, &moves, sizeof(u64));
     len += count;
+  }
+
+  PrecompMoveGenInfo::PrecompMoveGenInfo(const Position &position) {
+    const auto between = [](Square a, Square b) -> u64 {
+      if (!a.isValid() || !b.isValid())
+        return 0;
+
+      u64 result = 0;
+      const u8 start = std::min(a.raw, b.raw);
+      const u8 end = std::max(a.raw, b.raw);
+      for (u8 i = start; i <= end; i++) {
+        result |= static_cast<u64>(1) << i;
+      }
+      return result;
+    };
+
+    aside_rook[0] = between(position.rookInfo(Color::white).aside, Square::parse("d1").value());
+    aside_rook[1] = between(position.rookInfo(Color::black).aside, Square::parse("d8").value());
+    aside_king[0] = between(position.kingSq(Color::white), Square::parse("c1").value());
+    aside_king[1] = between(position.kingSq(Color::black), Square::parse("c8").value());
+    hside_rook[0] = between(position.rookInfo(Color::white).hside, Square::parse("f1").value());
+    hside_rook[1] = between(position.rookInfo(Color::black).hside, Square::parse("f8").value());
+    hside_king[0] = between(position.kingSq(Color::white), Square::parse("g1").value());
+    hside_king[1] = between(position.kingSq(Color::black), Square::parse("g8").value());
   }
 
   auto MoveGen::calculatePinInfo() -> void {
@@ -150,6 +175,27 @@ namespace rose {
     generateSubsetCaps(moves, attack_table, srcs, active & enemy & pawn_info.non_promo_dest, pawn_mask);
     // Protected captures
     generateSubsetCaps(moves, attack_table, srcs, active & enemy & danger, valid_plist & ~pawn_mask & ~king_mask);
+    // Castling
+    // TODO: Handle pinned rook
+    {
+#define IS_CLEAR(x) ((~clear & m_precomp_info.x[active_color.toIndex()]) == 0)
+      const RookInfo rook_info = position.rookInfo(active_color);
+      if (rook_info.aside.isValid()) {
+        rose_assert(position.board().m[rook_info.aside.raw] == Place::fromColorAndPtype(active_color, PieceType::r));
+        const u64 clear = ~danger & (empty | (static_cast<u64>(1) << king_sq.raw) | (static_cast<u64>(1) << rook_info.aside.raw));
+        if (IS_CLEAR(aside_rook) && IS_CLEAR(aside_king)) {
+          moves.push_back(Move::make(king_sq, rook_info.aside, MoveFlags::castle_aside));
+        }
+      }
+      if (rook_info.hside.isValid()) {
+        rose_assert(position.board().m[rook_info.hside.raw] == Place::fromColorAndPtype(active_color, PieceType::r));
+        const u64 clear = ~danger & (empty | (static_cast<u64>(1) << king_sq.raw) | (static_cast<u64>(1) << rook_info.hside.raw));
+        if (IS_CLEAR(hside_rook) && IS_CLEAR(hside_king)) {
+          moves.push_back(Move::make(king_sq, rook_info.hside, MoveFlags::castle_hside));
+        }
+      }
+#undef IS_CLEAR
+    }
     // Unprotected non-pawn quiets
     generateSubsetNorm(moves, attack_table, srcs, active & empty & ~danger, valid_plist & ~pawn_mask);
     // Protected non-pawn quiets

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "rose/common.h"
 #include "rose/move.h"
 #include "rose/position.h"
@@ -16,10 +18,20 @@ namespace rose {
     auto write4(u64 moves) -> void;
   };
 
+  struct PrecompMoveGenInfo {
+    std::array<u64, 2> aside_rook;
+    std::array<u64, 2> aside_king;
+    std::array<u64, 2> hside_rook;
+    std::array<u64, 2> hside_king;
+
+    explicit PrecompMoveGenInfo(const Position &position);
+  };
+
   struct MoveGen {
   private:
     const Position &m_position;
     Square m_king_sq;
+    const PrecompMoveGenInfo &m_precomp_info;
 
     // Pin info
     v512 m_king_ray_coords;
@@ -39,7 +51,8 @@ namespace rose {
     auto generateMovesNoCheckers(MoveList &moves, const Position &position, Square king_sq) -> void;
 
   public:
-    explicit MoveGen(const Position &position) : m_position(position), m_king_sq(position.kingSq(position.activeColor())) {}
+    MoveGen(const Position &position, const PrecompMoveGenInfo &precomp_info)
+        : m_position(position), m_king_sq(position.kingSq(position.activeColor())), m_precomp_info(precomp_info) {}
 
     auto generateMoves(MoveList &moves) -> void;
   };

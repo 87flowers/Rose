@@ -10,14 +10,14 @@
 
 namespace rose::perft {
 
-  template <bool print> static auto core(const Position &position, usize depth) -> usize {
+  template <bool print> static auto core(const PrecompMoveGenInfo &movegen_precomp, const Position &position, usize depth) -> usize {
     if (depth == 0)
       return 1;
 
     usize result = 0;
 
     MoveList moves;
-    MoveGen movegen{position};
+    MoveGen movegen{position, movegen_precomp};
     movegen.generateMoves(moves);
 
     for (Move m : moves) {
@@ -25,7 +25,7 @@ namespace rose::perft {
       if (!new_position.isValid())
         continue;
 
-      const usize child = core<false>(new_position, depth - 1);
+      const usize child = core<false>(movegen_precomp, new_position, depth - 1);
       if constexpr (print) {
         std::print("{}: {}\n", m, child);
       }
@@ -35,11 +35,15 @@ namespace rose::perft {
     return result;
   }
 
-  auto value(const Position &position, usize depth) -> usize { return core<false>(position, depth); }
+  auto value(const Position &position, usize depth) -> usize {
+    const PrecompMoveGenInfo movegen_precomp{position};
+    return core<false>(movegen_precomp, position, depth);
+  }
 
   auto run(const Position &position, usize depth) -> void {
     const auto start = time::Clock::now();
-    const usize total = core<true>(position, depth);
+    const PrecompMoveGenInfo movegen_precomp{position};
+    const usize total = core<true>(movegen_precomp, position, depth);
     const auto end = time::Clock::now();
 
     const time::FloatSeconds elapsed = end - start;
