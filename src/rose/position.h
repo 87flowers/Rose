@@ -64,9 +64,12 @@ namespace rose {
 
     auto kingSq(Color color) const -> Square { return Square{static_cast<u8>(std::countr_zero(m_board.bitboardFor<PieceType::k>(color)))}; }
     auto castlingRights() const -> Castling;
+    auto enpassant() const -> Square { return m_enpassant; }
 
     auto calcAttacksSlow() const -> std::array<Wordboard, 2>;
     auto calcAttacksSlow(Square sq) const -> std::array<u16, 2>;
+
+    auto isValid() const -> bool { return attackTable(m_active_color.invert()).r[kingSq(m_active_color.invert()).raw] == 0; }
 
     auto prettyPrint() const -> void;
     auto printAttackTable() const -> void;

@@ -12,18 +12,25 @@ namespace rose::vec {
 
     using Mask8 = u16;
     using Mask16 = u8;
+    using Mask32 = u8;
+    using Mask64 = u8;
 
-    forceinline static auto fromArray(std::array<u8, 16> src) -> v128 { return {_mm_loadu_epi32(src.data())}; }
+    forceinline static auto fromArray8(std::array<u8, 16> src) -> v128 { return {_mm_loadu_epi32(src.data())}; }
+    forceinline static auto fromArray16(std::array<u16, 8> src) -> v128 { return {_mm_loadu_epi32(src.data())}; }
+    forceinline static auto fromArray32(std::array<u32, 4> src) -> v128 { return {_mm_loadu_epi32(src.data())}; }
+    forceinline static auto fromArray64(std::array<u64, 2> src) -> v128 { return {_mm_loadu_epi32(src.data())}; }
     forceinline static auto from64(u64 src) -> v128 { return {_mm_cvtsi64_si128(static_cast<i64>(src))}; }
     forceinline static auto expandMask8(u16 src) -> v128 { return {_mm_movm_epi8(src)}; }
     forceinline static auto broadcast8(u8 src) -> v128 { return {_mm_set1_epi8(src)}; }
     forceinline static auto broadcast16(u16 src) -> v128 { return {_mm_set1_epi16(src)}; }
+    forceinline static auto broadcast32(u32 src) -> v128 { return {_mm_set1_epi32(src)}; }
     forceinline static auto broadcast64(u64 src) -> v128 { return {_mm_set1_epi64x(src)}; }
 
     forceinline auto to64() const -> u64 { return static_cast<u64>(_mm_cvtsi128_si64(raw)); }
 
     forceinline auto msb8() const -> u16 { return _mm_movepi8_mask(raw); }
 
+    forceinline auto zero8() const -> u16 { return _mm_cmpeq_epu8_mask(raw, _mm_setzero_si128()); }
     forceinline auto nonzero8() const -> u16 { return _mm_cmpneq_epu8_mask(raw, _mm_setzero_si128()); }
     forceinline auto zero16() const -> u8 { return _mm_cmpeq_epu16_mask(raw, _mm_setzero_si128()); }
     forceinline auto nonzero16() const -> u8 { return _mm_cmpneq_epu16_mask(raw, _mm_setzero_si128()); }
@@ -40,18 +47,25 @@ namespace rose::vec {
 
     using Mask8 = u32;
     using Mask16 = u16;
+    using Mask32 = u8;
+    using Mask64 = u8;
 
-    forceinline static auto fromArray(std::array<u8, 32> src) -> v256 { return {_mm256_loadu_epi32(src.data())}; }
+    forceinline static auto fromArray8(std::array<u8, 32> src) -> v256 { return {_mm256_loadu_epi32(src.data())}; }
+    forceinline static auto fromArray16(std::array<u16, 16> src) -> v256 { return {_mm256_loadu_epi32(src.data())}; }
+    forceinline static auto fromArray32(std::array<u32, 8> src) -> v256 { return {_mm256_loadu_epi32(src.data())}; }
+    forceinline static auto fromArray64(std::array<u64, 4> src) -> v256 { return {_mm256_loadu_epi32(src.data())}; }
     forceinline static auto from128(v128 src) -> v256 { return {_mm256_castsi128_si256(src.raw)}; }
     forceinline static auto expandMask8(u32 src) -> v256 { return {_mm256_movm_epi8(src)}; }
     forceinline static auto broadcast8(u8 src) -> v256 { return {_mm256_set1_epi8(src)}; }
     forceinline static auto broadcast16(u16 src) -> v256 { return {_mm256_set1_epi16(src)}; }
+    forceinline static auto broadcast32(u32 src) -> v256 { return {_mm256_set1_epi32(src)}; }
     forceinline static auto broadcast64(u64 src) -> v256 { return {_mm256_set1_epi64x(src)}; }
 
     forceinline auto to128() const -> v128 { return {_mm256_castsi256_si128(raw)}; }
 
     forceinline auto msb8() const -> u32 { return _mm256_movepi8_mask(raw); }
 
+    forceinline auto zero8() const -> u32 { return _mm256_cmpeq_epu8_mask(raw, _mm256_setzero_si256()); }
     forceinline auto nonzero8() const -> u32 { return _mm256_cmpneq_epu8_mask(raw, _mm256_setzero_si256()); }
     forceinline auto zero16() const -> u16 { return _mm256_cmpeq_epu16_mask(raw, _mm256_setzero_si256()); }
     forceinline auto nonzero16() const -> u16 { return _mm256_cmpneq_epu16_mask(raw, _mm256_setzero_si256()); }
@@ -68,13 +82,19 @@ namespace rose::vec {
 
     using Mask8 = u64;
     using Mask16 = u32;
+    using Mask32 = u16;
+    using Mask64 = u8;
 
-    forceinline static auto fromArray(std::array<u8, 64> src) -> v512 { return {_mm512_loadu_epi32(src.data())}; }
+    forceinline static auto fromArray8(std::array<u8, 64> src) -> v512 { return {_mm512_loadu_epi32(src.data())}; }
+    forceinline static auto fromArray16(std::array<u16, 32> src) -> v512 { return {_mm512_loadu_epi32(src.data())}; }
+    forceinline static auto fromArray32(std::array<u32, 16> src) -> v512 { return {_mm512_loadu_epi32(src.data())}; }
+    forceinline static auto fromArray64(std::array<u64, 8> src) -> v512 { return {_mm512_loadu_epi32(src.data())}; }
     forceinline static auto from128(v128 src) -> v512 { return {_mm512_castsi128_si512(src.raw)}; }
     forceinline static auto from256(v256 src) -> v512 { return {_mm512_castsi256_si512(src.raw)}; }
     forceinline static auto expandMask8(u64 src) -> v512 { return {_mm512_movm_epi8(src)}; }
     forceinline static auto broadcast8(u8 src) -> v512 { return {_mm512_set1_epi8(src)}; }
     forceinline static auto broadcast16(u16 src) -> v512 { return {_mm512_set1_epi16(src)}; }
+    forceinline static auto broadcast32(u32 src) -> v512 { return {_mm512_set1_epi32(src)}; }
     forceinline static auto broadcast64(u64 src) -> v512 { return {_mm512_set1_epi64(src)}; }
 
     forceinline auto to128() const -> v128 { return {_mm512_castsi512_si128(raw)}; }
@@ -82,6 +102,7 @@ namespace rose::vec {
 
     forceinline auto msb8() const -> u64 { return _mm512_movepi8_mask(raw); }
 
+    forceinline auto zero8() const -> u64 { return _mm512_cmpeq_epu8_mask(raw, _mm512_setzero_si512()); }
     forceinline auto nonzero8() const -> u64 { return _mm512_cmpneq_epu8_mask(raw, _mm512_setzero_si512()); }
     forceinline auto zero16() const -> u32 { return _mm512_cmpeq_epu16_mask(raw, _mm512_setzero_si512()); }
     forceinline auto nonzero16() const -> u32 { return _mm512_cmpneq_epu16_mask(raw, _mm512_setzero_si512()); }
@@ -109,13 +130,19 @@ namespace rose::vec {
   forceinline auto compress8(u32 mask, v256 a) -> v256 { return {_mm256_maskz_compress_epi8(mask, a.raw)}; }
   forceinline auto compress8(u64 mask, v512 a) -> v512 { return {_mm512_maskz_compress_epi8(mask, a.raw)}; }
 
-  forceinline auto concatlo16(u16 a, u16 b) -> u16 { return _mm512_kunpackb(a, b); }
-  forceinline auto concatlo32(u32 a, u32 b) -> u32 { return _mm512_kunpackw(a, b); }
-  forceinline auto concatlo64(u64 a, u64 b) -> u64 { return _mm512_kunpackd(a, b); }
+  forceinline auto concatlo16(u16 a, u16 b) -> u16 { return _mm512_kunpackb(b, a); }
+  forceinline auto concatlo32(u32 a, u32 b) -> u32 { return _mm512_kunpackw(b, a); }
+  forceinline auto concatlo64(u64 a, u64 b) -> u64 { return _mm512_kunpackd(b, a); }
 
   forceinline auto compressstore16(void *dest, u8 mask, v128 a) -> void { _mm_mask_compressstoreu_epi16(dest, mask, a.raw); }
   forceinline auto compressstore16(void *dest, u16 mask, v256 a) -> void { _mm256_mask_compressstoreu_epi16(dest, mask, a.raw); }
   forceinline auto compressstore16(void *dest, u32 mask, v512 a) -> void { _mm512_mask_compressstoreu_epi16(dest, mask, a.raw); }
+  forceinline auto compressstore32(void *dest, u8 mask, v128 a) -> void { _mm_mask_compressstoreu_epi32(dest, mask, a.raw); }
+  forceinline auto compressstore32(void *dest, u8 mask, v256 a) -> void { _mm256_mask_compressstoreu_epi32(dest, mask, a.raw); }
+  forceinline auto compressstore32(void *dest, u16 mask, v512 a) -> void { _mm512_mask_compressstoreu_epi32(dest, mask, a.raw); }
+  forceinline auto compressstore64(void *dest, u8 mask, v128 a) -> void { _mm_mask_compressstoreu_epi64(dest, mask, a.raw); }
+  forceinline auto compressstore64(void *dest, u8 mask, v256 a) -> void { _mm256_mask_compressstoreu_epi64(dest, mask, a.raw); }
+  forceinline auto compressstore64(void *dest, u8 mask, v512 a) -> void { _mm512_mask_compressstoreu_epi64(dest, mask, a.raw); }
 
   forceinline auto blend8(u16 mask, v128 a, v128 b) -> v128 { return {_mm_mask_blend_epi8(mask, a.raw, b.raw)}; }
   forceinline auto blend8(u32 mask, v256 a, v256 b) -> v256 { return {_mm256_mask_blend_epi8(mask, a.raw, b.raw)}; }

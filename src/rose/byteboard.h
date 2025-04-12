@@ -29,8 +29,9 @@ namespace rose {
       return vec::eq8(board, v512::broadcast8(expected_place));
     }
 
+    auto getEmptyBitboard() const -> u64 { return z.zero8(); }
     auto getOccupiedBitboard() const -> u64 { return z.nonzero8(); }
-    auto getColorBitboard(Color color) const -> u64 { return (z.msb8() ^ color.toBitboard()) & getOccupiedBitboard(); }
+    auto getColorBitboard(Color color) const -> u64 { return (z.msb8() ^ ~color.toBitboard()) & getOccupiedBitboard(); }
 
     auto getSuperpieceAttacks(Square sq) const -> std::tuple<v512, v512, u64> {
       const auto [raycoords, coordvalid] = geometry::superpieceRays(sq);

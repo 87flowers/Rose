@@ -9,7 +9,7 @@
 using namespace rose;
 
 auto main(int argc, char **argv) -> int {
-  const Position position = Position::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").value();
+  const Position position = Position::parse("3q3k/6b1/8/8/3K4/2P1P3/8/8 w - - 0 1").value();
 
   position.board().dumpRaw();
   std::print("\n");
