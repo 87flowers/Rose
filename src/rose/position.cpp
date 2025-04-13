@@ -232,33 +232,17 @@ namespace rose {
     return result;
   }
 
-#define P(x)                                                                                                                                         \
-  // if (sq == Square::parse("h6").value()) {                                                                                                           \
-  //   std::print(#x "({}):\n", sq);                                                                                                                    \
-  //   dumpRaysSq(ray_coords, x);                                                                                                                       \
-  //   std::print("\n");                                                                                                                                \
-  // }
-
   auto Position::calcAttacksSlow(Square sq) const -> std::array<u16, 2> {
     const auto [ray_coords, ray_valid] = geometry::superpieceRays(sq);
     const v512 ray_places = vec::permute8(ray_coords, m_board.z);
 
-    P(ray_valid);
-
     const u64 occupied = ray_places.nonzero8();
     const u64 color = ray_places.msb8();
 
-    P(occupied);
-
     const u64 visible = geometry::superpieceAttacks(occupied, ray_valid) & occupied;
-
-    P(visible);
 
     const u64 white_attackers = ~color & visible & (ray_places & geometry::superpieceAttackerMask(Color::black)).nonzero8();
     const u64 black_attackers = color & visible & (ray_places & geometry::superpieceAttackerMask(Color::white)).nonzero8();
-
-    P(white_attackers);
-    P(black_attackers);
 
     const int white_attackers_count = std::popcount(white_attackers);
     const int black_attackers_count = std::popcount(black_attackers);
