@@ -52,7 +52,7 @@ namespace rose {
 
     const auto check_dest_castling_rights = [&] {
       if (dest_place.ptype() == PieceType::r) {
-        new_pos.m_rook_info[color].unset(to);
+        new_pos.m_rook_info[!color].unset(to);
       }
     };
 
