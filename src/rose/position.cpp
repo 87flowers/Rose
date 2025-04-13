@@ -114,6 +114,7 @@ namespace rose {
       new_pos.m_piece_list_sq[color].m[src_id] = to;
       new_pos.m_board.m[from.raw] = Place::empty;
       new_pos.m_board.m[to.raw] = src_place;
+      new_pos.m_id.r[from.raw] = 0x80;
       new_pos.m_id.r[to.raw] = src_id;
       // TODO: m_hash
       new_pos.m_irreversible_clock = 0;
@@ -215,7 +216,7 @@ namespace rose {
     new_pos.m_active_color = m_active_color.invert();
     // TODO: m_hash side change
 
-    new_pos.m_attack_table = calcAttacksSlow();
+    new_pos.m_attack_table = new_pos.calcAttacksSlow();
 
     return new_pos;
   }
