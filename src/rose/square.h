@@ -17,6 +17,8 @@ namespace rose {
     static constexpr auto invalid() -> Square { return {0x80}; }
 
     constexpr auto isValid() const -> bool { return (raw & 0x80) == 0; }
+    constexpr auto file() const -> int { return raw % 8; }
+    constexpr auto rank() const -> int { return raw / 8; }
 
     static constexpr auto fromFileAndRank(usize file, usize rank) -> Square { return Square{narrow_cast<u8>(rank * 8 + file)}; }
     constexpr auto toFileAndRank() const -> std::tuple<usize, usize> { return {raw % 8, raw / 8}; }

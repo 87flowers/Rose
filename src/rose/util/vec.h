@@ -156,9 +156,9 @@ namespace rose::vec {
     return _mm_extract_epi16(_mm_cmpestrm(haystack.raw, haystack_len, needles.raw, 16, 0), 0);
   }
 
-  forceinline auto gf2p8affine8(v128 a, v128 b, u8 c) -> v128 { return {_mm_gf2p8affine_epi64_epi8(a.raw, b.raw, c)}; }
-  forceinline auto gf2p8affine8(v256 a, v256 b, u8 c) -> v256 { return {_mm256_gf2p8affine_epi64_epi8(a.raw, b.raw, c)}; }
-  forceinline auto gf2p8affine8(v512 a, v512 b, u8 c) -> v512 { return {_mm512_gf2p8affine_epi64_epi8(a.raw, b.raw, c)}; }
+  forceinline auto gf2p8affine8(v128 a, v128 b, u8 c) -> v128 { return {_mm_gf2p8affine_epi64_epi8(a.raw, b.raw, 0)}; }
+  forceinline auto gf2p8affine8(v256 a, v256 b, u8 c) -> v256 { return {_mm256_gf2p8affine_epi64_epi8(a.raw, b.raw, 0)}; }
+  forceinline auto gf2p8affine8(v512 a, v512 b, u8 c) -> v512 { return {_mm512_gf2p8affine_epi64_epi8(a.raw, b.raw, 0)}; }
 
   forceinline auto mask8(u16 mask, v128 a) -> v128 { return {_mm_maskz_mov_epi8(mask, a.raw)}; }
   forceinline auto mask8(u32 mask, v256 a) -> v256 { return {_mm256_maskz_mov_epi8(mask, a.raw)}; }

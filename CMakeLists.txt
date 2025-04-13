@@ -25,7 +25,10 @@ set(srcs
   src/rose/byteboard.cpp
   src/rose/byteboard.h
   src/rose/common.h
+  src/rose/game.cpp
+  src/rose/game.h
   src/rose/geometry.h
+  src/rose/move.cpp
   src/rose/move.h
   src/rose/movegen.cpp
   src/rose/movegen.h
@@ -35,6 +38,8 @@ set(srcs
   src/rose/position.cpp
   src/rose/position.h
   src/rose/square.h
+  src/rose/uci.cpp
+  src/rose/uci.h
   src/rose/util/assert.cpp
   src/rose/util/assert.h
   src/rose/util/defer.h

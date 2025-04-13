@@ -1,13 +1,18 @@
 #pragma once
 
 #include <array>
+#include <expected>
 #include <format>
+#include <string_view>
 
 #include "rose/common.h"
 #include "rose/square.h"
 #include "rose/util/types.h"
 
 namespace rose {
+
+  // forward declaration
+  struct Position;
 
   enum class MoveFlags : u16 {
     normal = 0x0000,
@@ -54,27 +59,7 @@ namespace rose {
     }
     constexpr auto flags() const -> MoveFlags { return static_cast<MoveFlags>(raw & 0xF000); }
 
-    //    static constexpr auto parse(std::string_view str) -> std::expected<Move, ParseError> {
-    //      if (str.size() != 4 && str.size() != 5)
-    //        return std::unexpected(ParseError::invalid_length);
-    //
-    //      const auto from = Square::parse(str.substr(0, 2));
-    //      if (!from)
-    //        return std::unexpected(from.error());
-    //
-    //      const auto to = Square::parse(str.substr(2, 2));
-    //      if (!to)
-    //        return std::unexpected(to.error());
-    //
-    //      if (str.size() == 4)
-    //        return Move::make(from.value(), to.value());
-    //
-    //      const auto p = Place::parse(str[4]);
-    //      if (!p || p.value().ptype() == PieceType::k || p.value().ptype() == PieceType::p || p.value().ptype() == PieceType::none)
-    //        return std::unexpected(ParseError::invalid_char);
-    //
-    //      return makePromotion(from.value(), to.value(), p.value().ptype());
-    //    }
+    static auto parse(std::string_view str, const Position &context) -> std::expected<Move, ParseError>;
 
     inline constexpr auto operator==(const Move &) const -> bool = default;
   };
@@ -85,6 +70,11 @@ template <> struct std::formatter<rose::Move, char> {
   template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
 
   template <class FmtContext> auto format(rose::Move m, FmtContext &ctx) const -> FmtContext::iterator {
+    // TODO: FRC
+    if (m.flags() == rose::MoveFlags::castle_aside)
+      return std::format_to(ctx.out(), "{}c{}", m.from(), static_cast<char>(m.to().rank() + '1'));
+    if (m.flags() == rose::MoveFlags::castle_hside)
+      return std::format_to(ctx.out(), "{}g{}", m.from(), static_cast<char>(m.to().rank() + '1'));
     if (m.promo())
       return std::format_to(ctx.out(), "{}{}{}", m.from(), m.to(), m.ptype());
     else

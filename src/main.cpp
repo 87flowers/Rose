@@ -1,25 +1,29 @@
+#include <cstdio>
+#include <iostream>
 #include <print>
+#include <ranges>
 
-#include "rose/byteboard.h"
-#include "rose/geometry.h"
-#include "rose/position.h"
-#include "rose/square.h"
+#include "rose/game.h"
+#include "rose/uci.h"
 #include "rose/util/types.h"
 
-using namespace rose;
+auto main(int argc, char *argv[]) -> int {
+  std::print("# Rose {}\n", ROSE_VERSION);
+  std::fflush(stdout);
 
-auto main(int argc, char **argv) -> int {
-  const Position position = Position::parse("3q3k/6b1/8/8/3K4/2P1P3/8/8 w - - 0 1").value();
+  rose::Game game;
+  game.reset();
 
-  position.board().dumpRaw();
-  std::print("\n");
-  position.pieceListSq(Color::white).dump();
-  position.attackTable(Color::white).dumpRaw();
-  std::print("\n");
-  position.pieceListSq(Color::black).dump();
-  position.attackTable(Color::black).dumpRaw();
-  std::print("\n");
-  position.printAttackTable();
+  if (argc > 1) {
+    for (rose::usize i : std::views::iota(1, argc)) {
+      rose::uciParseCommand(game, argv[i]);
+    }
+    return 0;
+  }
 
+  std::string line;
+  while (std::getline(std::cin, line)) {
+    rose::uciParseCommand(game, line);
+  }
   return 0;
 }
