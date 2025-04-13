@@ -216,7 +216,8 @@ namespace rose {
       }
       // Relative rank 3-6
       {
-        const u32 mask = static_cast<u32>(pawn_normal >> pawn_info.normal_shift);
+        constexpr int normal_shift = 16;
+        const u32 mask = static_cast<u32>(pawn_normal >> normal_shift);
         moves.write(mask, pawn_moves.normal_moves);
       }
       // Relative rank 2

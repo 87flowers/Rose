@@ -27,7 +27,6 @@ namespace rose::pawns {
   struct Shifts {
     u64 promo_zone;
     u64 non_promo_dest;
-    int normal_shift;
     int second_rank_shift;
     int promotable_shift;
   };
@@ -35,9 +34,9 @@ namespace rose::pawns {
   forceinline constexpr auto pawnShifts(Color perspective) -> Shifts {
     switch (perspective.raw) {
     case Color::white:
-      return {0xff00000000000000, 0x00ffffffffff0000, 16, 8, 48};
+      return {0xff00000000000000, 0x00ffffffffff0000, 8, 48};
     case Color::black:
-      return {0x00000000000000ff, 0x0000ffffffffff00, 8, 48, 8};
+      return {0x00000000000000ff, 0x0000ffffffffff00, 48, 8};
     }
     std::unreachable();
   }
