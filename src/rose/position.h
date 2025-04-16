@@ -106,8 +106,8 @@ namespace rose {
 
   private:
     forceinline auto incrementalSliderUpdate(Square sq) -> void;
-    forceinline auto removeAttacks(u8 id) -> void;
-    forceinline auto addAttacks(Square sq, u8 id, PieceType ptype) -> void;
+    forceinline auto removeAttacks(bool color, u8 id) -> void;
+    forceinline auto addAttacks(bool color, Square sq, u8 id, PieceType ptype) -> void;
   };
 
 } // namespace rose
