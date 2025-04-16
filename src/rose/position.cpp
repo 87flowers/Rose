@@ -548,7 +548,7 @@ namespace rose {
     return result;
   }
 
-  auto Position::incrementalSliderUpdate(Square sq) -> void {
+  forceinline auto Position::incrementalSliderUpdate(Square sq) -> void {
     const auto [ray_coords, ray_valid] = geometry::superpieceRays(sq);
     const v512 ray_places = vec::permute8(ray_coords, m_board.z);
     const v512 masked_ray_places = ray_places & geometry::superpieceSliderMask();
@@ -582,54 +582,20 @@ namespace rose {
     const v512 bits0 = vec::shl16_mz(static_cast<u32>(valid_ids), ones, vec::zext8to16(masked_ids.to256()));
     const v512 bits1 = vec::shl16_mz(static_cast<u32>(valid_ids >> 32), ones, vec::zext8to16(vec::extract256<1>(masked_ids)));
 
-#if 0
-    Wordboard wb;
-    Byteboard bb;
-    // std::print("\n{} blockers:\n", sq);
-    // dumpRaysSq(ray_coords, blockers & ray_valid);
-    // std::print("\n{} sliders:\n", sq);
-    // dumpRaysSq(ray_coords, sliders);
-    // std::print("\n{} raymask:\n", sq);
-    // dumpRaysSq(ray_coords, raymask);
-    // std::print("\n{} visible_sliders:\n", sq);
-    // dumpRaysSq(ray_coords, visible_sliders);
-    std::print("\n{} m_ids:\n", sq);
-    m_id.dumpRaw();
-    std::print("\n{} ray_ids:\n", sq);
-    dumpRaysRaw(ray_ids);
-    // std::print("\n{} visible_sliders_ids:\n", sq);
-    // dumpRaysRaw(visible_sliders_ids);
-    // std::print("\n{} ids_to_update:\n", sq);
-    // dumpRaysRaw(ids_to_update, raymask);
-    // std::print("\n{} inverse_ray_permutation:\n", sq);
-    // bb.z = inverse_ray_permutation;
-    // bb.dumpRaw();
-    // std::print("\n{} ids_in_board_layout:\n", sq);
-    // bb.z = ids_in_board_layout;
-    // bb.dumpRaw();
-    // std::print("\n{} masked_ids:\n", sq);
-    // bb.z = masked_ids;
-    // bb.dumpRaw();
-    std::print("\n{} bits:\n", sq);
-    wb.z[0] = bits0;
-    wb.z[1] = bits1;
-    wb.dumpRaw();
-#endif
-
     m_attack_table[0].z[0] = m_attack_table[0].z[0] ^ vec::mask16(~static_cast<u32>(color), bits0);
     m_attack_table[0].z[1] = m_attack_table[0].z[1] ^ vec::mask16(~static_cast<u32>(color >> 32), bits1);
     m_attack_table[1].z[0] = m_attack_table[1].z[0] ^ vec::mask16(static_cast<u32>(color), bits0);
     m_attack_table[1].z[1] = m_attack_table[1].z[1] ^ vec::mask16(static_cast<u32>(color >> 32), bits1);
   }
 
-  auto Position::removeAttacks(u8 id) -> void {
+  forceinline auto Position::removeAttacks(u8 id) -> void {
     const v512 mask = v512::broadcast16(~narrow_cast<u16>(1 << (id & 0xF)));
     const int color = id >> 7;
     m_attack_table[color].z[0] = m_attack_table[color].z[0] & mask;
     m_attack_table[color].z[1] = m_attack_table[color].z[1] & mask;
   }
 
-  auto Position::addAttacks(Square sq, u8 id, PieceType ptype) -> void {
+  forceinline auto Position::addAttacks(Square sq, u8 id, PieceType ptype) -> void {
     const v512 bit = v512::broadcast16(narrow_cast<u16>(1 << (id & 0xF)));
     const int color = id >> 7;
 
@@ -642,14 +608,6 @@ namespace rose {
 
     const v512 attacker_mask = vec::mask8(raymask, geometry::superpieceAttackerMask(static_cast<Color::Inner>(color))) & v512::broadcast8(ptype.raw);
     const u64 mask = vec::permute8_mz(~inverse_ray_permutation.msb8(), inverse_ray_permutation, attacker_mask).nonzero8();
-
-#if 0
-    Wordboard wb;
-    wb.z[0] = vec::mask16(static_cast<u32>(mask), bit);
-    wb.z[1] = vec::mask16(static_cast<u32>(mask >> 32), bit);
-    std::print("\n{} addAttacks:\n", sq);
-    wb.dumpRaw();
-#endif
 
     m_attack_table[color].z[0] = m_attack_table[color].z[0] | vec::mask16(static_cast<u32>(mask), bit);
     m_attack_table[color].z[1] = m_attack_table[color].z[1] | vec::mask16(static_cast<u32>(mask >> 32), bit);

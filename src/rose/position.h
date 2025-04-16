@@ -105,9 +105,9 @@ namespace rose {
     constexpr auto operator==(const Position &) const -> bool = default;
 
   private:
-    auto incrementalSliderUpdate(Square sq) -> void;
-    auto removeAttacks(u8 id) -> void;
-    auto addAttacks(Square sq, u8 id, PieceType ptype) -> void;
+    forceinline auto incrementalSliderUpdate(Square sq) -> void;
+    forceinline auto removeAttacks(u8 id) -> void;
+    forceinline auto addAttacks(Square sq, u8 id, PieceType ptype) -> void;
   };
 
 } // namespace rose
