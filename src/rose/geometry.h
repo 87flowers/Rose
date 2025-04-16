@@ -15,13 +15,13 @@ namespace rose::geometry {
     // 0rrr0fff → 00rrrfff
     template <typename V> forceinline auto compressCoords(V list) -> std::tuple<V, typename V::Mask8> {
       const typename V::Mask8 valid = vec::testn8(list, V::broadcast8(0x88));
-      const V compressed = vec::gf2p8affine8(list, V::broadcast64(0x0102041020400000), 0);
+      const V compressed = vec::gf2p8matmul8(list, V::broadcast64(0x0102041020400000));
       return {compressed, valid};
     }
 
     template <typename V> forceinline auto compressCoordsWide(V list) -> std::tuple<V, typename V::Mask16> {
       const typename V::Mask8 valid = vec::testn16(list, V::broadcast16(0xFF88));
-      const V compressed = vec::gf2p8affine8(list, V::broadcast64(0x0102041020400000), 0);
+      const V compressed = vec::gf2p8matmul8(list, V::broadcast64(0x0102041020400000));
       return {compressed, valid};
     }
   } // namespace internal
@@ -114,14 +114,14 @@ namespace rose::geometry {
     constexpr u8 orth = PieceType::r;
     return v512::fromArray8({
         // clang-format off
-        0, diag, diag, diag, diag, diag, diag, diag,
-        0, diag, diag, diag, diag, diag, diag, diag,
-        0, diag, diag, diag, diag, diag, diag, diag,
+        0, orth, orth, orth, orth, orth, orth, orth,
         0, diag, diag, diag, diag, diag, diag, diag,
         0, orth, orth, orth, orth, orth, orth, orth,
+        0, diag, diag, diag, diag, diag, diag, diag,
         0, orth, orth, orth, orth, orth, orth, orth,
+        0, diag, diag, diag, diag, diag, diag, diag,
         0, orth, orth, orth, orth, orth, orth, orth,
-        0, orth, orth, orth, orth, orth, orth, orth,
+        0, diag, diag, diag, diag, diag, diag, diag,
         // clang-format on
     });
   }

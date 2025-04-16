@@ -103,6 +103,11 @@ namespace rose {
                       std::string_view irreversible_clock, std::string_view ply) -> std::expected<Position, ParseError>;
 
     constexpr auto operator==(const Position &) const -> bool = default;
+
+  private:
+    auto incrementalSliderUpdate(Square sq) -> void;
+    auto removeAttacks(u8 id) -> void;
+    auto addAttacks(Square sq, u8 id, PieceType ptype) -> void;
   };
 
 } // namespace rose

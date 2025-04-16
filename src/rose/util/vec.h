@@ -119,6 +119,10 @@ namespace rose::vec {
   forceinline auto operator&(v256 a, v256 b) -> v256 { return {_mm256_and_si256(a.raw, b.raw)}; }
   forceinline auto operator&(v512 a, v512 b) -> v512 { return {_mm512_and_si512(a.raw, b.raw)}; }
 
+  forceinline auto operator^(v128 a, v128 b) -> v128 { return {_mm_xor_si128(a.raw, b.raw)}; }
+  forceinline auto operator^(v256 a, v256 b) -> v256 { return {_mm256_xor_si256(a.raw, b.raw)}; }
+  forceinline auto operator^(v512 a, v512 b) -> v512 { return {_mm512_xor_si512(a.raw, b.raw)}; }
+
   forceinline auto add8(v128 a, v128 b) -> v128 { return {_mm_add_epi8(a.raw, b.raw)}; }
   forceinline auto add8(v256 a, v256 b) -> v256 { return {_mm256_add_epi8(a.raw, b.raw)}; }
   forceinline auto add8(v512 a, v512 b) -> v512 { return {_mm512_add_epi8(a.raw, b.raw)}; }
@@ -152,21 +156,31 @@ namespace rose::vec {
   forceinline auto eq8(v256 a, v256 b) -> u32 { return {_mm256_cmpeq_epu8_mask(a.raw, b.raw)}; }
   forceinline auto eq8(v512 a, v512 b) -> u64 { return {_mm512_cmpeq_epu8_mask(a.raw, b.raw)}; }
 
+  template <int index> forceinline auto extract256(v512 a) -> v256 { return {_mm512_extracti64x4_epi64(a.raw, index)}; }
+
   forceinline auto findset8(v128 haystack, int haystack_len, v128 needles) -> u16 {
     return _mm_extract_epi16(_mm_cmpestrm(haystack.raw, haystack_len, needles.raw, 16, 0), 0);
   }
 
-  forceinline auto gf2p8affine8(v128 a, v128 b, u8 c) -> v128 { return {_mm_gf2p8affine_epi64_epi8(a.raw, b.raw, 0)}; }
-  forceinline auto gf2p8affine8(v256 a, v256 b, u8 c) -> v256 { return {_mm256_gf2p8affine_epi64_epi8(a.raw, b.raw, 0)}; }
-  forceinline auto gf2p8affine8(v512 a, v512 b, u8 c) -> v512 { return {_mm512_gf2p8affine_epi64_epi8(a.raw, b.raw, 0)}; }
+  forceinline auto gf2p8matmul8(v128 a, v128 b) -> v128 { return {_mm_gf2p8affine_epi64_epi8(a.raw, b.raw, 0)}; }
+  forceinline auto gf2p8matmul8(v256 a, v256 b) -> v256 { return {_mm256_gf2p8affine_epi64_epi8(a.raw, b.raw, 0)}; }
+  forceinline auto gf2p8matmul8(v512 a, v512 b) -> v512 { return {_mm512_gf2p8affine_epi64_epi8(a.raw, b.raw, 0)}; }
 
   forceinline auto mask8(u16 mask, v128 a) -> v128 { return {_mm_maskz_mov_epi8(mask, a.raw)}; }
   forceinline auto mask8(u32 mask, v256 a) -> v256 { return {_mm256_maskz_mov_epi8(mask, a.raw)}; }
   forceinline auto mask8(u64 mask, v512 a) -> v512 { return {_mm512_maskz_mov_epi8(mask, a.raw)}; }
 
+  forceinline auto mask16(u8 mask, v128 a) -> v128 { return {_mm_maskz_mov_epi16(mask, a.raw)}; }
+  forceinline auto mask16(u16 mask, v256 a) -> v256 { return {_mm256_maskz_mov_epi16(mask, a.raw)}; }
+  forceinline auto mask16(u32 mask, v512 a) -> v512 { return {_mm512_maskz_mov_epi16(mask, a.raw)}; }
+
   forceinline auto permute8(v128 index, v128 a) -> v128 { return {_mm_permutexvar_epi8(index.raw, a.raw)}; }
   forceinline auto permute8(v256 index, v256 a) -> v256 { return {_mm256_permutexvar_epi8(index.raw, a.raw)}; }
   forceinline auto permute8(v512 index, v512 a) -> v512 { return {_mm512_permutexvar_epi8(index.raw, a.raw)}; }
+
+  forceinline auto permute8_mz(u16 m, v128 index, v128 a) -> v128 { return {_mm_maskz_permutexvar_epi8(m, index.raw, a.raw)}; }
+  forceinline auto permute8_mz(u32 m, v256 index, v256 a) -> v256 { return {_mm256_maskz_permutexvar_epi8(m, index.raw, a.raw)}; }
+  forceinline auto permute8_mz(u64 m, v512 index, v512 a) -> v512 { return {_mm512_maskz_permutexvar_epi8(m, index.raw, a.raw)}; }
 
   forceinline auto permute8(v128 index, v128 a, v128 b) -> v128 { return {_mm_permutex2var_epi8(a.raw, index.raw, b.raw)}; }
   forceinline auto permute8(v256 index, v256 a, v256 b) -> v256 { return {_mm256_permutex2var_epi8(a.raw, index.raw, b.raw)}; }
@@ -191,6 +205,12 @@ namespace rose::vec {
   forceinline auto shl16(v128 a, int b) -> v128 { return {_mm_slli_epi16(a.raw, b)}; }
   forceinline auto shl16(v256 a, int b) -> v256 { return {_mm256_slli_epi16(a.raw, b)}; }
   forceinline auto shl16(v512 a, int b) -> v512 { return {_mm512_slli_epi16(a.raw, b)}; }
+
+  forceinline auto shl16_mz(u8 m, v128 a, v128 b) -> v128 { return {_mm_maskz_sllv_epi16(m, a.raw, b.raw)}; }
+  forceinline auto shl16_mz(u16 m, v256 a, v256 b) -> v256 { return {_mm256_maskz_sllv_epi16(m, a.raw, b.raw)}; }
+  forceinline auto shl16_mz(u32 m, v512 a, v512 b) -> v512 { return {_mm512_maskz_sllv_epi16(m, a.raw, b.raw)}; }
+
+  template <u8 shuffle> forceinline auto shuffle128(v512 a) -> v512 { return {_mm512_shuffle_i64x2(a.raw, a.raw, shuffle)}; }
 
   forceinline auto sub8(v128 a, v128 b) -> v128 { return {_mm_sub_epi8(a.raw, b.raw)}; }
   forceinline auto sub8(v256 a, v256 b) -> v256 { return {_mm256_sub_epi8(a.raw, b.raw)}; }
