@@ -27,7 +27,7 @@ namespace rose::geometry {
   } // namespace internal
 
   forceinline auto superpieceRays(Square sq) -> std::tuple<v512, u64> {
-    const v512 offsets = v512::fromArray8({
+    constexpr v512 offsets = v512{std::array<u8, 64>{
         // clang-format off
         0x1F, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, // north
         0x21, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, // north-east
@@ -38,7 +38,7 @@ namespace rose::geometry {
         0xEE, 0xFF, 0xFE, 0xFD, 0xFC, 0xFB, 0xFA, 0xF9, // west
         0x0E, 0x0F, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, // north-west
         // clang-format on
-    });
+    }};
     const v512 uncompressed = vec::add8(v512::broadcast8(internal::expandSq(sq)), offsets);
     return internal::compressCoords(uncompressed);
   }
@@ -49,14 +49,14 @@ namespace rose::geometry {
   inline constexpr u16 adjacents_antidiagonal_mask = 0b10001000;
 
   forceinline auto adjacents(Square sq) -> std::tuple<v128, u16> {
-    //                                       n,   ne,    e,   se,    s,   sw,    w,   nw,
-    const v128 offsets = v128::fromArray8({0x10, 0x11, 0x01, 0xF1, 0xF0, 0xEF, 0xFF, 0x0F, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88});
+    //                                                  n,   ne,    e,   se,    s,   sw,    w,   nw,
+    constexpr v128 offsets = v128{std::array<u8, 16>{0x10, 0x11, 0x01, 0xF1, 0xF0, 0xEF, 0xFF, 0x0F, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88}};
     const v128 uncompressed = vec::add8(v128::broadcast8(internal::expandSq(sq)), offsets);
     return internal::compressCoords(uncompressed);
   }
 
   forceinline auto adjacentsWide(Square sq) -> std::tuple<v128, u8> {
-    const v128 offsets = v128::fromArray16({0x0F, 0xF1, 0x11, 0xEF, 0x10, 0xF0, 0x01, 0xFF});
+    constexpr v128 offsets = v128{std::array<u16, 8>{0x0F, 0xF1, 0x11, 0xEF, 0x10, 0xF0, 0x01, 0xFF}};
     const v128 uncompressed = vec::add16(v128::broadcast16(internal::expandSq(sq)), offsets);
     return internal::compressCoordsWide(uncompressed);
   }
@@ -69,50 +69,47 @@ namespace rose::geometry {
 
   inline constexpr u64 non_horse_attack_mask = 0xFEFEFEFEFEFEFEFE;
 
-  forceinline auto superpieceAttackerMask(Color color) -> v512 {
+  inline constexpr std::array<v512, 2> superpieceAttackerMaskTable = [] {
     constexpr u8 diag = PieceType::b;
     constexpr u8 orth = PieceType::r;
     constexpr u8 pawn = PieceType::b | PieceType::p | PieceType::k;
     constexpr u8 dadj = PieceType::b | PieceType::k;
     constexpr u8 oadj = PieceType::r | PieceType::k;
     constexpr u8 horse = PieceType::n;
+    return std::array<v512, 2>{{
+        v512{std::array<u8, 64>{
+            // clang-format off
+            horse, oadj, orth, orth, orth, orth, orth, orth,
+            horse, pawn, diag, diag, diag, diag, diag, diag,
+            horse, oadj, orth, orth, orth, orth, orth, orth,
+            horse, dadj, diag, diag, diag, diag, diag, diag,
+            horse, oadj, orth, orth, orth, orth, orth, orth,
+            horse, dadj, diag, diag, diag, diag, diag, diag,
+            horse, oadj, orth, orth, orth, orth, orth, orth,
+            horse, pawn, diag, diag, diag, diag, diag, diag,
+            // clang-format on
+        }},
+        v512{std::array<u8, 64>{
+            // clang-format off
+            horse, oadj, orth, orth, orth, orth, orth, orth,
+            horse, dadj, diag, diag, diag, diag, diag, diag,
+            horse, oadj, orth, orth, orth, orth, orth, orth,
+            horse, pawn, diag, diag, diag, diag, diag, diag,
+            horse, oadj, orth, orth, orth, orth, orth, orth,
+            horse, pawn, diag, diag, diag, diag, diag, diag,
+            horse, oadj, orth, orth, orth, orth, orth, orth,
+            horse, dadj, diag, diag, diag, diag, diag, diag,
+            // clang-format on
+        }},
+    }};
+  }();
 
-    switch (color.raw) {
-    case Color::white:
-      return v512::fromArray8({
-          // clang-format off
-          horse, oadj, orth, orth, orth, orth, orth, orth,
-          horse, pawn, diag, diag, diag, diag, diag, diag,
-          horse, oadj, orth, orth, orth, orth, orth, orth,
-          horse, dadj, diag, diag, diag, diag, diag, diag,
-          horse, oadj, orth, orth, orth, orth, orth, orth,
-          horse, dadj, diag, diag, diag, diag, diag, diag,
-          horse, oadj, orth, orth, orth, orth, orth, orth,
-          horse, pawn, diag, diag, diag, diag, diag, diag,
-          // clang-format on
-      });
-    case Color::black:
-      return v512::fromArray8({
-          // clang-format off
-          horse, oadj, orth, orth, orth, orth, orth, orth,
-          horse, dadj, diag, diag, diag, diag, diag, diag,
-          horse, oadj, orth, orth, orth, orth, orth, orth,
-          horse, pawn, diag, diag, diag, diag, diag, diag,
-          horse, oadj, orth, orth, orth, orth, orth, orth,
-          horse, pawn, diag, diag, diag, diag, diag, diag,
-          horse, oadj, orth, orth, orth, orth, orth, orth,
-          horse, dadj, diag, diag, diag, diag, diag, diag,
-          // clang-format on
-      });
-    }
+  forceinline auto superpieceAttackerMask(Color color) -> v512 { return superpieceAttackerMaskTable[color.toIndex()]; }
 
-    std::unreachable();
-  }
-
-  forceinline auto superpieceSliderMask() -> v512 {
+  inline constexpr v512 superpieceSliderMask = [] {
     constexpr u8 diag = PieceType::b;
     constexpr u8 orth = PieceType::r;
-    return v512::fromArray8({
+    return v512{std::array<u8, 64>{
         // clang-format off
         0, orth, orth, orth, orth, orth, orth, orth,
         0, diag, diag, diag, diag, diag, diag, diag,
@@ -123,10 +120,10 @@ namespace rose::geometry {
         0, orth, orth, orth, orth, orth, orth, orth,
         0, diag, diag, diag, diag, diag, diag, diag,
         // clang-format on
-    });
-  }
+    }};
+  }();
 
-  inline constexpr std::array<std::array<u8, 64>, 64> superpieceInverseRaysTable = [] {
+  inline constexpr std::array<v512, 64> superpieceInverseRaysTable = [] {
     // clang-format off
     constexpr u8 none = 0xFF;
     constexpr std::array<u8, 256> base{{
@@ -159,16 +156,18 @@ namespace rose::geometry {
     }};
     // clang-format on
 
-    std::array<std::array<u8, 64>, 64> table;
+    std::array<v512, 64> table;
     for (u8 sq = 0; sq < 64; sq++) {
       const u8 esq = internal::expandSq(Square{sq});
+      std::array<u8, 64> b;
       for (int i = 0; i < 64; i++) {
-        table[sq][i] = base[offsets[i] - esq];
+        b[i] = base[offsets[i] - esq];
       }
+      table[sq] = v512{b};
     }
     return table;
   }();
 
-  forceinline auto superpieceInverseRays(Square sq) -> v512 { return v512::fromArray8(superpieceInverseRaysTable[sq.raw]); }
+  forceinline auto superpieceInverseRays(Square sq) -> v512 { return superpieceInverseRaysTable[sq.raw]; }
 
 } // namespace rose::geometry

@@ -7,18 +7,24 @@
 
 namespace rose::vec {
 
-  struct v128 {
+  union v128 {
     __m128i raw;
+    std::array<u8, 16> b;
+    std::array<u16, 8> w;
+    std::array<u32, 4> d;
+    std::array<u64, 2> q;
 
     using Mask8 = u16;
     using Mask16 = u8;
     using Mask32 = u8;
     using Mask64 = u8;
 
-    forceinline static auto fromArray8(std::array<u8, 16> src) -> v128 { return {_mm_load_epi32(src.data())}; }
-    forceinline static auto fromArray16(std::array<u16, 8> src) -> v128 { return {_mm_load_epi32(src.data())}; }
-    forceinline static auto fromArray32(std::array<u32, 4> src) -> v128 { return {_mm_load_epi32(src.data())}; }
-    forceinline static auto fromArray64(std::array<u64, 2> src) -> v128 { return {_mm_load_epi32(src.data())}; }
+    forceinline constexpr v128() = default;
+    forceinline constexpr v128(__m128i raw) : raw(raw){};
+    forceinline constexpr explicit v128(std::array<u8, 16> src) : b(src) {}
+    forceinline constexpr explicit v128(std::array<u16, 8> src) : w(src) {}
+    forceinline constexpr explicit v128(std::array<u32, 4> src) : d(src) {}
+    forceinline constexpr explicit v128(std::array<u64, 2> src) : q(src) {}
     forceinline static auto from64(u64 src) -> v128 { return {_mm_cvtsi64_si128(static_cast<i64>(src))}; }
     forceinline static auto expandMask8(u16 src) -> v128 { return {_mm_movm_epi8(src)}; }
     forceinline static auto broadcast8(u8 src) -> v128 { return {_mm_set1_epi8(src)}; }
@@ -42,18 +48,24 @@ namespace rose::vec {
   };
   static_assert(sizeof(v128) == 16);
 
-  struct v256 {
+  union v256 {
     __m256i raw;
+    std::array<u8, 32> b;
+    std::array<u16, 16> w;
+    std::array<u32, 8> d;
+    std::array<u64, 4> q;
 
     using Mask8 = u32;
     using Mask16 = u16;
     using Mask32 = u8;
     using Mask64 = u8;
 
-    forceinline static auto fromArray8(std::array<u8, 32> src) -> v256 { return {_mm256_load_epi32(src.data())}; }
-    forceinline static auto fromArray16(std::array<u16, 16> src) -> v256 { return {_mm256_load_epi32(src.data())}; }
-    forceinline static auto fromArray32(std::array<u32, 8> src) -> v256 { return {_mm256_load_epi32(src.data())}; }
-    forceinline static auto fromArray64(std::array<u64, 4> src) -> v256 { return {_mm256_load_epi32(src.data())}; }
+    forceinline constexpr v256() = default;
+    forceinline constexpr v256(__m256i raw) : raw(raw){};
+    forceinline constexpr explicit v256(std::array<u8, 32> src) : b(src) {}
+    forceinline constexpr explicit v256(std::array<u16, 16> src) : w(src) {}
+    forceinline constexpr explicit v256(std::array<u32, 8> src) : d(src) {}
+    forceinline constexpr explicit v256(std::array<u64, 4> src) : q(src) {}
     forceinline static auto from128(v128 src) -> v256 { return {_mm256_castsi128_si256(src.raw)}; }
     forceinline static auto expandMask8(u32 src) -> v256 { return {_mm256_movm_epi8(src)}; }
     forceinline static auto broadcast8(u8 src) -> v256 { return {_mm256_set1_epi8(src)}; }
@@ -77,18 +89,24 @@ namespace rose::vec {
   };
   static_assert(sizeof(v256) == 32);
 
-  struct v512 {
+  union v512 {
     __m512i raw;
+    std::array<u8, 64> b;
+    std::array<u16, 32> w;
+    std::array<u32, 16> d;
+    std::array<u64, 8> q;
 
     using Mask8 = u64;
     using Mask16 = u32;
     using Mask32 = u16;
     using Mask64 = u8;
 
-    forceinline static auto fromArray8(std::array<u8, 64> src) -> v512 { return {_mm512_load_epi32(src.data())}; }
-    forceinline static auto fromArray16(std::array<u16, 32> src) -> v512 { return {_mm512_load_epi32(src.data())}; }
-    forceinline static auto fromArray32(std::array<u32, 16> src) -> v512 { return {_mm512_load_epi32(src.data())}; }
-    forceinline static auto fromArray64(std::array<u64, 8> src) -> v512 { return {_mm512_load_epi32(src.data())}; }
+    forceinline constexpr v512() = default;
+    forceinline constexpr v512(__m512i raw) : raw(raw){};
+    forceinline constexpr explicit v512(std::array<u8, 64> src) : b(src) {}
+    forceinline constexpr explicit v512(std::array<u16, 32> src) : w(src) {}
+    forceinline constexpr explicit v512(std::array<u32, 16> src) : d(src) {}
+    forceinline constexpr explicit v512(std::array<u64, 8> src) : q(src) {}
     forceinline static auto from128(v128 src) -> v512 { return {_mm512_castsi128_si512(src.raw)}; }
     forceinline static auto from256(v256 src) -> v512 { return {_mm512_castsi256_si512(src.raw)}; }
     forceinline static auto expandMask8(u64 src) -> v512 { return {_mm512_movm_epi8(src)}; }

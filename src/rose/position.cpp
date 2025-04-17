@@ -551,7 +551,7 @@ namespace rose {
   forceinline auto Position::incrementalSliderUpdate(Square sq) -> void {
     const auto [ray_coords, ray_valid] = geometry::superpieceRays(sq);
     const v512 ray_places = vec::permute8(ray_coords, m_board.z);
-    const v512 masked_ray_places = ray_places & geometry::superpieceSliderMask();
+    const v512 masked_ray_places = ray_places & geometry::superpieceSliderMask;
     const v512 ray_ids = vec::permute8(ray_coords, m_id.z);
 
     const v512 inverse_ray_permutation = geometry::superpieceInverseRays(sq);
