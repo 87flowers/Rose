@@ -170,4 +170,52 @@ namespace rose::geometry {
 
   forceinline auto superpieceInverseRays(Square sq) -> v512 { return superpieceInverseRaysTable[sq.raw]; }
 
+  inline constexpr std::array<v512, 64> superpieceInverseRaysSwappedTable = [] {
+    // clang-format off
+    constexpr u8 none = 0xFF;
+    constexpr std::array<u8, 256> base{{
+        none, none, none, none, none, none, none, none, none, none, none, none, none, none, none, none,
+        none, 0x2F, none, none, none, none, none, none, 0x27, none, none, none, none, none, none, 0x1F,
+        none, none, 0x2E, none, none, none, none, none, 0x26, none, none, none, none, none, 0x1E, none,
+        none, none, none, 0x2D, none, none, none, none, 0x25, none, none, none, none, 0x1D, none, none,
+        none, none, none, none, 0x2C, none, none, none, 0x24, none, none, none, 0x1C, none, none, none,
+        none, none, none, none, none, 0x2B, none, none, 0x23, none, none, 0x1B, none, none, none, none,
+        none, none, none, none, none, none, 0x2A, 0x28, 0x22, 0x20, 0x1A, none, none, none, none, none,
+        none, none, none, none, none, none, 0x30, 0x29, 0x21, 0x19, 0x18, none, none, none, none, none,
+        none, 0x37, 0x36, 0x35, 0x34, 0x33, 0x32, 0x31, none, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+        none, none, none, none, none, none, 0x38, 0x39, 0x01, 0x09, 0x10, none, none, none, none, none,
+        none, none, none, none, none, none, 0x3A, 0x00, 0x02, 0x08, 0x0A, none, none, none, none, none,
+        none, none, none, none, none, 0x3B, none, none, 0x03, none, none, 0x0B, none, none, none, none,
+        none, none, none, none, 0x3C, none, none, none, 0x04, none, none, none, 0x0C, none, none, none,
+        none, none, none, 0x3D, none, none, none, none, 0x05, none, none, none, none, 0x0D, none, none,
+        none, none, 0x3E, none, none, none, none, none, 0x06, none, none, none, none, none, 0x0E, none,
+        none, 0x3F, none, none, none, none, none, none, 0x07, none, none, none, none, none, none, 0x0F,
+    }};
+    constexpr std::array<u8, 64> offsets{{
+        0210, 0211, 0212, 0213, 0214, 0215, 0216, 0217,
+        0230, 0231, 0232, 0233, 0234, 0235, 0236, 0237,
+        0250, 0251, 0252, 0253, 0254, 0255, 0256, 0257,
+        0270, 0271, 0272, 0273, 0274, 0275, 0276, 0277,
+        0310, 0311, 0312, 0313, 0314, 0315, 0316, 0317,
+        0330, 0331, 0332, 0333, 0334, 0335, 0336, 0337,
+        0350, 0351, 0352, 0353, 0354, 0355, 0356, 0357,
+        0370, 0371, 0372, 0373, 0374, 0375, 0376, 0377,
+    }};
+    // clang-format on
+
+    std::array<v512, 64> table;
+    for (u8 sq = 0; sq < 64; sq++) {
+      const u8 esq = internal::expandSq(Square{sq});
+      std::array<u8, 64> b;
+      for (int i = 0; i < 64; i++) {
+        const u8 j = base[offsets[i] - esq];
+        b[i] = j != none ? (j + 32) % 64 : none;
+      }
+      table[sq] = v512{b};
+    }
+    return table;
+  }();
+
+  forceinline auto superpieceInverseRaysSwapped(Square sq) -> v512 { return superpieceInverseRaysSwappedTable[sq.raw]; }
+
 } // namespace rose::geometry

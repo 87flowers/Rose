@@ -554,7 +554,7 @@ namespace rose {
     const v512 masked_ray_places = ray_places & geometry::superpieceSliderMask;
     const v512 ray_ids = vec::permute8(ray_coords, m_id.z);
 
-    const v512 inverse_ray_permutation = geometry::superpieceInverseRays(sq);
+    const v512 swapped_perm = geometry::superpieceInverseRaysSwapped(sq);
 
     const u64 blockers = ray_places.nonzero8();
     const u64 sliders = masked_ray_places.nonzero8();
@@ -565,13 +565,11 @@ namespace rose {
     // Broadcasts slider id to its 8-lane group
     const v512 visible_sliders_ids =
         vec::gf2p8matmul8(v512::broadcast8(0xFF), vec::gf2p8matmul8(v512::broadcast64(0x0102040810204080), vec::mask8(visible_sliders, ray_ids)));
-    // Swap to opposite ray
-    const v512 swapped_sliders_ids = vec::shuffle128<0b01001110>(visible_sliders_ids);
     // Squares to update
-    const v512 ids_to_update = vec::mask8(raymask, swapped_sliders_ids);
+    const v512 ids_to_update = vec::mask8((raymask << 32) | (raymask >> 32), visible_sliders_ids);
 
     // Permute from rays back into a board
-    const v512 ids_in_board_layout = vec::permute8_mz(~inverse_ray_permutation.msb8(), inverse_ray_permutation, ids_to_update);
+    const v512 ids_in_board_layout = vec::permute8_mz(~swapped_perm.msb8(), swapped_perm, ids_to_update);
     // We use zero as an invalid id beacuse it is guaranteed to be a king which is never a slider.
     const u64 valid_ids = ids_in_board_layout.nonzero8();
     const u64 color = ids_in_board_layout.msb8();
