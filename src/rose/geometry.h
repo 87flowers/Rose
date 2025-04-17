@@ -10,7 +10,7 @@ namespace rose::geometry {
 
   namespace internal {
     // 00rrrfff → 0rrr0fff
-    forceinline auto expandSq(Square sq) -> u8 { return sq.raw + (sq.raw & 0b111000); }
+    forceinline constexpr auto expandSq(Square sq) -> u8 { return sq.raw + (sq.raw & 0b111000); }
 
     // 0rrr0fff → 00rrrfff
     template <typename V> forceinline auto compressCoords(V list) -> std::tuple<V, typename V::Mask8> {
@@ -126,34 +126,28 @@ namespace rose::geometry {
     });
   }
 
-  forceinline auto superpieceInverseRays(Square sq) -> v512 {
+  inline constexpr std::array<std::array<u8, 64>, 64> superpieceInverseRaysTable = [] {
     // clang-format off
     constexpr u8 none = 0xFF;
-    const v512 table0 = v512::fromArray8({
+    constexpr std::array<u8, 256> base{{
         none, none, none, none, none, none, none, none, none, none, none, none, none, none, none, none,
         none, 0x2F, none, none, none, none, none, none, 0x27, none, none, none, none, none, none, 0x1F,
         none, none, 0x2E, none, none, none, none, none, 0x26, none, none, none, none, none, 0x1E, none,
         none, none, none, 0x2D, none, none, none, none, 0x25, none, none, none, none, 0x1D, none, none,
-    });
-    const v512 table1 = v512::fromArray8({
         none, none, none, none, 0x2C, none, none, none, 0x24, none, none, none, 0x1C, none, none, none,
         none, none, none, none, none, 0x2B, none, none, 0x23, none, none, 0x1B, none, none, none, none,
         none, none, none, none, none, none, 0x2A, 0x28, 0x22, 0x20, 0x1A, none, none, none, none, none,
         none, none, none, none, none, none, 0x30, 0x29, 0x21, 0x19, 0x18, none, none, none, none, none,
-    });
-    const v512 table2 = v512::fromArray8({
         none, 0x37, 0x36, 0x35, 0x34, 0x33, 0x32, 0x31, none, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
         none, none, none, none, none, none, 0x38, 0x39, 0x01, 0x09, 0x10, none, none, none, none, none,
         none, none, none, none, none, none, 0x3A, 0x00, 0x02, 0x08, 0x0A, none, none, none, none, none,
         none, none, none, none, none, 0x3B, none, none, 0x03, none, none, 0x0B, none, none, none, none,
-    });
-    const v512 table3 = v512::fromArray8({
         none, none, none, none, 0x3C, none, none, none, 0x04, none, none, none, 0x0C, none, none, none,
         none, none, none, 0x3D, none, none, none, none, 0x05, none, none, none, none, 0x0D, none, none,
         none, none, 0x3E, none, none, none, none, none, 0x06, none, none, none, none, none, 0x0E, none,
         none, 0x3F, none, none, none, none, none, none, 0x07, none, none, none, none, none, none, 0x0F,
-    });
-    const v512 offsets = v512::fromArray8({
+    }};
+    constexpr std::array<u8, 64> offsets{{
         0210, 0211, 0212, 0213, 0214, 0215, 0216, 0217,
         0230, 0231, 0232, 0233, 0234, 0235, 0236, 0237,
         0250, 0251, 0252, 0253, 0254, 0255, 0256, 0257,
@@ -162,13 +156,19 @@ namespace rose::geometry {
         0330, 0331, 0332, 0333, 0334, 0335, 0336, 0337,
         0350, 0351, 0352, 0353, 0354, 0355, 0356, 0357,
         0370, 0371, 0372, 0373, 0374, 0375, 0376, 0377,
-    });
+    }};
     // clang-format on
 
-    const v512 indexes = vec::sub8(offsets, v512::broadcast8(internal::expandSq(sq)));
-    const v512 result0 = vec::permute8(indexes, table0, table1);
-    const v512 result1 = vec::permute8(indexes, table2, table3);
-    return vec::blend8(indexes.msb8(), result0, result1);
-  }
+    std::array<std::array<u8, 64>, 64> table;
+    for (u8 sq = 0; sq < 64; sq++) {
+      const u8 esq = internal::expandSq(Square{sq});
+      for (int i = 0; i < 64; i++) {
+        table[sq][i] = base[offsets[i] - esq];
+      }
+    }
+    return table;
+  }();
+
+  forceinline auto superpieceInverseRays(Square sq) -> v512 { return v512::fromArray8(superpieceInverseRaysTable[sq.raw]); }
 
 } // namespace rose::geometry
