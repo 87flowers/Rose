@@ -71,7 +71,7 @@ namespace rose {
     constexpr auto pieceListType(Color color) const -> PieceList<PieceType> { return m_piece_list_ptype[color.toIndex()]; }
     constexpr auto activeColor() const -> Color { return m_active_color; }
 
-    auto kingSq(Color color) const -> Square { return Square{static_cast<u8>(std::countr_zero(m_board.bitboardFor<PieceType::k>(color)))}; }
+    auto kingSq(Color color) const -> Square { return m_piece_list_sq[color.toIndex()].m[0]; }
     auto enpassant() const -> Square { return m_enpassant; }
     auto rookInfo(Color color) const -> RookInfo { return m_rook_info[color.toIndex()]; }
 
