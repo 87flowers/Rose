@@ -516,11 +516,11 @@ namespace rose {
     const auto [to_ray_coords, to_ray_valid] = geometry::superpieceRays(to);
 
     v512 board = m_board.z;
+    const v512 src_place = vec::permute8(v512::broadcast8(from.raw), board);
     const v512 from_ray_places = vec::permute8(from_ray_coords, board);
     board = vec::mask8(~(static_cast<u64>(1) << from.raw), board);
     const v512 to_ray_places = vec::permute8(to_ray_coords, board);
-    m_board.m[to.raw] = m_board.m[from.raw];
-    m_board.m[from.raw] = Place::empty;
+    m_board.z = vec::blend8(static_cast<u64>(1) << to.raw, board, src_place);
 
     const v512 from_ray_ids = vec::permute8(from_ray_coords, m_id.z);
     const v512 to_ray_ids = vec::permute8(to_ray_coords, m_id.z);
