@@ -109,7 +109,6 @@ namespace rose {
     forceinline auto movePiece(bool color, Square from, Square to, u8 id, PieceType ptype) -> void;
     forceinline auto incrementalSliderUpdate(Square sq) -> void;
     forceinline auto removeAttacks(bool color, u8 id) -> void;
-    forceinline auto addAttacks(bool color, Square sq, u8 id, PieceType ptype) -> void;
   };
 
 } // namespace rose
