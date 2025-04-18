@@ -486,74 +486,74 @@ namespace rose {
     return result;
   }
 
-  template <bool update_to_silders, PieceType dest_ptype>
-  forceinline auto Position::movePiece(bool color, Square from, Square to, u8 id, PieceType ptype) -> void {
-    m_piece_list_sq[color].m[id] = to;
+  template <bool update_dst_silders, PieceType dst_ptype>
+  forceinline auto Position::movePiece(bool color, Square src, Square dst, u8 id, PieceType ptype) -> void {
+    m_piece_list_sq[color].m[id] = dst;
 
-    const auto [from_ray_coords, from_ray_valid] = geometry::superpieceRays(from);
-    const auto [to_ray_coords, to_ray_valid] = geometry::superpieceRays(to);
+    const auto [src_ray_coords, src_ray_valid] = geometry::superpieceRays(src);
+    const auto [dst_ray_coords, dst_ray_valid] = geometry::superpieceRays(dst);
 
     v512 board = m_board.z;
-    const v512 src_place = dest_ptype == PieceType::none ? vec::permute8(v512::broadcast8(from.raw), board)
-                                                         : v512::broadcast8(Place::fromColorAndPtypeAndId(Color::Inner{color}, dest_ptype, id).raw);
-    const v512 from_ray_places = vec::permute8(from_ray_coords, board);
-    board = vec::mask8(~(static_cast<u64>(1) << from.raw), board);
-    const v512 to_ray_places = vec::permute8(to_ray_coords, board);
-    board = vec::blend8(static_cast<u64>(1) << to.raw, board, src_place);
+    const v512 src_place = dst_ptype == PieceType::none ? vec::permute8(v512::broadcast8(src.raw), board)
+                                                        : v512::broadcast8(Place::fromColorAndPtypeAndId(Color::Inner{color}, dst_ptype, id).raw);
+    const v512 src_ray_places = vec::permute8(src_ray_coords, board);
+    board = vec::mask8(~(static_cast<u64>(1) << src.raw), board);
+    const v512 dst_ray_places = vec::permute8(dst_ray_coords, board);
+    board = vec::blend8(static_cast<u64>(1) << dst.raw, board, src_place);
     m_board.z = board;
 
-    const v512 from_swapped_perm = geometry::superpieceInverseRaysSwapped(from);
-    const v512 to_swapped_perm = geometry::superpieceInverseRaysSwapped(to);
+    const v512 src_swapped_perm = geometry::superpieceInverseRaysSwapped(src);
+    const v512 dst_swapped_perm = geometry::superpieceInverseRaysSwapped(dst);
 
-    const u64 from_blockers = from_ray_places.nonzero8();
-    const u64 to_blockers = to_ray_places.nonzero8();
-    const u64 from_sliders = (from_ray_places & v512::broadcast8(Place::slider_bit)).nonzero8() & (from_ray_places & geometry::sliderMask).nonzero8();
-    const u64 to_sliders = (to_ray_places & v512::broadcast8(Place::slider_bit)).nonzero8() & (to_ray_places & geometry::sliderMask).nonzero8();
+    const u64 src_blockers = src_ray_places.nonzero8();
+    const u64 dst_blockers = dst_ray_places.nonzero8();
+    const u64 src_sliders = (src_ray_places & v512::broadcast8(Place::slider_bit)).nonzero8() & (src_ray_places & geometry::sliderMask).nonzero8();
+    const u64 dst_sliders = (dst_ray_places & v512::broadcast8(Place::slider_bit)).nonzero8() & (dst_ray_places & geometry::sliderMask).nonzero8();
 
-    const u64 from_raymask = geometry::superpieceAttacks(from_blockers, from_ray_valid) & geometry::non_horse_attack_mask;
-    const u64 to_raymask_with_horses = geometry::superpieceAttacks(to_blockers, to_ray_valid);
-    const u64 to_raymask = to_raymask_with_horses & geometry::non_horse_attack_mask;
+    const u64 src_raymask = geometry::superpieceAttacks(src_blockers, src_ray_valid) & geometry::non_horse_attack_mask;
+    const u64 dst_raymask_with_horses = geometry::superpieceAttacks(dst_blockers, dst_ray_valid);
+    const u64 dst_raymask = dst_raymask_with_horses & geometry::non_horse_attack_mask;
 
-    const u64 from_visible_sliders = from_raymask & from_sliders;
-    const u64 to_visible_sliders = to_raymask & to_sliders;
+    const u64 src_visible_sliders = src_raymask & src_sliders;
+    const u64 dst_visible_sliders = dst_raymask & dst_sliders;
 
     // Broadcasts slider id to its 8-lane group
-    const v512 from_visible_sliders_ids = vec::lanebroadcast8to64(vec::mask8(from_visible_sliders, vec::permute8(from_ray_coords, board)));
-    const v512 to_visible_sliders_ids = vec::lanebroadcast8to64(vec::mask8(to_visible_sliders, to_ray_places));
+    const v512 src_visible_sliders_ids = vec::lanebroadcast8to64(vec::mask8(src_visible_sliders, vec::permute8(src_ray_coords, board)));
+    const v512 dst_visible_sliders_ids = vec::lanebroadcast8to64(vec::mask8(dst_visible_sliders, dst_ray_places));
     // Squares to update
-    const v512 from_ids_to_update = vec::mask8(std::rotl(from_raymask, 32), from_visible_sliders_ids);
-    const v512 to_ids_to_update = vec::mask8(std::rotl(to_raymask, 32), to_visible_sliders_ids);
+    const v512 src_ids_to_update = vec::mask8(std::rotl(src_raymask, 32), src_visible_sliders_ids);
+    const v512 dst_ids_to_update = vec::mask8(std::rotl(dst_raymask, 32), dst_visible_sliders_ids);
 
     // Permute from rays back into a board
-    const v512 from_ids_in_board_layout = vec::permute8_mz(~from_swapped_perm.msb8(), from_swapped_perm, from_ids_to_update);
-    const v512 to_ids_in_board_layout = vec::permute8_mz(~to_swapped_perm.msb8(), to_swapped_perm, to_ids_to_update);
+    const v512 src_ids_in_board_layout = vec::permute8_mz(~src_swapped_perm.msb8(), src_swapped_perm, src_ids_to_update);
+    const v512 dst_ids_in_board_layout = vec::permute8_mz(~dst_swapped_perm.msb8(), dst_swapped_perm, dst_ids_to_update);
     // We use zero as an invalid id beacuse it is guaranteed to be a king which is never a slider.
-    const u64 from_valid_ids = from_ids_in_board_layout.nonzero8();
-    const u64 to_valid_ids = to_ids_in_board_layout.nonzero8();
-    const u64 from_color = from_ids_in_board_layout.msb8();
-    const u64 to_color = to_ids_in_board_layout.msb8();
+    const u64 src_valid_ids = src_ids_in_board_layout.nonzero8();
+    const u64 dst_valid_ids = dst_ids_in_board_layout.nonzero8();
+    const u64 src_color = src_ids_in_board_layout.msb8();
+    const u64 dst_color = dst_ids_in_board_layout.msb8();
 
-    const v512 from_masked_ids = from_ids_in_board_layout & v512::broadcast8(0xF);
-    const v512 to_masked_ids = to_ids_in_board_layout & v512::broadcast8(0xF);
+    const v512 src_masked_ids = src_ids_in_board_layout & v512::broadcast8(0xF);
+    const v512 dst_masked_ids = dst_ids_in_board_layout & v512::broadcast8(0xF);
 
     const v512 ones = v512::broadcast16(1);
-    const v512 from_bits0 = vec::shl16_mz(static_cast<u32>(from_valid_ids), ones, vec::zext8to16(from_masked_ids.to256()));
-    const v512 from_bits1 = vec::shl16_mz(static_cast<u32>(from_valid_ids >> 32), ones, vec::zext8to16(vec::extract256<1>(from_masked_ids)));
-    const v512 to_bits0 = vec::shl16_mz(static_cast<u32>(to_valid_ids), ones, vec::zext8to16(to_masked_ids.to256()));
-    const v512 to_bits1 = vec::shl16_mz(static_cast<u32>(to_valid_ids >> 32), ones, vec::zext8to16(vec::extract256<1>(to_masked_ids)));
+    const v512 src_bits0 = vec::shl16_mz(static_cast<u32>(src_valid_ids), ones, vec::zext8to16(src_masked_ids.to256()));
+    const v512 src_bits1 = vec::shl16_mz(static_cast<u32>(src_valid_ids >> 32), ones, vec::zext8to16(vec::extract256<1>(src_masked_ids)));
+    const v512 dst_bits0 = vec::shl16_mz(static_cast<u32>(dst_valid_ids), ones, vec::zext8to16(dst_masked_ids.to256()));
+    const v512 dst_bits1 = vec::shl16_mz(static_cast<u32>(dst_valid_ids >> 32), ones, vec::zext8to16(vec::extract256<1>(dst_masked_ids)));
 
-    m_attack_table[0].z[0] = m_attack_table[0].z[0] ^ vec::mask16(~static_cast<u32>(from_color), from_bits0);
-    if constexpr (update_to_silders)
-      m_attack_table[0].z[0] = m_attack_table[0].z[0] ^ vec::mask16(~static_cast<u32>(to_color), to_bits0);
-    m_attack_table[0].z[1] = m_attack_table[0].z[1] ^ vec::mask16(~static_cast<u32>(from_color >> 32), from_bits1);
-    if constexpr (update_to_silders)
-      m_attack_table[0].z[1] = m_attack_table[0].z[1] ^ vec::mask16(~static_cast<u32>(to_color >> 32), to_bits1);
-    m_attack_table[1].z[0] = m_attack_table[1].z[0] ^ vec::mask16(static_cast<u32>(from_color), from_bits0);
-    if constexpr (update_to_silders)
-      m_attack_table[1].z[0] = m_attack_table[1].z[0] ^ vec::mask16(static_cast<u32>(to_color), to_bits0);
-    m_attack_table[1].z[1] = m_attack_table[1].z[1] ^ vec::mask16(static_cast<u32>(from_color >> 32), from_bits1);
-    if constexpr (update_to_silders)
-      m_attack_table[1].z[1] = m_attack_table[1].z[1] ^ vec::mask16(static_cast<u32>(to_color >> 32), to_bits1);
+    m_attack_table[0].z[0] = m_attack_table[0].z[0] ^ vec::mask16(~static_cast<u32>(src_color), src_bits0);
+    if constexpr (update_dst_silders)
+      m_attack_table[0].z[0] = m_attack_table[0].z[0] ^ vec::mask16(~static_cast<u32>(dst_color), dst_bits0);
+    m_attack_table[0].z[1] = m_attack_table[0].z[1] ^ vec::mask16(~static_cast<u32>(src_color >> 32), src_bits1);
+    if constexpr (update_dst_silders)
+      m_attack_table[0].z[1] = m_attack_table[0].z[1] ^ vec::mask16(~static_cast<u32>(dst_color >> 32), dst_bits1);
+    m_attack_table[1].z[0] = m_attack_table[1].z[0] ^ vec::mask16(static_cast<u32>(src_color), src_bits0);
+    if constexpr (update_dst_silders)
+      m_attack_table[1].z[0] = m_attack_table[1].z[0] ^ vec::mask16(static_cast<u32>(dst_color), dst_bits0);
+    m_attack_table[1].z[1] = m_attack_table[1].z[1] ^ vec::mask16(static_cast<u32>(src_color >> 32), src_bits1);
+    if constexpr (update_dst_silders)
+      m_attack_table[1].z[1] = m_attack_table[1].z[1] ^ vec::mask16(static_cast<u32>(dst_color >> 32), dst_bits1);
 
     const v512 rm_mask = v512::broadcast16(~narrow_cast<u16>(1 << (id & 0xF)));
     m_attack_table[color].z[0] = m_attack_table[color].z[0] & rm_mask;
@@ -561,9 +561,9 @@ namespace rose {
 
     const v512 add_bit = v512::broadcast16(narrow_cast<u16>(1 << (id & 0xF)));
     const u64 attacker_mask =
-        to_raymask_with_horses & geometry::attackMaskTable[(color << 3) | (dest_ptype == PieceType::none ? ptype.raw : dest_ptype.raw)];
+        dst_raymask_with_horses & geometry::attackMaskTable[(color << 3) | (dst_ptype == PieceType::none ? ptype.raw : dst_ptype.raw)];
     const u64 add_mask =
-        _mm512_mask_bitshuffle_epi64_mask(~to_swapped_perm.msb8(), v512::broadcast64(std::rotr(attacker_mask, 32)).raw, to_swapped_perm.raw);
+        _mm512_mask_bitshuffle_epi64_mask(~dst_swapped_perm.msb8(), v512::broadcast64(std::rotr(attacker_mask, 32)).raw, dst_swapped_perm.raw);
 
     m_attack_table[color].z[0] = m_attack_table[color].z[0] | vec::mask16(static_cast<u32>(add_mask), add_bit);
     m_attack_table[color].z[1] = m_attack_table[color].z[1] | vec::mask16(static_cast<u32>(add_mask >> 32), add_bit);
