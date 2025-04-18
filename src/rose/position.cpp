@@ -57,21 +57,13 @@ namespace rose {
     };
 
     const auto normal = [&] {
-      new_pos.incrementalSliderUpdate(from);
-      new_pos.m_piece_list_sq[color].m[src_id & 0xF] = to;
-      new_pos.m_board.m[from.raw] = Place::empty;
-      new_pos.m_board.m[to.raw] = src_place;
-      new_pos.m_id.r[from.raw] = 0xFF;
-      new_pos.m_id.r[to.raw] = src_id;
+      new_pos.movePiece(color, from, to, src_id, src_place.ptype());
       // TODO: m_hash
       if (src_place.ptype() != PieceType::p) {
         new_pos.m_irreversible_clock++;
       } else {
         new_pos.m_irreversible_clock = 0;
       }
-      new_pos.removeAttacks(color, src_id);
-      new_pos.addAttacks(color, to, src_id, src_place.ptype());
-      new_pos.incrementalSliderUpdate(to);
       check_src_castling_rights();
     };
 
@@ -127,30 +119,16 @@ namespace rose {
     };
 
     const auto double_push = [&] {
-      new_pos.incrementalSliderUpdate(from);
-      new_pos.m_piece_list_sq[color].m[src_id & 0xF] = to;
-      new_pos.m_board.m[from.raw] = Place::empty;
-      new_pos.m_board.m[to.raw] = src_place;
-      new_pos.m_id.r[from.raw] = 0xFF;
-      new_pos.m_id.r[to.raw] = src_id;
+      new_pos.movePiece(color, from, to, src_id, src_place.ptype());
       // TODO: m_hash
       new_pos.m_irreversible_clock = 0;
       new_pos.m_enpassant = Square{narrow_cast<u8>((from.raw + to.raw) >> 1)};
-      new_pos.removeAttacks(color, src_id);
-      new_pos.addAttacks(color, to, src_id, src_place.ptype());
-      new_pos.incrementalSliderUpdate(to);
     };
 
     const auto enpassant = [&] {
       const Square victim{narrow_cast<u8>((from.raw & 0x38) | (to.raw & 7))};
       const u8 victim_id = m_id.r[victim.raw];
-      new_pos.incrementalSliderUpdate(from);
-      new_pos.m_piece_list_sq[color].m[src_id & 0xF] = to;
-      new_pos.m_board.m[from.raw] = Place::empty;
-      new_pos.m_board.m[to.raw] = src_place;
-      new_pos.m_id.r[from.raw] = 0xFF;
-      new_pos.m_id.r[to.raw] = src_id;
-      new_pos.incrementalSliderUpdate(to);
+      new_pos.movePiece(color, from, to, src_id, src_place.ptype());
 
       new_pos.incrementalSliderUpdate(victim);
       new_pos.m_piece_list_sq[!color].m[victim_id & 0xF] = Square::invalid();
@@ -160,9 +138,7 @@ namespace rose {
 
       // TODO: m_hash
       new_pos.m_irreversible_clock = 0;
-      new_pos.removeAttacks(color, src_id);
       new_pos.removeAttacks(!color, victim_id);
-      new_pos.addAttacks(color, to, src_id, src_place.ptype());
       check_src_castling_rights();
       check_dest_castling_rights();
     };
@@ -174,25 +150,9 @@ namespace rose {
       const Square rook_src = m.to();
       const u8 king_id = m_id.r[king_src.raw];
       const u8 rook_id = m_id.r[rook_src.raw];
-      new_pos.incrementalSliderUpdate(king_src);
-      new_pos.m_piece_list_sq[color].m[king_id & 0xF] = king_dest;
-      new_pos.m_board.m[king_src.raw] = Place::empty;
-      new_pos.m_board.m[king_dest.raw] = Place::fromColorAndPtype(m_active_color, PieceType::k);
-      new_pos.m_id.r[king_src.raw] = 0xFF;
-      new_pos.m_id.r[king_dest.raw] = king_id;
-      new_pos.removeAttacks(color, king_id);
-      new_pos.addAttacks(color, king_dest, king_id, PieceType::k);
-      new_pos.incrementalSliderUpdate(king_dest);
 
-      new_pos.incrementalSliderUpdate(rook_src);
-      new_pos.m_piece_list_sq[color].m[rook_id & 0xF] = rook_dest;
-      new_pos.m_board.m[rook_src.raw] = Place::empty;
-      new_pos.m_board.m[rook_dest.raw] = Place::fromColorAndPtype(m_active_color, PieceType::r);
-      new_pos.m_id.r[rook_src.raw] = 0xFF;
-      new_pos.m_id.r[rook_dest.raw] = rook_id;
-      new_pos.removeAttacks(color, rook_id);
-      new_pos.addAttacks(color, rook_dest, rook_id, PieceType::r);
-      new_pos.incrementalSliderUpdate(rook_dest);
+      new_pos.movePiece(color, king_src, king_dest, king_id, PieceType::k);
+      new_pos.movePiece(color, rook_src, rook_dest, rook_id, PieceType::r);
 
       // TODO: m_hash
       new_pos.m_irreversible_clock = 0;
@@ -546,6 +506,87 @@ namespace rose {
     result.m_attack_table = result.calcAttacksSlow();
 
     return result;
+  }
+
+  forceinline auto Position::movePiece(bool color, Square from, Square to, u8 id, PieceType ptype) -> void {
+    m_piece_list_sq[color].m[id & 0xF] = to;
+    m_id.r[to.raw] = m_id.r[from.raw];
+
+    const auto [from_ray_coords, from_ray_valid] = geometry::superpieceRays(from);
+    const auto [to_ray_coords, to_ray_valid] = geometry::superpieceRays(to);
+
+    v512 board = m_board.z;
+    const v512 from_ray_places = vec::permute8(from_ray_coords, board);
+    board = vec::mask8(~(static_cast<u64>(1) << from.raw), board);
+    const v512 to_ray_places = vec::permute8(to_ray_coords, board);
+    m_board.m[to.raw] = m_board.m[from.raw];
+    m_board.m[from.raw] = Place::empty;
+
+    const v512 from_ray_ids = vec::permute8(from_ray_coords, m_id.z);
+    const v512 to_ray_ids = vec::permute8(to_ray_coords, m_id.z);
+
+    const v512 from_swapped_perm = geometry::superpieceInverseRaysSwapped(from);
+    const v512 to_swapped_perm = geometry::superpieceInverseRaysSwapped(to);
+
+    const u64 from_blockers = from_ray_places.nonzero8();
+    const u64 to_blockers = to_ray_places.nonzero8();
+    const u64 from_sliders = (from_ray_places & geometry::superpieceSliderMask).nonzero8();
+    const u64 to_sliders = (to_ray_places & geometry::superpieceSliderMask).nonzero8();
+
+    const u64 from_raymask = geometry::superpieceAttacks(from_blockers, from_ray_valid) & geometry::non_horse_attack_mask;
+    const u64 to_raymask_with_horses = geometry::superpieceAttacks(to_blockers, to_ray_valid);
+    const u64 to_raymask = to_raymask_with_horses & geometry::non_horse_attack_mask;
+
+    const u64 from_visible_sliders = from_raymask & from_sliders;
+    const u64 to_visible_sliders = to_raymask & to_sliders;
+
+    // Broadcasts slider id to its 8-lane group
+    const v512 from_visible_sliders_ids = vec::gf2p8matmul8(
+        v512::broadcast8(0xFF), vec::gf2p8matmul8(v512::broadcast64(0x0102040810204080), vec::mask8(from_visible_sliders, from_ray_ids)));
+    const v512 to_visible_sliders_ids = vec::gf2p8matmul8(
+        v512::broadcast8(0xFF), vec::gf2p8matmul8(v512::broadcast64(0x0102040810204080), vec::mask8(to_visible_sliders, to_ray_ids)));
+    // Squares to update
+    const v512 from_ids_to_update = vec::mask8(std::rotl(from_raymask, 32), from_visible_sliders_ids);
+    const v512 to_ids_to_update = vec::mask8(std::rotl(to_raymask, 32), to_visible_sliders_ids);
+
+    // Permute from rays back into a board
+    const v512 from_ids_in_board_layout = vec::permute8_mz(~from_swapped_perm.msb8(), from_swapped_perm, from_ids_to_update);
+    const v512 to_ids_in_board_layout = vec::permute8_mz(~to_swapped_perm.msb8(), to_swapped_perm, to_ids_to_update);
+    // We use zero as an invalid id beacuse it is guaranteed to be a king which is never a slider.
+    const u64 from_valid_ids = from_ids_in_board_layout.nonzero8();
+    const u64 to_valid_ids = to_ids_in_board_layout.nonzero8();
+    const u64 from_color = from_ids_in_board_layout.msb8();
+    const u64 to_color = to_ids_in_board_layout.msb8();
+
+    const v512 from_masked_ids = from_ids_in_board_layout & v512::broadcast8(0xF);
+    const v512 to_masked_ids = to_ids_in_board_layout & v512::broadcast8(0xF);
+
+    const v512 ones = v512::broadcast16(1);
+    const v512 from_bits0 = vec::shl16_mz(static_cast<u32>(from_valid_ids), ones, vec::zext8to16(from_masked_ids.to256()));
+    const v512 from_bits1 = vec::shl16_mz(static_cast<u32>(from_valid_ids >> 32), ones, vec::zext8to16(vec::extract256<1>(from_masked_ids)));
+    const v512 to_bits0 = vec::shl16_mz(static_cast<u32>(to_valid_ids), ones, vec::zext8to16(to_masked_ids.to256()));
+    const v512 to_bits1 = vec::shl16_mz(static_cast<u32>(to_valid_ids >> 32), ones, vec::zext8to16(vec::extract256<1>(to_masked_ids)));
+
+    m_attack_table[0].z[0] = m_attack_table[0].z[0] ^ vec::mask16(~static_cast<u32>(from_color), from_bits0);
+    m_attack_table[0].z[0] = m_attack_table[0].z[0] ^ vec::mask16(~static_cast<u32>(to_color), to_bits0);
+    m_attack_table[0].z[1] = m_attack_table[0].z[1] ^ vec::mask16(~static_cast<u32>(from_color >> 32), from_bits1);
+    m_attack_table[0].z[1] = m_attack_table[0].z[1] ^ vec::mask16(~static_cast<u32>(to_color >> 32), to_bits1);
+    m_attack_table[1].z[0] = m_attack_table[1].z[0] ^ vec::mask16(static_cast<u32>(from_color), from_bits0);
+    m_attack_table[1].z[0] = m_attack_table[1].z[0] ^ vec::mask16(static_cast<u32>(to_color), to_bits0);
+    m_attack_table[1].z[1] = m_attack_table[1].z[1] ^ vec::mask16(static_cast<u32>(from_color >> 32), from_bits1);
+    m_attack_table[1].z[1] = m_attack_table[1].z[1] ^ vec::mask16(static_cast<u32>(to_color >> 32), to_bits1);
+
+    const v512 rm_mask = v512::broadcast16(~narrow_cast<u16>(1 << (id & 0xF)));
+    m_attack_table[color].z[0] = m_attack_table[color].z[0] & rm_mask;
+    m_attack_table[color].z[1] = m_attack_table[color].z[1] & rm_mask;
+
+    const v512 add_bit = v512::broadcast16(narrow_cast<u16>(1 << (id & 0xF)));
+    const v512 attacker_mask =
+        vec::mask8(to_raymask_with_horses, geometry::superpieceAttackerMask(static_cast<Color::Inner>(color))) & v512::broadcast8(ptype.raw);
+    const u64 add_mask = vec::permute8_mz(~to_swapped_perm.msb8(), to_swapped_perm, vec::shuffle128<0b01001110>(attacker_mask)).nonzero8();
+
+    m_attack_table[color].z[0] = m_attack_table[color].z[0] | vec::mask16(static_cast<u32>(add_mask), add_bit);
+    m_attack_table[color].z[1] = m_attack_table[color].z[1] | vec::mask16(static_cast<u32>(add_mask >> 32), add_bit);
   }
 
   forceinline auto Position::incrementalSliderUpdate(Square sq) -> void {
