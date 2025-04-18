@@ -518,11 +518,8 @@ namespace rose {
     const u64 to_visible_sliders = to_raymask & to_sliders;
 
     // Broadcasts slider id to its 8-lane group
-    const v512 from_visible_sliders_ids =
-        vec::gf2p8matmul8(v512::broadcast8(0xFF), vec::gf2p8matmul8(v512::broadcast64(0x0102040810204080),
-                                                                    vec::mask8(from_visible_sliders, vec::permute8(from_ray_coords, board))));
-    const v512 to_visible_sliders_ids = vec::gf2p8matmul8(
-        v512::broadcast8(0xFF), vec::gf2p8matmul8(v512::broadcast64(0x0102040810204080), vec::mask8(to_visible_sliders, to_ray_places)));
+    const v512 from_visible_sliders_ids = vec::lanebroadcast8to64(vec::mask8(from_visible_sliders, vec::permute8(from_ray_coords, board)));
+    const v512 to_visible_sliders_ids = vec::lanebroadcast8to64(vec::mask8(to_visible_sliders, to_ray_places));
     // Squares to update
     const v512 from_ids_to_update = vec::mask8(std::rotl(from_raymask, 32), from_visible_sliders_ids);
     const v512 to_ids_to_update = vec::mask8(std::rotl(to_raymask, 32), to_visible_sliders_ids);
@@ -585,8 +582,7 @@ namespace rose {
     const u64 visible_sliders = raymask & sliders;
 
     // Broadcasts slider id to its 8-lane group
-    const v512 visible_sliders_ids =
-        vec::gf2p8matmul8(v512::broadcast8(0xFF), vec::gf2p8matmul8(v512::broadcast64(0x0102040810204080), vec::mask8(visible_sliders, ray_places)));
+    const v512 visible_sliders_ids = vec::lanebroadcast8to64(vec::mask8(visible_sliders, ray_places));
     // Squares to update
     const v512 ids_to_update = vec::mask8((raymask << 32) | (raymask >> 32), visible_sliders_ids);
 

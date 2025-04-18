@@ -184,6 +184,10 @@ namespace rose::vec {
   forceinline auto gf2p8matmul8(v256 a, v256 b) -> v256 { return {_mm256_gf2p8affine_epi64_epi8(a.raw, b.raw, 0)}; }
   forceinline auto gf2p8matmul8(v512 a, v512 b) -> v512 { return {_mm512_gf2p8affine_epi64_epi8(a.raw, b.raw, 0)}; }
 
+  forceinline auto lanebroadcast8to64(v512 a) -> v512 {
+    return vec::gf2p8matmul8(v512::broadcast8(0xFF), vec::gf2p8matmul8(v512::broadcast64(0x0102040810204080), a));
+  }
+
   forceinline auto mask8(u16 mask, v128 a) -> v128 { return {_mm_maskz_mov_epi8(mask, a.raw)}; }
   forceinline auto mask8(u32 mask, v256 a) -> v256 { return {_mm256_maskz_mov_epi8(mask, a.raw)}; }
   forceinline auto mask8(u64 mask, v512 a) -> v512 { return {_mm512_maskz_mov_epi8(mask, a.raw)}; }
