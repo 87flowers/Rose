@@ -2,6 +2,7 @@
 
 #include <bit>
 #include <print>
+#include <type_traits>
 #include <utility>
 
 namespace rose {
@@ -78,36 +79,21 @@ namespace rose {
       check_dest_castling_rights();
     };
 
-    const auto promo = [&](PieceType ptype) {
-      new_pos.incrementalSliderUpdate(from);
-      new_pos.m_piece_list_sq[color].m[src_id & 0xF] = to;
+    const auto promo = [&](auto ptype) {
       new_pos.m_piece_list_ptype[color].m[src_id & 0xF] = ptype;
-      new_pos.m_board.m[from.raw] = Place::empty;
-      new_pos.m_board.m[to.raw] = Place::fromColorAndPtype(m_active_color, ptype);
-      new_pos.m_id.r[from.raw] = 0xFF;
-      new_pos.m_id.r[to.raw] = src_id;
+      new_pos.movePiece<true, decltype(ptype)::value>(color, from, to, src_id, src_place.ptype());
       // TODO: m_hash
       new_pos.m_irreversible_clock = 0;
-      new_pos.removeAttacks(color, src_id);
-      new_pos.addAttacks(color, to, src_id, ptype);
-      new_pos.incrementalSliderUpdate(to);
     };
 
-    const auto cap_promo = [&](PieceType ptype) {
-      new_pos.incrementalSliderUpdate(from);
-      new_pos.m_piece_list_sq[color].m[src_id & 0xF] = to;
+    const auto cap_promo = [&](auto ptype) {
       new_pos.m_piece_list_sq[!color].m[dest_id & 0xF] = Square::invalid();
       new_pos.m_piece_list_ptype[color].m[src_id & 0xF] = ptype;
       new_pos.m_piece_list_ptype[!color].m[dest_id & 0xF] = PieceType::none;
-      new_pos.m_board.m[from.raw] = Place::empty;
-      new_pos.m_board.m[to.raw] = Place::fromColorAndPtype(m_active_color, ptype);
-      new_pos.m_id.r[from.raw] = 0xFF;
-      new_pos.m_id.r[to.raw] = src_id;
+      new_pos.removeAttacks(!color, dest_id);
+      new_pos.movePiece<false, decltype(ptype)::value>(color, from, to, src_id, src_place.ptype());
       // TODO: m_hash
       new_pos.m_irreversible_clock = 0;
-      new_pos.removeAttacks(color, src_id);
-      new_pos.removeAttacks(!color, dest_id);
-      new_pos.addAttacks(color, to, src_id, ptype);
       check_dest_castling_rights();
     };
 
@@ -167,16 +153,16 @@ namespace rose {
       castle(6, 5);
       break;
     case MF(promo_q):
-      promo(PieceType::q);
+      promo(std::integral_constant<PieceType, PieceType::q>{});
       break;
     case MF(promo_n):
-      promo(PieceType::n);
+      promo(std::integral_constant<PieceType, PieceType::n>{});
       break;
     case MF(promo_r):
-      promo(PieceType::r);
+      promo(std::integral_constant<PieceType, PieceType::r>{});
       break;
     case MF(promo_b):
-      promo(PieceType::b);
+      promo(std::integral_constant<PieceType, PieceType::b>{});
       break;
     case MF(capture):
       capture();
@@ -185,16 +171,16 @@ namespace rose {
       enpassant();
       break;
     case MF(cap_promo_q):
-      cap_promo(PieceType::q);
+      cap_promo(std::integral_constant<PieceType, PieceType::q>{});
       break;
     case MF(cap_promo_n):
-      cap_promo(PieceType::n);
+      cap_promo(std::integral_constant<PieceType, PieceType::n>{});
       break;
     case MF(cap_promo_r):
-      cap_promo(PieceType::r);
+      cap_promo(std::integral_constant<PieceType, PieceType::r>{});
       break;
     case MF(cap_promo_b):
-      cap_promo(PieceType::b);
+      cap_promo(std::integral_constant<PieceType, PieceType::b>{});
       break;
     default:
       std::unreachable();
@@ -501,7 +487,8 @@ namespace rose {
     return result;
   }
 
-  template <bool update_to_silders> forceinline auto Position::movePiece(bool color, Square from, Square to, u8 id, PieceType ptype) -> void {
+  template <bool update_to_silders, PieceType dest_ptype>
+  forceinline auto Position::movePiece(bool color, Square from, Square to, u8 id, PieceType ptype) -> void {
     m_piece_list_sq[color].m[id & 0xF] = to;
     m_id.r[to.raw] = m_id.r[from.raw];
 
@@ -509,7 +496,8 @@ namespace rose {
     const auto [to_ray_coords, to_ray_valid] = geometry::superpieceRays(to);
 
     v512 board = m_board.z;
-    const v512 src_place = vec::permute8(v512::broadcast8(from.raw), board);
+    const v512 src_place = dest_ptype == PieceType::none ? vec::permute8(v512::broadcast8(from.raw), board)
+                                                         : v512::broadcast8(Place::fromColorAndPtype(Color::Inner{color}, dest_ptype).raw);
     const v512 from_ray_places = vec::permute8(from_ray_coords, board);
     board = vec::mask8(~(static_cast<u64>(1) << from.raw), board);
     const v512 to_ray_places = vec::permute8(to_ray_coords, board);
@@ -578,8 +566,8 @@ namespace rose {
     m_attack_table[color].z[1] = m_attack_table[color].z[1] & rm_mask;
 
     const v512 add_bit = v512::broadcast16(narrow_cast<u16>(1 << (id & 0xF)));
-    const v512 attacker_mask =
-        vec::mask8(to_raymask_with_horses, geometry::superpieceAttackerMask(static_cast<Color::Inner>(color))) & v512::broadcast8(ptype.raw);
+    const v512 attacker_mask = vec::mask8(to_raymask_with_horses, geometry::superpieceAttackerMask(static_cast<Color::Inner>(color))) &
+                               v512::broadcast8(dest_ptype == PieceType::none ? ptype.raw : dest_ptype.raw);
     const u64 add_mask = vec::permute8_mz(~to_swapped_perm.msb8(), to_swapped_perm, vec::shuffle128<0b01001110>(attacker_mask)).nonzero8();
 
     m_attack_table[color].z[0] = m_attack_table[color].z[0] | vec::mask16(static_cast<u32>(add_mask), add_bit);
