@@ -69,46 +69,9 @@ namespace rose::geometry {
 
   inline constexpr u64 non_horse_attack_mask = 0xFEFEFEFEFEFEFEFE;
 
-  inline constexpr std::array<v512, 2> superpieceAttackerMaskTable = [] {
-    constexpr u8 diag = PieceType::b;
-    constexpr u8 orth = PieceType::r;
-    constexpr u8 pawn = PieceType::b | PieceType::p | PieceType::k;
-    constexpr u8 dadj = PieceType::b | PieceType::k;
-    constexpr u8 oadj = PieceType::r | PieceType::k;
-    constexpr u8 horse = PieceType::n;
-    return std::array<v512, 2>{{
-        v512{std::array<u8, 64>{
-            // clang-format off
-            horse, oadj, orth, orth, orth, orth, orth, orth,
-            horse, pawn, diag, diag, diag, diag, diag, diag,
-            horse, oadj, orth, orth, orth, orth, orth, orth,
-            horse, dadj, diag, diag, diag, diag, diag, diag,
-            horse, oadj, orth, orth, orth, orth, orth, orth,
-            horse, dadj, diag, diag, diag, diag, diag, diag,
-            horse, oadj, orth, orth, orth, orth, orth, orth,
-            horse, pawn, diag, diag, diag, diag, diag, diag,
-            // clang-format on
-        }},
-        v512{std::array<u8, 64>{
-            // clang-format off
-            horse, oadj, orth, orth, orth, orth, orth, orth,
-            horse, dadj, diag, diag, diag, diag, diag, diag,
-            horse, oadj, orth, orth, orth, orth, orth, orth,
-            horse, pawn, diag, diag, diag, diag, diag, diag,
-            horse, oadj, orth, orth, orth, orth, orth, orth,
-            horse, pawn, diag, diag, diag, diag, diag, diag,
-            horse, oadj, orth, orth, orth, orth, orth, orth,
-            horse, dadj, diag, diag, diag, diag, diag, diag,
-            // clang-format on
-        }},
-    }};
-  }();
-
-  forceinline auto superpieceAttackerMask(Color color) -> v512 { return superpieceAttackerMaskTable[color.toIndex()]; }
-
-  inline constexpr v512 superpieceSliderMask = [] {
-    constexpr u8 diag = PieceType::b;
-    constexpr u8 orth = PieceType::r;
+  inline constexpr v512 sliderMask = [] {
+    constexpr u8 diag = 0b001 << 4;
+    constexpr u8 orth = 0b010 << 4;
     return v512{std::array<u8, 64>{
         // clang-format off
         0, orth, orth, orth, orth, orth, orth, orth,
@@ -122,6 +85,82 @@ namespace rose::geometry {
         // clang-format on
     }};
   }();
+
+  inline constexpr std::array<u64, 16> attackMaskTable = [] {
+    constexpr int k = (1 << PieceType::k) | (0x100 << PieceType::k);
+    constexpr int wp = (1 << PieceType::p);
+    constexpr int bp = (0x100 << PieceType::p);
+    constexpr int n = (1 << PieceType::n) | (0x100 << PieceType::n);
+    constexpr int b = (1 << PieceType::b) | (0x100 << PieceType::b);
+    constexpr int r = (1 << PieceType::r) | (0x100 << PieceType::r);
+    constexpr int q = (1 << PieceType::q) | (0x100 << PieceType::q);
+
+    constexpr int diag = b | q;
+    constexpr int orth = r | q;
+    constexpr int oadj = r | q | k;
+    constexpr int horse = n;
+    constexpr int wpdj = b | q | k | wp;
+    constexpr int bpdj = b | q | k | bp;
+
+    constexpr std::array<int, 64> base{{
+        // clang-format off
+        horse, oadj, orth, orth, orth, orth, orth, orth,
+        horse, wpdj, diag, diag, diag, diag, diag, diag,
+        horse, oadj, orth, orth, orth, orth, orth, orth,
+        horse, bpdj, diag, diag, diag, diag, diag, diag,
+        horse, oadj, orth, orth, orth, orth, orth, orth,
+        horse, bpdj, diag, diag, diag, diag, diag, diag,
+        horse, oadj, orth, orth, orth, orth, orth, orth,
+        horse, wpdj, diag, diag, diag, diag, diag, diag,
+        // clang-format on
+    }};
+
+    std::array<u64, 16> table{};
+    for (int pt = 0; pt < 16; pt++) {
+      const int pt_mask = 1 << pt;
+      for (int sq = 0; sq < 64; sq++) {
+        const u64 bit = static_cast<u64>(1) << sq;
+        if (base[sq] & pt_mask)
+          table[pt] |= bit;
+      }
+    }
+    return table;
+  }();
+
+  forceinline auto attackersFromRays(v512 rays) -> u64 {
+    constexpr u8 k = 1 << 0;
+    constexpr u8 wp = 1 << 1;
+    constexpr u8 bp = 1 << 2;
+    constexpr u8 n = 1 << 3;
+    constexpr u8 b = 1 << 4;
+    constexpr u8 r = 1 << 5;
+    constexpr u8 q = 1 << 6;
+
+    constexpr u8 diag = b | q;
+    constexpr u8 orth = r | q;
+    constexpr u8 oadj = r | q | k;
+    constexpr u8 horse = n;
+    constexpr u8 wpdj = b | q | k | wp;
+    constexpr u8 bpdj = b | q | k | bp;
+
+    static constexpr v128 ptype_to_bits{std::array<u8, 16>{{0, k, bp, n, 0, b, r, q, 0, k, wp, n, 0, b, r, q}}};
+    static constexpr v512 base{std::array<u8, 64>{{
+        // clang-format off
+        horse, oadj, orth, orth, orth, orth, orth, orth,
+        horse, wpdj, diag, diag, diag, diag, diag, diag,
+        horse, oadj, orth, orth, orth, orth, orth, orth,
+        horse, bpdj, diag, diag, diag, diag, diag, diag,
+        horse, oadj, orth, orth, orth, orth, orth, orth,
+        horse, bpdj, diag, diag, diag, diag, diag, diag,
+        horse, oadj, orth, orth, orth, orth, orth, orth,
+        horse, wpdj, diag, diag, diag, diag, diag, diag,
+        // clang-format on
+    }}};
+
+    // TODO: PSHUFB instead
+    const v512 bit_rays = vec::permute8(vec::shr16(rays, 4) & v512::broadcast8(0x0F), v512::from128(ptype_to_bits));
+    return (bit_rays & base).nonzero8();
+  }
 
   inline constexpr std::array<v512, 64> superpieceInverseRaysTable = [] {
     // clang-format off

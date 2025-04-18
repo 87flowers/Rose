@@ -42,23 +42,23 @@ namespace rose {
       return make(from.value(), to.value(), capture ? MoveFlags::capture : MoveFlags::normal);
     }
 
-    const auto p = Place::parse(str[4]);
-    if (!p || p.value().ptype() == PieceType::k || p.value().ptype() == PieceType::p || p.value().ptype() == PieceType::none)
-      return std::unexpected(ParseError::invalid_char);
-
-    return make(from.value(), to.value(), [&] {
-      switch (p.value().ptype().raw) {
-      case PieceType::q:
+    const auto mf = [&]() -> std::expected<MoveFlags, ParseError> {
+      switch (str[4]) {
+      case 'q':
         return capture ? MoveFlags::cap_promo_q : MoveFlags::promo_q;
-      case PieceType::n:
+      case 'n':
         return capture ? MoveFlags::cap_promo_n : MoveFlags::promo_n;
-      case PieceType::r:
+      case 'r':
         return capture ? MoveFlags::cap_promo_r : MoveFlags::promo_r;
-      case PieceType::b:
+      case 'b':
         return capture ? MoveFlags::cap_promo_b : MoveFlags::promo_b;
+      default:
+        return std::unexpected(ParseError::invalid_char);
       }
-      std::unreachable();
-    }());
+    }();
+    if (!mf)
+      return std::unexpected(mf.error());
+    return make(from.value(), to.value(), mf.value());
   }
 
 } // namespace rose

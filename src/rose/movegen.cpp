@@ -67,38 +67,38 @@ namespace rose {
     hside_king[1] = between(position.kingSq(Color::black), Square::parse("g8").value());
   }
 
-  auto MoveGen::calculatePinInfo() -> void {
-    const Color active_color = m_position.activeColor();
-
-    std::tie(m_king_ray_coords, m_king_ray_valid) = geometry::superpieceRays(m_king_sq);
-    m_king_ray_places = vec::permute8(m_king_ray_coords, m_position.board().z);
-
-    const u64 occupied = m_king_ray_places.nonzero8() & m_king_ray_valid & geometry::non_horse_attack_mask;
-    const u64 color = m_king_ray_places.msb8();
-    const u64 enemy_pieces = (color ^ active_color.toBitboard()) & occupied;
-
-    // Closest blockers (color doesn't matter, because we want to use this to detect pinned en passant pawns as well).
-    const u64 potentially_pinned = occupied & geometry::superpieceAttacks(occupied, m_king_ray_valid);
-
-    // Find all enemy sliders with the correct attacks for the rays they're on
-    const u64 maybe_attacking = enemy_pieces & (m_king_ray_places & geometry::superpieceAttackerMask(active_color)).nonzero8();
-    // Second closest blockers
-    const u64 not_closest = occupied & ~potentially_pinned;
-    m_pin_raymasks = geometry::superpieceAttacks(not_closest, m_king_ray_valid);
-    const u64 potential_attackers = not_closest & m_pin_raymasks;
-    // Second closest blockers that are of the correct type to be pinning attackers.
-    const u64 attackers = maybe_attacking & potential_attackers;
-
-    // A closest blocker is pinned if it has a valid pinning attacker.
-    const u16 has_attacker_vecmask = v128::from64(attackers).nonzero8();
-    m_pinned = vec::mask8(has_attacker_vecmask, v128::from64(potentially_pinned)).to64();
-    m_pinned_friendly = m_pinned & ~enemy_pieces;
-
-    // Convert from list of squares to piecemask
-    const int pinned_count = std::popcount(m_pinned);
-    const v128 pinned_coord = vec::compress8(m_pinned, m_king_ray_coords).to128();
-    m_pinned_piece_mask = vec::findset8(pinned_coord, pinned_count, m_position.pieceListSq(active_color).x);
-  }
+  //  auto MoveGen::calculatePinInfo() -> void {
+  //    const Color active_color = m_position.activeColor();
+  //
+  //    std::tie(m_king_ray_coords, m_king_ray_valid) = geometry::superpieceRays(m_king_sq);
+  //    m_king_ray_places = vec::permute8(m_king_ray_coords, m_position.board().z);
+  //
+  //    const u64 occupied = m_king_ray_places.nonzero8() & m_king_ray_valid & geometry::non_horse_attack_mask;
+  //    const u64 color = m_king_ray_places.msb8();
+  //    const u64 enemy_pieces = (color ^ active_color.toBitboard()) & occupied;
+  //
+  //    // Closest blockers (color doesn't matter, because we want to use this to detect pinned en passant pawns as well).
+  //    const u64 potentially_pinned = occupied & geometry::superpieceAttacks(occupied, m_king_ray_valid);
+  //
+  //    // Find all enemy sliders with the correct attacks for the rays they're on
+  //    const u64 maybe_attacking = enemy_pieces & (m_king_ray_places & geometry::superpieceAttackerMask(active_color)).nonzero8();
+  //    // Second closest blockers
+  //    const u64 not_closest = occupied & ~potentially_pinned;
+  //    m_pin_raymasks = geometry::superpieceAttacks(not_closest, m_king_ray_valid);
+  //    const u64 potential_attackers = not_closest & m_pin_raymasks;
+  //    // Second closest blockers that are of the correct type to be pinning attackers.
+  //    const u64 attackers = maybe_attacking & potential_attackers;
+  //
+  //    // A closest blocker is pinned if it has a valid pinning attacker.
+  //    const u16 has_attacker_vecmask = v128::from64(attackers).nonzero8();
+  //    m_pinned = vec::mask8(has_attacker_vecmask, v128::from64(potentially_pinned)).to64();
+  //    m_pinned_friendly = m_pinned & ~enemy_pieces;
+  //
+  //    // Convert from list of squares to piecemask
+  //    const int pinned_count = std::popcount(m_pinned);
+  //    const v128 pinned_coord = vec::compress8(m_pinned, m_king_ray_coords).to128();
+  //    m_pinned_piece_mask = vec::findset8(pinned_coord, pinned_count, m_position.pieceListSq(active_color).x);
+  //  }
 
   auto MoveGen::generateSubsetNorm(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void {
     const Color active_color = m_position.activeColor();
@@ -181,14 +181,14 @@ namespace rose {
 #define IS_CLEAR(bb, x) ((~(bb) & m_precomp_info.x[active_color.toIndex()]) == 0)
       const RookInfo rook_info = position.rookInfo(active_color);
       if (rook_info.aside.isValid()) {
-        rose_assert(position.board().m[rook_info.aside.raw] == Place::fromColorAndPtype(active_color, PieceType::r));
+        rose_assert(position.board().m[rook_info.aside.raw].raw & 0xF0 == Place::fromColorAndPtypeAndId(active_color, PieceType::r, 0).raw);
         const u64 clear = empty | (static_cast<u64>(1) << king_sq.raw) | (static_cast<u64>(1) << rook_info.aside.raw);
         if (IS_CLEAR(clear, aside_rook) && IS_CLEAR(~danger & clear, aside_king)) {
           moves.push_back(Move::make(king_sq, rook_info.aside, MoveFlags::castle_aside));
         }
       }
       if (rook_info.hside.isValid()) {
-        rose_assert(position.board().m[rook_info.hside.raw] == Place::fromColorAndPtype(active_color, PieceType::r));
+        rose_assert(position.board().m[rook_info.hside.raw].raw & 0xF0 == Place::fromColorAndPtypeAndId(active_color, PieceType::r, 0).raw);
         const u64 clear = empty | (static_cast<u64>(1) << king_sq.raw) | (static_cast<u64>(1) << rook_info.hside.raw);
         if (IS_CLEAR(clear, hside_rook) && IS_CLEAR(~danger & clear, hside_king)) {
           moves.push_back(Move::make(king_sq, rook_info.hside, MoveFlags::castle_hside));

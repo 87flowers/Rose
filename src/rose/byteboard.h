@@ -20,8 +20,8 @@ namespace rose {
     constexpr Byteboard() = default;
 
     template <PieceType ptype> auto bitboardFor(Color color) const -> u64 {
-      const u8 expected_place = Place::fromColorAndPtype(color, ptype).raw;
-      return vec::eq8(z, v512::broadcast8(expected_place));
+      const u8 expected_place = Place::fromColorAndPtypeAndId(color, ptype, 0).raw;
+      return vec::eq8(z & v512::broadcast8(0xF0), v512::broadcast8(expected_place));
     }
 
     auto getEmptyBitboard() const -> u64 { return z.zero8(); }

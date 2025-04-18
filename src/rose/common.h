@@ -5,8 +5,10 @@
 #include <format>
 #include <optional>
 #include <string_view>
+#include <tuple>
 #include <utility>
 
+#include "rose/util/assert.h"
 #include "rose/util/types.h"
 
 namespace rose {
@@ -44,13 +46,13 @@ namespace rose {
 
   struct PieceType {
     enum Inner : u8 {
-      none = 0x00,
-      p = 0x01,
-      n = 0x02,
-      b = 0x04,
-      r = 0x08,
-      q = 0x1C,
-      k = 0x20,
+      none = 0b000,
+      k = 0b001,
+      p = 0b010,
+      n = 0b011,
+      b = 0b101,
+      r = 0b110,
+      q = 0b111,
     };
 
     Inner raw = none;
@@ -58,16 +60,43 @@ namespace rose {
     constexpr PieceType() = default;
     /* implicit */ constexpr PieceType(Inner raw) : raw(raw) {}
 
-    static constexpr auto fromIndex(usize index) -> PieceType {
-      constexpr std::array<PieceType::Inner, 7> ptypes{none, p, n, b, r, q, k};
-      return ptypes[index];
-    }
+    static constexpr auto fromIndex(usize index) -> PieceType { return static_cast<Inner>(index); }
 
     constexpr auto isNone() const -> bool { return raw == none; }
-    constexpr auto toIndex() const -> usize { return std::bit_width(std::to_underlying(raw)); }
+    constexpr auto toIndex() const -> usize { return std::to_underlying(raw); }
     constexpr auto toChar() const -> char {
-      constexpr std::string_view str = ".pnbrqk";
+      constexpr std::string_view str = ".kpn?brq";
       return str[toIndex()];
+    }
+
+    static constexpr auto parse(char ch) -> std::optional<std::tuple<PieceType, Color>> {
+      switch (ch) {
+      case 'P':
+        return std::tuple(PieceType::p, Color::white);
+      case 'N':
+        return std::tuple(PieceType::n, Color::white);
+      case 'B':
+        return std::tuple(PieceType::b, Color::white);
+      case 'R':
+        return std::tuple(PieceType::r, Color::white);
+      case 'Q':
+        return std::tuple(PieceType::q, Color::white);
+      case 'K':
+        return std::tuple(PieceType::k, Color::white);
+      case 'p':
+        return std::tuple(PieceType::p, Color::black);
+      case 'n':
+        return std::tuple(PieceType::n, Color::black);
+      case 'b':
+        return std::tuple(PieceType::b, Color::black);
+      case 'r':
+        return std::tuple(PieceType::r, Color::black);
+      case 'q':
+        return std::tuple(PieceType::q, Color::black);
+      case 'k':
+        return std::tuple(PieceType::k, Color::black);
+      }
+      return std::nullopt;
     }
 
     constexpr auto operator==(const PieceType &) const -> bool = default;
@@ -84,68 +113,29 @@ namespace rose {
       black = 0x80,
 
       ptype_mask = 0x3F,
-
-      wp = white | PieceType::p,
-      wn = white | PieceType::n,
-      wb = white | PieceType::b,
-      wr = white | PieceType::r,
-      wq = white | PieceType::q,
-      wk = white | PieceType::k,
-
-      bp = black | PieceType::p,
-      bn = black | PieceType::n,
-      bb = black | PieceType::b,
-      br = black | PieceType::r,
-      bq = black | PieceType::q,
-      bk = black | PieceType::k,
     };
+    inline static constexpr u8 slider_bit = 0b100 << 4;
 
     Inner raw = empty;
 
     constexpr Place() = default;
     /* implicit */ constexpr Place(Inner raw) : raw(raw) {}
 
-    static constexpr auto fromColorAndPtype(Color color, PieceType pt) -> Place { return static_cast<Inner>(color.toMsb8() | pt.raw); }
+    static constexpr auto fromColorAndPtypeAndId(Color color, PieceType pt, u8 id) -> Place {
+      rose_assert(id < 0x10);
+      return static_cast<Inner>(color.toMsb8() | (pt.raw << 4) | id);
+    }
 
     constexpr auto isEmpty() const -> bool { return raw == empty; }
     constexpr auto color() const -> Color { return static_cast<Color::Inner>((raw & black) != 0); }
-    constexpr auto ptype() const -> PieceType { return static_cast<PieceType::Inner>(raw & ptype_mask); }
+    constexpr auto ptype() const -> PieceType { return static_cast<PieceType::Inner>((raw >> 4) & 0x7); }
+    constexpr auto id() const -> u8 { return raw & 0xF; }
 
     constexpr auto toColorIndex() const -> usize { return color().toIndex(); }
     constexpr auto toPtypeIndex() const -> usize { return ptype().toIndex(); }
     constexpr auto toChar() const -> char {
-      constexpr std::array<std::string_view, 2> str{{".PNBRQK", ".pnbrqk"}};
+      constexpr std::array<std::string_view, 2> str{{".KPN?BRQ", ".kpn?brq"}};
       return str[toColorIndex()][toPtypeIndex()];
-    }
-
-    static constexpr auto parse(char ch) -> std::optional<Place> {
-      switch (ch) {
-      case 'P':
-        return wp;
-      case 'N':
-        return wn;
-      case 'B':
-        return wb;
-      case 'R':
-        return wr;
-      case 'Q':
-        return wq;
-      case 'K':
-        return wk;
-      case 'p':
-        return bp;
-      case 'n':
-        return bn;
-      case 'b':
-        return bb;
-      case 'r':
-        return br;
-      case 'q':
-        return bq;
-      case 'k':
-        return bk;
-      }
-      return std::nullopt;
     }
 
     inline constexpr auto operator==(const Place &) const -> bool = default;

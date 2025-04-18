@@ -53,7 +53,6 @@ namespace rose {
     std::array<PieceList<Square>, 2> m_piece_list_sq{};
     std::array<PieceList<PieceType>, 2> m_piece_list_ptype{};
     Byteboard m_board{};
-    Byteboard m_id{};
     u64 m_hash{};
     u16 m_irreversible_clock{};
     u16 m_ply{};

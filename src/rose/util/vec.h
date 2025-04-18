@@ -224,6 +224,10 @@ namespace rose::vec {
   forceinline auto shl16(v256 a, int b) -> v256 { return {_mm256_slli_epi16(a.raw, b)}; }
   forceinline auto shl16(v512 a, int b) -> v512 { return {_mm512_slli_epi16(a.raw, b)}; }
 
+  forceinline auto shr16(v128 a, int b) -> v128 { return {_mm_srli_epi16(a.raw, b)}; }
+  forceinline auto shr16(v256 a, int b) -> v256 { return {_mm256_srli_epi16(a.raw, b)}; }
+  forceinline auto shr16(v512 a, int b) -> v512 { return {_mm512_srli_epi16(a.raw, b)}; }
+
   forceinline auto shl16_mz(u8 m, v128 a, v128 b) -> v128 { return {_mm_maskz_sllv_epi16(m, a.raw, b.raw)}; }
   forceinline auto shl16_mz(u16 m, v256 a, v256 b) -> v256 { return {_mm256_maskz_sllv_epi16(m, a.raw, b.raw)}; }
   forceinline auto shl16_mz(u32 m, v512 a, v512 b) -> v512 { return {_mm512_maskz_sllv_epi16(m, a.raw, b.raw)}; }
