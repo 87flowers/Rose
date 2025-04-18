@@ -507,8 +507,8 @@ namespace rose {
 
     const u64 src_blockers = src_ray_places.nonzero8();
     const u64 dst_blockers = dst_ray_places.nonzero8();
-    const u64 src_sliders = (src_ray_places & v512::broadcast8(Place::slider_bit)).nonzero8() & (src_ray_places & geometry::sliderMask).nonzero8();
-    const u64 dst_sliders = (dst_ray_places & v512::broadcast8(Place::slider_bit)).nonzero8() & (dst_ray_places & geometry::sliderMask).nonzero8();
+    const u64 src_sliders = geometry::slidersFromRays(src_ray_places);
+    const u64 dst_sliders = geometry::slidersFromRays(dst_ray_places);
 
     const u64 src_raymask = geometry::superpieceAttacks(src_blockers, src_ray_valid) & geometry::non_horse_attack_mask;
     const u64 dst_raymask_with_horses = geometry::superpieceAttacks(dst_blockers, dst_ray_valid);

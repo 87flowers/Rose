@@ -86,6 +86,10 @@ namespace rose::geometry {
     }};
   }();
 
+  forceinline auto slidersFromRays(v512 rays) -> u64 {
+    return (rays & v512::broadcast8(0b100 << 4)).nonzero8() & (rays & geometry::sliderMask).nonzero8();
+  }
+
   inline constexpr std::array<u64, 16> attackMaskTable = [] {
     constexpr int k = (1 << PieceType::k) | (0x100 << PieceType::k);
     constexpr int wp = (1 << PieceType::p);
