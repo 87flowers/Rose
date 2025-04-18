@@ -131,6 +131,8 @@ namespace rose::geometry {
     return table;
   }();
 
+  forceinline auto attackMask(Color color, PieceType ptype) -> u64 { return geometry::attackMaskTable[(color.toIndex() << 3) | ptype.raw]; }
+
   forceinline auto attackersFromRays(v512 rays) -> u64 {
     constexpr u8 k = 1 << 0;
     constexpr u8 wp = 1 << 1;

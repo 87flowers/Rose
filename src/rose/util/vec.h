@@ -133,13 +133,25 @@ namespace rose::vec {
   forceinline auto operator|(v256 a, v256 b) -> v256 { return {_mm256_or_si256(a.raw, b.raw)}; }
   forceinline auto operator|(v512 a, v512 b) -> v512 { return {_mm512_or_si512(a.raw, b.raw)}; }
 
+  forceinline auto operator|=(v128 &a, v128 b) -> v128 & { return a = a | b; }
+  forceinline auto operator|=(v256 &a, v256 b) -> v256 & { return a = a | b; }
+  forceinline auto operator|=(v512 &a, v512 b) -> v512 & { return a = a | b; }
+
   forceinline auto operator&(v128 a, v128 b) -> v128 { return {_mm_and_si128(a.raw, b.raw)}; }
   forceinline auto operator&(v256 a, v256 b) -> v256 { return {_mm256_and_si256(a.raw, b.raw)}; }
   forceinline auto operator&(v512 a, v512 b) -> v512 { return {_mm512_and_si512(a.raw, b.raw)}; }
 
+  forceinline auto operator&=(v128 &a, v128 b) -> v128 & { return a = a & b; }
+  forceinline auto operator&=(v256 &a, v256 b) -> v256 & { return a = a & b; }
+  forceinline auto operator&=(v512 &a, v512 b) -> v512 & { return a = a & b; }
+
   forceinline auto operator^(v128 a, v128 b) -> v128 { return {_mm_xor_si128(a.raw, b.raw)}; }
   forceinline auto operator^(v256 a, v256 b) -> v256 { return {_mm256_xor_si256(a.raw, b.raw)}; }
   forceinline auto operator^(v512 a, v512 b) -> v512 { return {_mm512_xor_si512(a.raw, b.raw)}; }
+
+  forceinline auto operator^=(v128 &a, v128 b) -> v128 & { return a = a ^ b; }
+  forceinline auto operator^=(v256 &a, v256 b) -> v256 & { return a = a ^ b; }
+  forceinline auto operator^=(v512 &a, v512 b) -> v512 & { return a = a ^ b; }
 
   forceinline auto add8(v128 a, v128 b) -> v128 { return {_mm_add_epi8(a.raw, b.raw)}; }
   forceinline auto add8(v256 a, v256 b) -> v256 { return {_mm256_add_epi8(a.raw, b.raw)}; }
@@ -147,6 +159,8 @@ namespace rose::vec {
   forceinline auto add16(v128 a, v128 b) -> v128 { return {_mm_add_epi16(a.raw, b.raw)}; }
   forceinline auto add16(v256 a, v256 b) -> v256 { return {_mm256_add_epi16(a.raw, b.raw)}; }
   forceinline auto add16(v512 a, v512 b) -> v512 { return {_mm512_add_epi16(a.raw, b.raw)}; }
+
+  forceinline auto bitshuffle_m(u64 m, v512 a, v512 b) -> u64 { return _mm512_mask_bitshuffle_epi64_mask(m, a.raw, b.raw); }
 
   forceinline auto compress8(u16 mask, v128 a) -> v128 { return {_mm_maskz_compress_epi8(mask, a.raw)}; }
   forceinline auto compress8(u32 mask, v256 a) -> v256 { return {_mm256_maskz_compress_epi8(mask, a.raw)}; }
