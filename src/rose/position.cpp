@@ -68,19 +68,12 @@ namespace rose {
     };
 
     const auto capture = [&] {
-      new_pos.incrementalSliderUpdate(from);
-      new_pos.m_piece_list_sq[color].m[src_id & 0xF] = to;
       new_pos.m_piece_list_sq[!color].m[dest_id & 0xF] = Square::invalid();
       new_pos.m_piece_list_ptype[!color].m[dest_id & 0xF] = PieceType::none;
-      new_pos.m_board.m[from.raw] = Place::empty;
-      new_pos.m_board.m[to.raw] = src_place;
-      new_pos.m_id.r[from.raw] = 0xFF;
-      new_pos.m_id.r[to.raw] = src_id;
+      new_pos.removeAttacks(!color, dest_id);
+      new_pos.movePiece<false>(color, from, to, src_id, src_place.ptype());
       // TODO: m_hash
       new_pos.m_irreversible_clock = 0;
-      new_pos.removeAttacks(color, src_id);
-      new_pos.removeAttacks(!color, dest_id);
-      new_pos.addAttacks(color, to, src_id, src_place.ptype());
       check_src_castling_rights();
       check_dest_castling_rights();
     };
@@ -508,7 +501,7 @@ namespace rose {
     return result;
   }
 
-  forceinline auto Position::movePiece(bool color, Square from, Square to, u8 id, PieceType ptype) -> void {
+  template <bool update_to_silders> forceinline auto Position::movePiece(bool color, Square from, Square to, u8 id, PieceType ptype) -> void {
     m_piece_list_sq[color].m[id & 0xF] = to;
     m_id.r[to.raw] = m_id.r[from.raw];
 
@@ -568,13 +561,17 @@ namespace rose {
     const v512 to_bits1 = vec::shl16_mz(static_cast<u32>(to_valid_ids >> 32), ones, vec::zext8to16(vec::extract256<1>(to_masked_ids)));
 
     m_attack_table[0].z[0] = m_attack_table[0].z[0] ^ vec::mask16(~static_cast<u32>(from_color), from_bits0);
-    m_attack_table[0].z[0] = m_attack_table[0].z[0] ^ vec::mask16(~static_cast<u32>(to_color), to_bits0);
+    if constexpr (update_to_silders)
+      m_attack_table[0].z[0] = m_attack_table[0].z[0] ^ vec::mask16(~static_cast<u32>(to_color), to_bits0);
     m_attack_table[0].z[1] = m_attack_table[0].z[1] ^ vec::mask16(~static_cast<u32>(from_color >> 32), from_bits1);
-    m_attack_table[0].z[1] = m_attack_table[0].z[1] ^ vec::mask16(~static_cast<u32>(to_color >> 32), to_bits1);
+    if constexpr (update_to_silders)
+      m_attack_table[0].z[1] = m_attack_table[0].z[1] ^ vec::mask16(~static_cast<u32>(to_color >> 32), to_bits1);
     m_attack_table[1].z[0] = m_attack_table[1].z[0] ^ vec::mask16(static_cast<u32>(from_color), from_bits0);
-    m_attack_table[1].z[0] = m_attack_table[1].z[0] ^ vec::mask16(static_cast<u32>(to_color), to_bits0);
+    if constexpr (update_to_silders)
+      m_attack_table[1].z[0] = m_attack_table[1].z[0] ^ vec::mask16(static_cast<u32>(to_color), to_bits0);
     m_attack_table[1].z[1] = m_attack_table[1].z[1] ^ vec::mask16(static_cast<u32>(from_color >> 32), from_bits1);
-    m_attack_table[1].z[1] = m_attack_table[1].z[1] ^ vec::mask16(static_cast<u32>(to_color >> 32), to_bits1);
+    if constexpr (update_to_silders)
+      m_attack_table[1].z[1] = m_attack_table[1].z[1] ^ vec::mask16(static_cast<u32>(to_color >> 32), to_bits1);
 
     const v512 rm_mask = v512::broadcast16(~narrow_cast<u16>(1 << (id & 0xF)));
     m_attack_table[color].z[0] = m_attack_table[color].z[0] & rm_mask;

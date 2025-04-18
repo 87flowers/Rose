@@ -105,7 +105,7 @@ namespace rose {
     constexpr auto operator==(const Position &) const -> bool = default;
 
   private:
-    forceinline auto movePiece(bool color, Square from, Square to, u8 id, PieceType ptype) -> void;
+    template <bool update_to_silders = true> forceinline auto movePiece(bool color, Square from, Square to, u8 id, PieceType ptype) -> void;
     forceinline auto incrementalSliderUpdate(Square sq) -> void;
     forceinline auto removeAttacks(bool color, u8 id) -> void;
     forceinline auto addAttacks(bool color, Square sq, u8 id, PieceType ptype) -> void;
