@@ -502,6 +502,8 @@ namespace rose {
     board = vec::blend8(static_cast<u64>(1) << dst.raw, board, new_dst_place);
     m_board.z = board;
 
+    const u64 exclude_dst_from_src = vec::eq8(dst_ray_coords, v512::broadcast8(dst.raw));
+
     const v512 src_swapped_perm = geometry::superpieceInverseRaysSwapped(src);
     const v512 dst_swapped_perm = geometry::superpieceInverseRaysSwapped(dst);
 
@@ -517,7 +519,7 @@ namespace rose {
     const u64 dst_visible_sliders = dst_raymask & dst_sliders;
 
     // Broadcasts slider id to its 8-lane group
-    const v512 src_visible_sliders_ids = vec::lanebroadcast8to64(vec::mask8(src_visible_sliders, vec::permute8(src_ray_coords, board)));
+    const v512 src_visible_sliders_ids = vec::lanebroadcast8to64(vec::mask8(src_visible_sliders, vec::mask8(~exclude_dst_from_src, src_ray_places)));
     const v512 dst_visible_sliders_ids = vec::lanebroadcast8to64(vec::mask8(dst_visible_sliders, dst_ray_places));
     // Squares to update
     const v512 src_ids_to_update = vec::mask8(std::rotl(src_raymask & geometry::non_horse_attack_mask, 32), src_visible_sliders_ids);
