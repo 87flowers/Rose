@@ -228,14 +228,14 @@ namespace rose {
 #define IS_CLEAR(bb, x) ((~(bb) & m_precomp_info.x[active_color.toIndex()]) == 0)
       const RookInfo rook_info = position.rookInfo(active_color);
       if (rook_info.aside.isValid()) {
-        rose_assert(position.board().m[rook_info.aside.raw].raw & 0xF0 == Place::fromColorAndPtypeAndId(active_color, PieceType::r, 0).raw);
+        rose_assert((position.board().m[rook_info.aside.raw].raw & 0xF0) == Place::fromColorAndPtypeAndId(active_color, PieceType::r, 0).raw);
         const u64 clear = empty | (static_cast<u64>(1) << king_sq.raw) | (static_cast<u64>(1) << rook_info.aside.raw);
         if (IS_CLEAR(clear, aside_rook) && IS_CLEAR(~danger & clear, aside_king)) {
           moves.push_back(Move::make(king_sq, rook_info.aside, MoveFlags::castle_aside));
         }
       }
       if (rook_info.hside.isValid()) {
-        rose_assert(position.board().m[rook_info.hside.raw].raw & 0xF0 == Place::fromColorAndPtypeAndId(active_color, PieceType::r, 0).raw);
+        rose_assert((position.board().m[rook_info.hside.raw].raw & 0xF0) == Place::fromColorAndPtypeAndId(active_color, PieceType::r, 0).raw);
         const u64 clear = empty | (static_cast<u64>(1) << king_sq.raw) | (static_cast<u64>(1) << rook_info.hside.raw);
         if (IS_CLEAR(clear, hside_rook) && IS_CLEAR(~danger & clear, hside_king)) {
           moves.push_back(Move::make(king_sq, rook_info.hside, MoveFlags::castle_hside));

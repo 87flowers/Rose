@@ -602,7 +602,6 @@ namespace rose {
 
   forceinline auto Position::removeAttacks(bool color, u8 id) -> void {
     const v512 mask = v512::broadcast16(~narrow_cast<u16>(1 << (id & 0xF)));
-    rose_assert(color == (id >> 7));
     m_attack_table[color].z[0] &= mask;
     m_attack_table[color].z[1] &= mask;
   }
