@@ -22,9 +22,6 @@ namespace rose::perft {
 
     for (Move m : moves) {
       const Position new_position = position.move(m);
-      if (!new_position.isValid())
-        continue;
-
       const usize child = core<false>(movegen_precomp, new_position, depth - 1);
       if constexpr (print) {
         std::print("{}: {}\n", m, child);

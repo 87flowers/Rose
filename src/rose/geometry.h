@@ -56,7 +56,7 @@ namespace rose::geometry {
   }
 
   forceinline auto adjacentsWide(Square sq) -> std::tuple<v128, u8> {
-    constexpr v128 offsets = v128{std::array<u16, 8>{0x0F, 0xF1, 0x11, 0xEF, 0x10, 0xF0, 0x01, 0xFF}};
+    constexpr v128 offsets = v128{std::array<u16, 8>{0x10, 0x11, 0x01, 0xF1, 0xF0, 0xEF, 0xFF, 0x0F}};
     const v128 uncompressed = vec::add16(v128::broadcast16(internal::expandSq(sq)), offsets);
     return internal::compressCoordsWide(uncompressed);
   }

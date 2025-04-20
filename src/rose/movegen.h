@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <tuple>
 
 #include "rose/common.h"
 #include "rose/move.h"
@@ -12,10 +13,10 @@
 namespace rose {
 
   struct MoveList : StaticVector<Move, max_legal_moves> {
-    template <typename T> auto write(typename T::Mask16 mask, T v) -> void;
-    template <typename T> auto write2(typename T::Mask32 mask, T v) -> void;
-    template <typename T> auto write4(typename T::Mask64 mask, T v) -> void;
-    auto write4(u64 moves) -> void;
+    template <typename T> forceinline auto write(typename T::Mask16 mask, T v) -> void;
+    template <typename T> forceinline auto write2(typename T::Mask32 mask, T v) -> void;
+    template <typename T> forceinline auto write4(typename T::Mask64 mask, T v) -> void;
+    forceinline auto write4(u64 moves) -> void;
   };
 
   struct PrecompMoveGenInfo {
@@ -30,29 +31,22 @@ namespace rose {
   struct MoveGen {
   private:
     const Position &m_position;
-    Square m_king_sq;
     const PrecompMoveGenInfo &m_precomp_info;
 
-    // Pin info
-    v512 m_king_ray_coords;
-    v512 m_king_ray_places;
-    u64 m_king_ray_valid;
-    u64 m_pin_raymasks;
-    u64 m_pinned;          // mask for m_king_ray_coords
-    u64 m_pinned_friendly; // mask for m_king_ray_coords
-    u16 m_pinned_piece_mask;
-
-    auto calculatePinInfo() -> void;
+    auto calculatePinInfo() -> std::tuple<std::array<v512, 2>, u64>;
 
     auto generateSubsetNorm(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void;
     auto generateSubsetCaps(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void;
     auto generateSubsetPCap(MoveList &moves, const Wordboard &attack_table, u64 bitboard, u16 piecemask) -> void;
 
-    auto generateMovesNoCheckers(MoveList &moves, const Position &position, Square king_sq) -> void;
+    template <bool king_moves>
+    forceinline auto generateMovesTo(MoveList &moves, Square king_sq, u64 valid_destinations, PieceType checker_ptype) -> void;
+    auto generateMovesNoCheckers(MoveList &moves, Square king_sq) -> void;
+    auto generateMovesOneChecker(MoveList &moves, Square king_sq, u16 checkers) -> void;
+    auto generateMovesTwoCheckers(MoveList &moves, Square king_sq, u16 checkers) -> void;
 
   public:
-    MoveGen(const Position &position, const PrecompMoveGenInfo &precomp_info)
-        : m_position(position), m_king_sq(position.kingSq(position.activeColor())), m_precomp_info(precomp_info) {}
+    MoveGen(const Position &position, const PrecompMoveGenInfo &precomp_info) : m_position(position), m_precomp_info(precomp_info) {}
 
     auto generateMoves(MoveList &moves) -> void;
   };

@@ -160,6 +160,12 @@ namespace rose::vec {
   forceinline auto add16(v256 a, v256 b) -> v256 { return {_mm256_add_epi16(a.raw, b.raw)}; }
   forceinline auto add16(v512 a, v512 b) -> v512 { return {_mm512_add_epi16(a.raw, b.raw)}; }
 
+  forceinline auto bitshuffle(v128 a, v128 b) -> u16 { return _mm_bitshuffle_epi64_mask(a.raw, b.raw); }
+  forceinline auto bitshuffle(v256 a, v256 b) -> u32 { return _mm256_bitshuffle_epi64_mask(a.raw, b.raw); }
+  forceinline auto bitshuffle(v512 a, v512 b) -> u64 { return _mm512_bitshuffle_epi64_mask(a.raw, b.raw); }
+
+  forceinline auto bitshuffle_m(u16 m, v128 a, v128 b) -> u16 { return _mm_mask_bitshuffle_epi64_mask(m, a.raw, b.raw); }
+  forceinline auto bitshuffle_m(u32 m, v256 a, v256 b) -> u32 { return _mm256_mask_bitshuffle_epi64_mask(m, a.raw, b.raw); }
   forceinline auto bitshuffle_m(u64 m, v512 a, v512 b) -> u64 { return _mm512_mask_bitshuffle_epi64_mask(m, a.raw, b.raw); }
 
   forceinline auto compress8(u16 mask, v128 a) -> v128 { return {_mm_maskz_compress_epi8(mask, a.raw)}; }

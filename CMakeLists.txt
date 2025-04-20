@@ -37,6 +37,7 @@ set(srcs
   src/rose/perft.h
   src/rose/position.cpp
   src/rose/position.h
+  src/rose/rays.h
   src/rose/square.h
   src/rose/uci.cpp
   src/rose/uci.h

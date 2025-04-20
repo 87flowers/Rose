@@ -23,6 +23,8 @@ namespace rose {
     static constexpr auto fromFileAndRank(usize file, usize rank) -> Square { return Square{narrow_cast<u8>(rank * 8 + file)}; }
     constexpr auto toFileAndRank() const -> std::tuple<usize, usize> { return {raw % 8, raw / 8}; }
 
+    constexpr auto toBitboard() const -> u64 { return static_cast<u64>(1) << raw; }
+
     static constexpr auto parse(std::string_view str) -> std::expected<Square, ParseError> {
       if (str.size() != 2)
         return std::unexpected(ParseError::invalid_length);

@@ -14,12 +14,12 @@ namespace rose::pawns {
     u64 double_move;
   };
 
-  forceinline constexpr auto pawnDestinationEmpty(Color perspective, u64 empty) -> Bitboards {
+  forceinline constexpr auto pawnDestinationEmpty(Color perspective, u64 empty, u64 valid_destinations) -> Bitboards {
     switch (perspective.raw) {
     case Color::white:
-      return {empty >> 8, (empty >> 8) & (empty >> 16)};
+      return {(empty & valid_destinations) >> 8, (empty >> 8) & ((empty & valid_destinations) >> 16)};
     case Color::black:
-      return {empty << 8, (empty << 8) & (empty << 16)};
+      return {(empty & valid_destinations) << 8, (empty << 8) & ((empty & valid_destinations) << 16)};
     }
     std::unreachable();
   }

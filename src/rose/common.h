@@ -69,6 +69,8 @@ namespace rose {
       return str[toIndex()];
     }
 
+    constexpr auto isSlider() const -> bool { return raw & 0b100; }
+
     static constexpr auto parse(char ch) -> std::optional<std::tuple<PieceType, Color>> {
       switch (ch) {
       case 'P':

@@ -182,6 +182,7 @@ namespace rose {
     } else if (cmd == "d") {
       uciParseDisplay(game, it);
     } else if (cmd == "attacks") {
+      game.position().attackTable(game.position().activeColor()).dumpRaw();
       game.position().printAttackTable();
     } else if (cmd == "getposition") {
       game.printGameRecord();
