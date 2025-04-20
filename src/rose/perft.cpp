@@ -20,6 +20,9 @@ namespace rose::perft {
     MoveGen movegen{position, movegen_precomp};
     movegen.generateMoves(moves);
 
+    if (!print && depth == 1)
+      return moves.size();
+
     for (Move m : moves) {
       const Position new_position = position.move(m);
       const usize child = core<false>(movegen_precomp, new_position, depth - 1);

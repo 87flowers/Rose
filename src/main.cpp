@@ -8,7 +8,7 @@
 #include "rose/util/types.h"
 
 auto main(int argc, char *argv[]) -> int {
-  std::print("# Rose {}\n", ROSE_VERSION);
+  std::print("# 🌹 Rose {}\n", ROSE_VERSION);
   std::fflush(stdout);
 
   rose::Game game;
