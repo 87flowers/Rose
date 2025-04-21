@@ -190,9 +190,9 @@ namespace rose::vec {
   forceinline auto blend8(u32 mask, v256 a, v256 b) -> v256 { return {_mm256_mask_blend_epi8(mask, a.raw, b.raw)}; }
   forceinline auto blend8(u64 mask, v512 a, v512 b) -> v512 { return {_mm512_mask_blend_epi8(mask, a.raw, b.raw)}; }
 
-  forceinline auto eq8(v128 a, v128 b) -> u16 { return {_mm_cmpeq_epu8_mask(a.raw, b.raw)}; }
-  forceinline auto eq8(v256 a, v256 b) -> u32 { return {_mm256_cmpeq_epu8_mask(a.raw, b.raw)}; }
-  forceinline auto eq8(v512 a, v512 b) -> u64 { return {_mm512_cmpeq_epu8_mask(a.raw, b.raw)}; }
+  forceinline auto eq8(v128 a, v128 b) -> u16 { return _mm_cmpeq_epu8_mask(a.raw, b.raw); }
+  forceinline auto eq8(v256 a, v256 b) -> u32 { return _mm256_cmpeq_epu8_mask(a.raw, b.raw); }
+  forceinline auto eq8(v512 a, v512 b) -> u64 { return _mm512_cmpeq_epu8_mask(a.raw, b.raw); }
 
   template <int index> forceinline auto extract256(v512 a) -> v256 { return {_mm512_extracti64x4_epi64(a.raw, index)}; }
 
@@ -262,16 +262,16 @@ namespace rose::vec {
   forceinline auto sub8(v256 a, v256 b) -> v256 { return {_mm256_sub_epi8(a.raw, b.raw)}; }
   forceinline auto sub8(v512 a, v512 b) -> v512 { return {_mm512_sub_epi8(a.raw, b.raw)}; }
 
-  forceinline auto test8(v128 a, v128 b) -> u16 { return {_mm_test_epi8_mask(a.raw, b.raw)}; }
-  forceinline auto test8(v256 a, v256 b) -> u32 { return {_mm256_test_epi8_mask(a.raw, b.raw)}; }
-  forceinline auto test8(v512 a, v512 b) -> u64 { return {_mm512_test_epi8_mask(a.raw, b.raw)}; }
+  forceinline auto test8(v128 a, v128 b) -> u16 { return _mm_test_epi8_mask(a.raw, b.raw); }
+  forceinline auto test8(v256 a, v256 b) -> u32 { return _mm256_test_epi8_mask(a.raw, b.raw); }
+  forceinline auto test8(v512 a, v512 b) -> u64 { return _mm512_test_epi8_mask(a.raw, b.raw); }
 
-  forceinline auto testn8(v128 a, v128 b) -> u16 { return {_mm_testn_epi8_mask(a.raw, b.raw)}; }
-  forceinline auto testn8(v256 a, v256 b) -> u32 { return {_mm256_testn_epi8_mask(a.raw, b.raw)}; }
-  forceinline auto testn8(v512 a, v512 b) -> u64 { return {_mm512_testn_epi8_mask(a.raw, b.raw)}; }
-  forceinline auto testn16(v128 a, v128 b) -> u16 { return {_mm_testn_epi16_mask(a.raw, b.raw)}; }
-  forceinline auto testn16(v256 a, v256 b) -> u32 { return {_mm256_testn_epi16_mask(a.raw, b.raw)}; }
-  forceinline auto testn16(v512 a, v512 b) -> u64 { return {_mm512_testn_epi16_mask(a.raw, b.raw)}; }
+  forceinline auto testn8(v128 a, v128 b) -> u16 { return _mm_testn_epi8_mask(a.raw, b.raw); }
+  forceinline auto testn8(v256 a, v256 b) -> u32 { return _mm256_testn_epi8_mask(a.raw, b.raw); }
+  forceinline auto testn8(v512 a, v512 b) -> u64 { return _mm512_testn_epi8_mask(a.raw, b.raw); }
+  forceinline auto testn16(v128 a, v128 b) -> u16 { return _mm_testn_epi16_mask(a.raw, b.raw); }
+  forceinline auto testn16(v256 a, v256 b) -> u32 { return _mm256_testn_epi16_mask(a.raw, b.raw); }
+  forceinline auto testn16(v512 a, v512 b) -> u64 { return _mm512_testn_epi16_mask(a.raw, b.raw); }
 
   forceinline auto truncate64to16(v128 a) -> v128 { return {_mm_cvtepi64_epi16(a.raw)}; }
   forceinline auto truncate64to16(v256 a) -> v128 { return {_mm256_cvtepi64_epi16(a.raw)}; }

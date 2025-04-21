@@ -19,6 +19,9 @@ auto getSuperpieceAttacks() -> void {
 
     dumpRaysSq(raycoords, coordvalid);
     std::print("\n");
+    dumpRaysRaw(raycoords);
+    std::print("\n");
+    std::print("0x{:16x}\n", coordvalid);
     dumpRaysRaw(rayplaces, rayattacks);
     std::print("\n");
   }
