@@ -5,6 +5,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "rose/hash.h"
+
 namespace rose {
 
   template <> auto PieceList<Square>::dump() const -> void {
@@ -25,7 +27,10 @@ namespace rose {
     std::print("\n");
   }
 
-  const Position Position::startpos = Position::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").value();
+  auto Position::startpos() -> Position {
+    static const Position startpos = Position::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").value();
+    return startpos;
+  }
 
   auto Position::move(Move m) const -> Position {
     Position new_pos = *this;
@@ -39,7 +44,7 @@ namespace rose {
     const bool color = m_active_color.toIndex();
 
     if (m_enpassant.isValid()) {
-      // TODO: m_hash
+      new_pos.m_hash ^= hash::enpassant_table[new_pos.m_enpassant.file()];
       new_pos.m_enpassant = Square::invalid();
     }
 
@@ -59,7 +64,7 @@ namespace rose {
 
     const auto normal = [&] {
       new_pos.movePiece(color, from, to, src_id, src_place.ptype());
-      // TODO: m_hash
+      new_pos.m_hash ^= hash::movePiece(from, to, src_place);
       if (src_place.ptype() != PieceType::p) {
         new_pos.m_irreversible_clock++;
       } else {
@@ -73,7 +78,8 @@ namespace rose {
       new_pos.m_piece_list_ptype[!color].m[dest_id] = PieceType::none;
       new_pos.removeAttacks(!color, dest_id);
       new_pos.movePiece<false>(color, from, to, src_id, src_place.ptype());
-      // TODO: m_hash
+      new_pos.m_hash ^= hash::removePiece(to, dest_place);
+      new_pos.m_hash ^= hash::movePiece(from, to, src_place);
       new_pos.m_irreversible_clock = 0;
       check_src_castling_rights();
       check_dest_castling_rights();
@@ -82,7 +88,7 @@ namespace rose {
     const auto promo = [&](auto ptype) {
       new_pos.m_piece_list_ptype[color].m[src_id] = ptype;
       new_pos.movePiece<true, decltype(ptype)::value>(color, from, to, src_id, src_place.ptype());
-      // TODO: m_hash
+      new_pos.m_hash ^= hash::promo(from, to, m_active_color, decltype(ptype)::value);
       new_pos.m_irreversible_clock = 0;
     };
 
@@ -92,31 +98,34 @@ namespace rose {
       new_pos.m_piece_list_ptype[!color].m[dest_id] = PieceType::none;
       new_pos.removeAttacks(!color, dest_id);
       new_pos.movePiece<false, decltype(ptype)::value>(color, from, to, src_id, src_place.ptype());
-      // TODO: m_hash
+      new_pos.m_hash ^= hash::removePiece(to, dest_place);
+      new_pos.m_hash ^= hash::promo(from, to, m_active_color, decltype(ptype)::value);
       new_pos.m_irreversible_clock = 0;
       check_dest_castling_rights();
     };
 
     const auto double_push = [&] {
       new_pos.movePiece(color, from, to, src_id, src_place.ptype());
-      // TODO: m_hash
+      new_pos.m_hash ^= hash::movePiece(from, to, src_place);
       new_pos.m_irreversible_clock = 0;
       new_pos.m_enpassant = Square{narrow_cast<u8>((from.raw + to.raw) >> 1)};
+      new_pos.m_hash ^= hash::enpassant_table[new_pos.m_enpassant.file()];
     };
 
     const auto enpassant = [&] {
       const Square victim{narrow_cast<u8>((from.raw & 0x38) | (to.raw & 7))};
       const u8 victim_id = m_board.m[victim.raw].id();
       new_pos.movePiece(color, from, to, src_id, src_place.ptype());
+      new_pos.m_hash ^= hash::movePiece(from, to, src_place);
 
       new_pos.incrementalSliderUpdate(victim);
       new_pos.m_piece_list_sq[!color].m[victim_id] = Square::invalid();
       new_pos.m_piece_list_ptype[!color].m[victim_id] = PieceType::none;
       new_pos.m_board.m[victim.raw] = Place::empty;
-
-      // TODO: m_hash
-      new_pos.m_irreversible_clock = 0;
       new_pos.removeAttacks(!color, victim_id);
+      new_pos.m_hash ^= hash::removePiece(victim, m_active_color.invert(), PieceType::p);
+
+      new_pos.m_irreversible_clock = 0;
       check_src_castling_rights();
       check_dest_castling_rights();
     };
@@ -131,8 +140,9 @@ namespace rose {
 
       new_pos.movePiece(color, king_src, king_dest, king_id, PieceType::k);
       new_pos.movePiece(color, rook_src, rook_dest, rook_id, PieceType::r);
+      new_pos.m_hash ^= hash::movePiece(king_src, king_dest, m_active_color, PieceType::k);
+      new_pos.m_hash ^= hash::movePiece(rook_src, rook_dest, m_active_color, PieceType::r);
 
-      // TODO: m_hash
       new_pos.m_irreversible_clock = 0;
       new_pos.m_rook_info[color].clear();
     };
@@ -186,13 +196,23 @@ namespace rose {
     }
 #undef MF
 
-    if (m_rook_info[color] != new_pos.m_rook_info[color]) {
-      // TODO: m_hash castling change
+    if (m_rook_info != new_pos.m_rook_info) {
+      if (m_rook_info[0].aside != new_pos.m_rook_info[0].aside)
+        new_pos.m_hash ^= hash::castle_table[0][0];
+      if (m_rook_info[0].hside != new_pos.m_rook_info[0].hside)
+        new_pos.m_hash ^= hash::castle_table[0][1];
+      if (m_rook_info[1].aside != new_pos.m_rook_info[1].aside)
+        new_pos.m_hash ^= hash::castle_table[1][0];
+      if (m_rook_info[1].hside != new_pos.m_rook_info[1].hside)
+        new_pos.m_hash ^= hash::castle_table[1][1];
     }
 
     new_pos.m_ply++;
     new_pos.m_active_color = m_active_color.invert();
-    // TODO: m_hash side change
+    new_pos.m_hash ^= hash::move;
+
+    rose_assert(new_pos.m_hash == new_pos.calcHashSlow(), "{} [{:016x}] : {} : {} [{:016x} {:016x}]", *this, m_hash, m, new_pos, new_pos.m_hash,
+                new_pos.calcHashSlow());
 
     return new_pos;
   }
@@ -229,6 +249,27 @@ namespace rose {
         vec::findset8(white_attackers_coord, white_attackers_count, m_piece_list_sq[0].x),
         vec::findset8(black_attackers_coord, black_attackers_count, m_piece_list_sq[1].x),
     };
+  }
+
+  auto Position::calcHashSlow() const -> u64 {
+    u64 result = 0;
+    for (int sq = 0; sq < 64; sq++) {
+      const u8 p = m_board.r[sq];
+      result ^= hash::piece_table[p >> 4][sq];
+    }
+    if (m_enpassant.isValid())
+      result ^= hash::enpassant_table[m_enpassant.file()];
+    if (m_rook_info[0].aside.isValid())
+      result ^= hash::castle_table[0][0];
+    if (m_rook_info[0].hside.isValid())
+      result ^= hash::castle_table[0][1];
+    if (m_rook_info[1].aside.isValid())
+      result ^= hash::castle_table[1][0];
+    if (m_rook_info[1].hside.isValid())
+      result ^= hash::castle_table[1][1];
+    if (m_active_color == Color::black)
+      result ^= hash::move;
+    return result;
   }
 
   auto Position::prettyPrint() const -> void {
@@ -482,6 +523,7 @@ namespace rose {
     }
 
     result.m_attack_table = result.calcAttacksSlow();
+    result.m_hash = result.calcHashSlow();
 
     return result;
   }

@@ -61,7 +61,7 @@ namespace rose {
     std::array<RookInfo, 2> m_rook_info;
 
   public:
-    static const Position startpos;
+    static auto startpos() -> Position;
 
     constexpr Position() = default;
 
@@ -81,6 +81,7 @@ namespace rose {
 
     auto calcAttacksSlow() const -> std::array<Wordboard, 2>;
     auto calcAttacksSlow(Square sq) const -> std::array<u16, 2>;
+    auto calcHashSlow() const -> u64;
 
     auto prettyPrint() const -> void;
     auto printAttackTable() const -> void;

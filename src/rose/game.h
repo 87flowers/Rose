@@ -18,7 +18,7 @@ namespace rose {
 
     auto position() const -> const Position & { return m_position_stack.back(); }
 
-    auto setPositionStartpos() -> void { setPosition(Position::startpos); }
+    auto setPositionStartpos() -> void { setPosition(Position::startpos()); }
     auto setPosition(const Position &new_pos) -> void {
       m_position_stack.clear();
       m_move_stack.clear();

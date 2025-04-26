@@ -8,7 +8,7 @@ namespace rose {
 
   auto Game::printGameRecord() const -> void {
     std::print("> position ");
-    if (m_position_stack.front() == Position::startpos) {
+    if (m_position_stack.front() == Position::startpos()) {
       std::print("startpos");
     } else {
       std::print("fen {}", m_position_stack.front());

@@ -28,6 +28,8 @@ set(srcs
   src/rose/game.cpp
   src/rose/game.h
   src/rose/geometry.h
+  src/rose/hash.cpp
+  src/rose/hash.h
   src/rose/move.cpp
   src/rose/move.h
   src/rose/movegen.cpp

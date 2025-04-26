@@ -113,8 +113,6 @@ namespace rose {
 
       white = 0x00,
       black = 0x80,
-
-      ptype_mask = 0x3F,
     };
     inline static constexpr u8 slider_bit = 0b100 << 4;
 
