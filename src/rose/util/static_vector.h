@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <utility>
 
 #include "rose/util/assert.h"
 #include "rose/util/types.h"
@@ -50,6 +51,11 @@ namespace rose {
     constexpr auto size() const -> usize { return len; }
     constexpr auto capacity() const -> usize { return cap; }
     constexpr auto empty() const -> bool { return len == 0; }
+
+    constexpr auto resize(usize new_size) -> void {
+      rose_assert(new_size <= cap);
+      len = new_size;
+    }
 
     constexpr auto operator[](usize index) -> T & {
       rose_assert(index < len);

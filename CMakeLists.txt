@@ -43,6 +43,10 @@ set(srcs
   src/rose/uci.h
   src/rose/util/assert.cpp
   src/rose/util/assert.h
+  src/rose/util/bch/bch.h
+  src/rose/util/bch/bit.h
+  src/rose/util/bch/clmul.h
+  src/rose/util/bch/polynomial.h
   src/rose/util/defer.h
   src/rose/util/sign_extend.h
   src/rose/util/static_vector.h
@@ -55,6 +59,7 @@ add_executable(rose src/main.cpp ${srcs})
 target_compile_options(rose PUBLIC $<$<CONFIG:Release>:-DROSE_NO_ASSERTS>)
 
 add_library(rose-lib OBJECT ${srcs})
+do_test(bch)
 do_test(byteboard)
 do_test(geometry)
 do_test(movegen)
