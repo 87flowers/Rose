@@ -648,4 +648,22 @@ namespace rose {
     m_attack_table[color].z[1] &= mask;
   }
 
+  forceinline auto Position::addAttacks(bool color, Square sq, u8 id, PieceType ptype) -> void {
+    const v512 bit = v512::broadcast16(narrow_cast<u16>(1 << (id & 0xF)));
+    rose_assert(color == (id >> 7));
+
+    const auto [ray_coords, ray_valid] = geometry::superpieceRays(sq);
+    const v512 ray_places = vec::permute8(ray_coords, m_board.z);
+    const v512 inverse_ray_permutation = geometry::superpieceInverseRays(sq);
+
+    const u64 blockers = ray_places.nonzero8();
+    const u64 raymask = geometry::superpieceAttacks(blockers, ray_valid);
+
+    const v512 attacker_mask = vec::mask8(raymask, geometry::superpieceAttackerMask(static_cast<Color::Inner>(color))) & v512::broadcast8(ptype.raw);
+    const u64 mask = vec::permute8_mz(~inverse_ray_permutation.msb8(), inverse_ray_permutation, attacker_mask).nonzero8();
+
+    m_attack_table[color].z[0] = m_attack_table[color].z[0] | vec::mask16(static_cast<u32>(mask), bit);
+    m_attack_table[color].z[1] = m_attack_table[color].z[1] | vec::mask16(static_cast<u32>(mask >> 32), bit);
+  }
+
 } // namespace rose
