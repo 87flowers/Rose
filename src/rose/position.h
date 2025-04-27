@@ -7,6 +7,7 @@
 
 #include "rose/byteboard.h"
 #include "rose/common.h"
+#include "rose/config.h"
 #include "rose/move.h"
 #include "rose/square.h"
 #include "rose/util/tokenizer.h"
@@ -150,19 +151,26 @@ template <> struct std::formatter<rose::Position, char> {
 
     ctx.advance_to(std::format_to(ctx.out(), " {} ", position.m_active_color));
 
-    // FIXME: Print in Shredder FRC format
     const RookInfo white_rook_info = position.rookInfo(Color::white);
     const RookInfo black_rook_info = position.rookInfo(Color::black);
     if (white_rook_info.isClear() && black_rook_info.isClear())
       ctx.advance_to(std::format_to(ctx.out(), "-"));
-    if (white_rook_info.hside.isValid())
-      ctx.advance_to(std::format_to(ctx.out(), "K"));
-    if (white_rook_info.aside.isValid())
-      ctx.advance_to(std::format_to(ctx.out(), "Q"));
-    if (black_rook_info.hside.isValid())
-      ctx.advance_to(std::format_to(ctx.out(), "k"));
-    if (black_rook_info.aside.isValid())
-      ctx.advance_to(std::format_to(ctx.out(), "q"));
+    if (white_rook_info.hside.isValid()) {
+      const bool is_classical = !config::frc && white_rook_info.hside.file() == 7;
+      ctx.advance_to(std::format_to(ctx.out(), "{}", is_classical ? 'K' : static_cast<char>('A' + white_rook_info.hside.file())));
+    }
+    if (white_rook_info.aside.isValid()) {
+      const bool is_classical = !config::frc && white_rook_info.aside.file() == 0;
+      ctx.advance_to(std::format_to(ctx.out(), "{}", is_classical ? 'Q' : static_cast<char>('A' + white_rook_info.aside.file())));
+    }
+    if (black_rook_info.hside.isValid()) {
+      const bool is_classical = !config::frc && black_rook_info.hside.file() == 7;
+      ctx.advance_to(std::format_to(ctx.out(), "{}", is_classical ? 'k' : static_cast<char>('a' + black_rook_info.hside.file())));
+    }
+    if (black_rook_info.aside.isValid()) {
+      const bool is_classical = !config::frc && black_rook_info.aside.file() == 0;
+      ctx.advance_to(std::format_to(ctx.out(), "{}", is_classical ? 'q' : static_cast<char>('a' + black_rook_info.aside.file())));
+    }
 
     if (position.m_enpassant.isValid()) {
       ctx.advance_to(std::format_to(ctx.out(), " {} ", position.m_enpassant));
