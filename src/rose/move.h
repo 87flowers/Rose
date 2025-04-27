@@ -6,6 +6,7 @@
 #include <string_view>
 
 #include "rose/common.h"
+#include "rose/config.h"
 #include "rose/square.h"
 #include "rose/util/types.h"
 
@@ -70,10 +71,9 @@ template <> struct std::formatter<rose::Move, char> {
   template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
 
   template <class FmtContext> auto format(rose::Move m, FmtContext &ctx) const -> FmtContext::iterator {
-    // TODO: FRC
-    if (m.flags() == rose::MoveFlags::castle_aside)
+    if (!rose::config::frc && m.flags() == rose::MoveFlags::castle_aside && m.from().file() == 4 && m.to().file() == 0)
       return std::format_to(ctx.out(), "{}c{}", m.from(), static_cast<char>(m.to().rank() + '1'));
-    if (m.flags() == rose::MoveFlags::castle_hside)
+    if (!rose::config::frc && m.flags() == rose::MoveFlags::castle_hside && m.from().file() == 4 && m.to().file() == 7)
       return std::format_to(ctx.out(), "{}g{}", m.from(), static_cast<char>(m.to().rank() + '1'));
     if (m.promo())
       return std::format_to(ctx.out(), "{}{}{}", m.from(), m.to(), m.ptype());

@@ -24,6 +24,8 @@ add_compile_definitions(ROSE_VERSION="${ROSE_VERSION}")
 set(srcs
   src/rose/byteboard.cpp
   src/rose/byteboard.h
+  src/rose/config.cpp
+  src/rose/config.h
   src/rose/common.h
   src/rose/game.cpp
   src/rose/game.h

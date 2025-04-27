@@ -5,6 +5,7 @@
 #include <print>
 
 #include "rose/common.h"
+#include "rose/config.h"
 #include "rose/game.h"
 #include "rose/perft.h"
 #include "rose/util/tokenizer.h"
@@ -107,7 +108,28 @@ namespace rose {
   static auto uciParseUci(Game &game, Tokenizer &it) -> void {
     std::print("id name Rose " ROSE_VERSION "\n"
                "id author 87 (87flowers.com)\n"
+               "option name UCI_Chess960 type check default false\n"
                "uciok\n");
+  }
+
+  static auto uciParseSetOption(Game &game, Tokenizer &it) -> void {
+    if (!expectToken("setoption", it, "name"))
+      return;
+    const std::string_view name = it.next();
+    if (!expectToken("setoption", it, "value"))
+      return;
+    const std::string_view value = it.next();
+    if (name == "UCI_Chess960") {
+      if (value == "true") {
+        config::frc = true;
+      } else if (value == "false") {
+        config::frc = false;
+      } else {
+        return printUnrecognizedToken("setoption", value);
+      }
+    } else {
+      return printUnrecognizedToken("setoption", name);
+    }
   }
 
   static auto uciParsePerft(Game &game, Tokenizer &it) -> void {
@@ -173,6 +195,8 @@ namespace rose {
       uciParseIsReady(game, it);
     } else if (cmd == "uci") {
       uciParseUci(game, it);
+    } else if (cmd == "setoption") {
+      uciParseSetOption(game, it);
     } else if (cmd == "perft") {
       uciParsePerft(game, it);
     } else if (cmd == "moves" || cmd == "move") {

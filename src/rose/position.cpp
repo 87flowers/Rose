@@ -138,8 +138,22 @@ namespace rose {
       const u8 king_id = m_board.m[king_src.raw].id();
       const u8 rook_id = m_board.m[rook_src.raw].id();
 
-      new_pos.movePiece(color, king_src, king_dest, king_id, PieceType::k);
-      new_pos.movePiece(color, rook_src, rook_dest, rook_id, PieceType::r);
+      new_pos.incrementalSliderUpdate(king_src);
+      new_pos.m_board.m[king_src.raw] = Place::empty;
+      new_pos.removeAttacks(color, king_id);
+      new_pos.incrementalSliderUpdate(rook_src);
+      new_pos.m_board.m[rook_src.raw] = Place::empty;
+      new_pos.removeAttacks(color, rook_id);
+      new_pos.m_board.m[king_dest.raw] = Place::fromColorAndPtypeAndId(m_active_color, PieceType::k, king_id);
+      new_pos.incrementalSliderUpdate(king_dest);
+      new_pos.addAttacks(color, king_dest, king_id, PieceType::k);
+      new_pos.m_board.m[rook_dest.raw] = Place::fromColorAndPtypeAndId(m_active_color, PieceType::r, rook_id);
+      new_pos.incrementalSliderUpdate(rook_dest);
+      new_pos.addAttacks(color, rook_dest, rook_id, PieceType::r);
+
+      new_pos.m_piece_list_sq[color].m[king_id] = king_dest;
+      new_pos.m_piece_list_sq[color].m[rook_id] = rook_dest;
+
       new_pos.m_hash ^= hash::movePiece(king_src, king_dest, m_active_color, PieceType::k);
       new_pos.m_hash ^= hash::movePiece(rook_src, rook_dest, m_active_color, PieceType::r);
 
@@ -463,38 +477,50 @@ namespace rose {
       for (const char ch : castle_str) {
         const auto castle_rights = [&](Color color, u8 rook_file) -> std::optional<ParseError> {
           const Square rook_sq = Square::fromFileAndRank(rook_file, color.toBackRank());
-          const Square king_sq = Square::fromFileAndRank(4, color.toBackRank());
-          if (result.m_board.m[rook_sq.raw].color() != color || result.m_board.m[rook_sq.raw].ptype() != PieceType::r ||
-              result.m_board.m[king_sq.raw].color() != color || result.m_board.m[king_sq.raw].ptype() != PieceType::k)
+          const Square king_sq = result.kingSq(color);
+          const Place rook_place = result.m_board.m[rook_sq.raw];
+          if (rook_place.color() != color || rook_place.ptype() != PieceType::r || king_sq.rank() != color.toBackRank())
             return ParseError::invalid_board;
-          if (rook_file == 7)
-            result.m_rook_info[color.toIndex()].hside = rook_sq;
-          if (rook_file == 0)
+          if (rook_file < king_sq.file())
             result.m_rook_info[color.toIndex()].aside = rook_sq;
+          if (rook_file > king_sq.file())
+            result.m_rook_info[color.toIndex()].hside = rook_sq;
           return std::nullopt;
         };
-        switch (ch) {
-        case 'K':
-        case 'H':
-          if (const auto err = castle_rights(Color::white, 7); err)
+        const auto scan_for_rook = [&](Color color, int file, int direction) -> std::optional<ParseError> {
+          while (true) {
+            if (file < 0 || file > 7)
+              return ParseError::invalid_board;
+            const Square rook_sq = Square::fromFileAndRank(static_cast<u8>(file), color.toBackRank());
+            const Place rook_place = result.m_board.m[rook_sq.raw];
+            if (rook_place.isEmpty()) {
+              file += direction;
+              continue;
+            }
+            if (rook_place.color() != color || rook_place.ptype() != PieceType::r)
+              return ParseError::invalid_board;
+            return castle_rights(color, file);
+          }
+        };
+        if (ch >= 'A' && ch <= 'H') {
+          if (const auto err = castle_rights(Color::white, ch - 'A'); err)
             return std::unexpected(*err);
-          break;
-        case 'Q':
-        case 'A':
-          if (const auto err = castle_rights(Color::white, 0); err)
+        } else if (ch >= 'a' && ch <= 'h') {
+          if (const auto err = castle_rights(Color::black, ch - 'a'); err)
             return std::unexpected(*err);
-          break;
-        case 'k':
-        case 'h':
-          if (const auto err = castle_rights(Color::black, 7); err)
+        } else if (ch == 'Q') {
+          if (const auto err = scan_for_rook(Color::white, 0, +1); err)
             return std::unexpected(*err);
-          break;
-        case 'q':
-        case 'a':
-          if (const auto err = castle_rights(Color::black, 0); err)
+        } else if (ch == 'K') {
+          if (const auto err = scan_for_rook(Color::white, 7, -1); err)
             return std::unexpected(*err);
-          break;
-        default:
+        } else if (ch == 'q') {
+          if (const auto err = scan_for_rook(Color::black, 0, +1); err)
+            return std::unexpected(*err);
+        } else if (ch == 'k') {
+          if (const auto err = scan_for_rook(Color::black, 7, -1); err)
+            return std::unexpected(*err);
+        } else {
           return std::unexpected(ParseError::invalid_char);
         }
       }
@@ -659,11 +685,11 @@ namespace rose {
     const u64 blockers = ray_places.nonzero8();
     const u64 raymask = geometry::superpieceAttacks(blockers, ray_valid);
 
-    const v512 attacker_mask = vec::mask8(raymask, geometry::superpieceAttackerMask(static_cast<Color::Inner>(color))) & v512::broadcast8(ptype.raw);
-    const u64 mask = vec::permute8_mz(~inverse_ray_permutation.msb8(), inverse_ray_permutation, attacker_mask).nonzero8();
+    const u64 attacker_mask = raymask & geometry::attackMask(Color::Inner{color}, ptype.raw);
+    const u64 add_mask = vec::bitshuffle_m(~inverse_ray_permutation.msb8(), v512::broadcast64(attacker_mask), inverse_ray_permutation);
 
-    m_attack_table[color].z[0] = m_attack_table[color].z[0] | vec::mask16(static_cast<u32>(mask), bit);
-    m_attack_table[color].z[1] = m_attack_table[color].z[1] | vec::mask16(static_cast<u32>(mask >> 32), bit);
+    m_attack_table[color].z[0] = m_attack_table[color].z[0] | vec::mask16(static_cast<u32>(add_mask), bit);
+    m_attack_table[color].z[1] = m_attack_table[color].z[1] | vec::mask16(static_cast<u32>(add_mask >> 32), bit);
   }
 
 } // namespace rose

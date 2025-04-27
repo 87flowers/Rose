@@ -5,6 +5,7 @@
 #include <string_view>
 
 #include "rose/common.h"
+#include "rose/config.h"
 #include "rose/position.h"
 #include "rose/square.h"
 
@@ -22,8 +23,14 @@ namespace rose {
     if (!to)
       return std::unexpected(to.error());
 
-    const PieceType ptype = context.board().m[from.value().raw].ptype();
-    const bool capture = !context.board().m[to.value().raw].isEmpty();
+    const Place src_place = context.board().m[from.value().raw];
+    const Place dest_place = context.board().m[to.value().raw];
+
+    const PieceType ptype = src_place.ptype();
+    const bool capture = !dest_place.isEmpty();
+
+    if (src_place.color() != context.activeColor())
+      return std::unexpected(ParseError::color_violation);
 
     if (str.size() == 4) {
       if (ptype == PieceType::p) {
@@ -33,14 +40,21 @@ namespace rose {
           return make(from.value(), to.value(), MoveFlags::double_push);
       }
       if (ptype == PieceType::k) {
-        // TODO: FRC
-        if (from.value().file() == 4 && to.value().file() == 2)
+        if (to.value() == context.rookInfo(context.activeColor()).aside)
+          return make(from.value(), to.value(), MoveFlags::castle_aside);
+        if (to.value() == context.rookInfo(context.activeColor()).hside)
+          return make(from.value(), to.value(), MoveFlags::castle_hside);
+        if (!config::frc && from.value().file() == 4 && to.value().file() == 2)
           return make(from.value(), context.rookInfo(context.activeColor()).aside, MoveFlags::castle_aside);
-        if (from.value().file() == 4 && to.value().file() == 6)
+        if (!config::frc && from.value().file() == 4 && to.value().file() == 6)
           return make(from.value(), context.rookInfo(context.activeColor()).hside, MoveFlags::castle_hside);
       }
       return make(from.value(), to.value(), capture ? MoveFlags::capture : MoveFlags::normal);
     }
+
+    // This check needs to be here because castling = king captures rook.
+    if (capture && dest_place.color() == context.activeColor())
+      return std::unexpected(ParseError::color_violation);
 
     const auto mf = [&]() -> std::expected<MoveFlags, ParseError> {
       switch (str[4]) {

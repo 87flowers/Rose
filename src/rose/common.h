@@ -18,6 +18,7 @@ namespace rose {
   enum class ParseError {
     invalid_char,
     invalid_length,
+    color_violation,
     out_of_range,
     invalid_board,
     too_many_kings,
@@ -153,6 +154,8 @@ template <> struct std::formatter<rose::ParseError, char> {
       return std::format_to(ctx.out(), "invalid_char");
     case rose::ParseError::invalid_length:
       return std::format_to(ctx.out(), "invalid_length");
+    case rose::ParseError::color_violation:
+      return std::format_to(ctx.out(), "color_violation");
     case rose::ParseError::out_of_range:
       return std::format_to(ctx.out(), "out_of_range");
     case rose::ParseError::invalid_board:

@@ -45,7 +45,7 @@ end
 
 function runPerft(cmd, perft_cmd, fen, moves, depth)
     if moves ~= nil and moves ~= "" then moves = " moves " .. moves else moves = "" end
-    local output = run(cmd, "position fen " .. fen .. moves .. "\n" .. perft_cmd .. " " .. depth .. "\nquit\n")
+    local output = run(cmd, "setoption name UCI_Chess960 value true\nposition fen " .. fen .. moves .. "\n" .. perft_cmd .. " " .. depth .. "\nquit\n")
     local result = {}
     for line in output:gmatch("[^\r\n]+") do
         local colon = string.find(line, ":")
@@ -239,4 +239,14 @@ drillIntoPerft("8/Pk6/8/8/8/8/6Kp/8 b - - 0 1", 6)
 drillIntoPerft("n1n5/1Pk5/8/8/8/8/5Kp1/5N1N b - - 0 1", 6)
 drillIntoPerft("8/PPPk4/8/8/8/8/4Kppp/8 b - - 0 1", 6)
 drillIntoPerft("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1", 6)
+-- dfrc
+drillIntoPerft("2r1kr2/8/8/8/8/8/8/1R2K1R1 w GBfc - 0 1", 6)
+drillIntoPerft("rkr5/8/8/8/8/8/8/5RKR w HFca - 0 1", 6)
+drillIntoPerft("2r3kr/8/8/8/8/8/8/2KRR3 w h - 3 2", 6)
+drillIntoPerft("5rkr/8/8/8/8/8/8/RKR5 w CAhf - 0 1", 6)
+drillIntoPerft("3rkr2/8/8/8/8/8/8/R3K2R w HAfd - 0 1", 6)
+drillIntoPerft("4k3/8/8/8/8/8/8/4KR2 w F - 0 1", 6)
+drillIntoPerft("4kr2/8/8/8/8/8/8/4K3 w f - 0 1", 6)
+drillIntoPerft("4k3/8/8/8/8/8/8/2R1K3 w C - 0 1", 6)
+drillIntoPerft("2r1k3/8/8/8/8/8/8/4K3 w c - 0 1", 6)
 print("ok.")

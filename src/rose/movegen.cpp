@@ -186,8 +186,6 @@ namespace rose {
 
     const v256 srcs = vec::zext8to16(position.pieceListSq(active_color).x);
 
-    // TODO: Pinned masking
-
     // Unprotected captures
     generateSubsetCaps(moves, attack_table, srcs, active & enemy & ~danger, valid_plist & ~pawn_mask);
     // Capture-with-promotion
@@ -223,21 +221,23 @@ namespace rose {
     // Protected captures
     generateSubsetCaps(moves, attack_table, srcs, active & enemy & danger, valid_plist & ~pawn_mask & ~king_mask);
     // Castling
-    // TODO: Handle pinned rook
     if constexpr (king_moves) {
 #define IS_CLEAR(bb, x) ((~(bb) & m_precomp_info.x[active_color.toIndex()]) == 0)
       const RookInfo rook_info = position.rookInfo(active_color);
+      const u64 king_bb = static_cast<u64>(1) << king_sq.raw;
       if (rook_info.aside.isValid()) {
         rose_assert((position.board().m[rook_info.aside.raw].raw & 0xF0) == Place::fromColorAndPtypeAndId(active_color, PieceType::r, 0).raw);
-        const u64 clear = empty | (static_cast<u64>(1) << king_sq.raw) | (static_cast<u64>(1) << rook_info.aside.raw);
-        if (IS_CLEAR(clear, aside_rook) && IS_CLEAR(~danger & clear, aside_king)) {
+        const u64 rook_bb = static_cast<u64>(1) << rook_info.aside.raw;
+        const u64 clear = empty | king_bb | rook_bb;
+        if (IS_CLEAR(clear, aside_rook) && IS_CLEAR(~danger & clear, aside_king) && !(rook_bb & pinned_bb)) {
           moves.push_back(Move::make(king_sq, rook_info.aside, MoveFlags::castle_aside));
         }
       }
       if (rook_info.hside.isValid()) {
         rose_assert((position.board().m[rook_info.hside.raw].raw & 0xF0) == Place::fromColorAndPtypeAndId(active_color, PieceType::r, 0).raw);
-        const u64 clear = empty | (static_cast<u64>(1) << king_sq.raw) | (static_cast<u64>(1) << rook_info.hside.raw);
-        if (IS_CLEAR(clear, hside_rook) && IS_CLEAR(~danger & clear, hside_king)) {
+        const u64 rook_bb = static_cast<u64>(1) << rook_info.hside.raw;
+        const u64 clear = empty | king_bb | rook_bb;
+        if (IS_CLEAR(clear, hside_rook) && IS_CLEAR(~danger & clear, hside_king) && !(rook_bb & pinned_bb)) {
           moves.push_back(Move::make(king_sq, rook_info.hside, MoveFlags::castle_hside));
         }
       }
