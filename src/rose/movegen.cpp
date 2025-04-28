@@ -25,19 +25,19 @@ namespace rose {
   }
 
   template <typename T> auto MoveList::write2(typename T::Mask32 mask, T v) -> void {
-    const usize count = std::popcount(mask) * 2;
-    rose_assert(len + count < capacity());
+    const usize count = std::popcount(mask);
+    rose_assert(len + count * 2 < capacity());
     for (int i = 0; i < count; i++, mask &= mask - 1)
       std::memcpy(data.data() + len + i * 2, &v.d[std::countr_zero(mask)], sizeof(u16) * 2);
-    len += count;
+    len += count * 2;
   }
 
   template <typename T> auto MoveList::write4(typename T::Mask64 mask, T v) -> void {
-    const usize count = std::popcount(mask) * 4;
-    rose_assert(len + count < capacity());
+    const usize count = std::popcount(mask);
+    rose_assert(len + count * 4 < capacity());
     for (int i = 0; i < count; i++, mask &= mask - 1)
       std::memcpy(data.data() + len + i * 4, &v.q[std::countr_zero(mask)], sizeof(u16) * 4);
-    len += count;
+    len += count * 4;
   }
 
   auto MoveList::write4(u64 moves) -> void {
