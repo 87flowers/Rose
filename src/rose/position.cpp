@@ -227,6 +227,7 @@ namespace rose {
 
     rose_assert(new_pos.m_hash == new_pos.calcHashSlow(), "{} [{:016x}] : {} : {} [{:016x} {:016x}]", *this, m_hash, m, new_pos, new_pos.m_hash,
                 new_pos.calcHashSlow());
+    rose_assert(new_pos.m_attack_table == new_pos.calcAttacksSlow());
 
     return new_pos;
   }
@@ -676,7 +677,6 @@ namespace rose {
 
   forceinline auto Position::addAttacks(bool color, Square sq, u8 id, PieceType ptype) -> void {
     const v512 bit = v512::broadcast16(narrow_cast<u16>(1 << (id & 0xF)));
-    rose_assert(color == (id >> 7));
 
     const auto [ray_coords, ray_valid] = geometry::superpieceRays(sq);
     const v512 ray_places = vec::permute8(ray_coords, m_board.z);
