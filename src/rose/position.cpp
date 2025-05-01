@@ -66,9 +66,9 @@ namespace rose {
       new_pos.movePiece(color, from, to, src_id, src_place.ptype());
       new_pos.m_hash ^= hash::movePiece(from, to, src_place);
       if (src_place.ptype() != PieceType::p) {
-        new_pos.m_irreversible_clock++;
+        new_pos.m_50mr++;
       } else {
-        new_pos.m_irreversible_clock = 0;
+        new_pos.m_50mr = 0;
       }
       check_src_castling_rights();
     };
@@ -80,7 +80,7 @@ namespace rose {
       new_pos.movePiece<false>(color, from, to, src_id, src_place.ptype());
       new_pos.m_hash ^= hash::removePiece(to, dest_place);
       new_pos.m_hash ^= hash::movePiece(from, to, src_place);
-      new_pos.m_irreversible_clock = 0;
+      new_pos.m_50mr = 0;
       check_src_castling_rights();
       check_dest_castling_rights();
     };
@@ -89,7 +89,7 @@ namespace rose {
       new_pos.m_piece_list_ptype[color].m[src_id] = ptype;
       new_pos.movePiece<true, decltype(ptype)::value>(color, from, to, src_id, src_place.ptype());
       new_pos.m_hash ^= hash::promo(from, to, m_active_color, decltype(ptype)::value);
-      new_pos.m_irreversible_clock = 0;
+      new_pos.m_50mr = 0;
     };
 
     const auto cap_promo = [&](auto ptype) {
@@ -100,14 +100,14 @@ namespace rose {
       new_pos.movePiece<false, decltype(ptype)::value>(color, from, to, src_id, src_place.ptype());
       new_pos.m_hash ^= hash::removePiece(to, dest_place);
       new_pos.m_hash ^= hash::promo(from, to, m_active_color, decltype(ptype)::value);
-      new_pos.m_irreversible_clock = 0;
+      new_pos.m_50mr = 0;
       check_dest_castling_rights();
     };
 
     const auto double_push = [&] {
       new_pos.movePiece(color, from, to, src_id, src_place.ptype());
       new_pos.m_hash ^= hash::movePiece(from, to, src_place);
-      new_pos.m_irreversible_clock = 0;
+      new_pos.m_50mr = 0;
       new_pos.m_enpassant = Square{narrow_cast<u8>((from.raw + to.raw) >> 1)};
       new_pos.m_hash ^= hash::enpassant_table[new_pos.m_enpassant.file()];
     };
@@ -125,7 +125,7 @@ namespace rose {
       new_pos.removeAttacks(!color, victim_id);
       new_pos.m_hash ^= hash::removePiece(victim, m_active_color.invert(), PieceType::p);
 
-      new_pos.m_irreversible_clock = 0;
+      new_pos.m_50mr = 0;
       check_src_castling_rights();
       check_dest_castling_rights();
     };
@@ -157,7 +157,7 @@ namespace rose {
       new_pos.m_hash ^= hash::movePiece(king_src, king_dest, m_active_color, PieceType::k);
       new_pos.m_hash ^= hash::movePiece(rook_src, rook_dest, m_active_color, PieceType::r);
 
-      new_pos.m_irreversible_clock = 0;
+      new_pos.m_50mr++;
       new_pos.m_rook_info[color].clear();
     };
 
@@ -408,7 +408,7 @@ namespace rose {
   }
 
   auto Position::parse(std::string_view board_str, std::string_view color_str, std::string_view castle_str, std::string_view enpassant_str,
-                       std::string_view irreversible_clock_str, std::string_view ply_str) -> std::expected<Position, ParseError> {
+                       std::string_view clock_50mr_str, std::string_view ply_str) -> std::expected<Position, ParseError> {
     Position result{};
 
     // Parse board
@@ -535,9 +535,9 @@ namespace rose {
       result.m_enpassant = enpassant.value();
     }
 
-    // Parse irreversible clock
-    if (const usize irreversible_clock = std::stoi(std::string{irreversible_clock_str}); irreversible_clock <= 200) {
-      result.m_irreversible_clock = irreversible_clock;
+    // Parse 50mr clock
+    if (const usize clock_50mr = std::stoi(std::string{clock_50mr_str}); clock_50mr <= 200) {
+      result.m_50mr = clock_50mr;
     } else {
       return std::unexpected(ParseError::out_of_range);
     }

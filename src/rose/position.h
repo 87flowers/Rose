@@ -55,7 +55,7 @@ namespace rose {
     std::array<PieceList<PieceType>, 2> m_piece_list_ptype{};
     Byteboard m_board{};
     u64 m_hash{};
-    u16 m_irreversible_clock{};
+    u16 m_50mr{};
     u16 m_ply{};
     Color m_active_color{};
     Square m_enpassant = Square::invalid();
@@ -94,15 +94,15 @@ namespace rose {
       const std::string_view color = it.next();
       const std::string_view castling = it.next();
       const std::string_view enpassant = it.next();
-      const std::string_view irreversible_clock = it.next();
+      const std::string_view clock_50mr = it.next();
       const std::string_view ply = it.next();
       if (!it.rest().empty())
         return std::unexpected(ParseError::invalid_length);
-      return parse(board, color, castling, enpassant, irreversible_clock, ply);
+      return parse(board, color, castling, enpassant, clock_50mr, ply);
     }
 
     static auto parse(std::string_view board, std::string_view color, std::string_view castle, std::string_view enpassant,
-                      std::string_view irreversible_clock, std::string_view ply) -> std::expected<Position, ParseError>;
+                      std::string_view clock_50mr, std::string_view ply) -> std::expected<Position, ParseError>;
 
     constexpr auto operator==(const Position &) const -> bool = default;
 
@@ -179,6 +179,6 @@ template <> struct std::formatter<rose::Position, char> {
       ctx.advance_to(std::format_to(ctx.out(), " - "));
     }
 
-    return std::format_to(ctx.out(), "{} {}", position.m_irreversible_clock, position.m_ply / 2 + 1);
+    return std::format_to(ctx.out(), "{} {}", position.m_50mr, position.m_ply / 2 + 1);
   }
 };

@@ -85,10 +85,10 @@ namespace rose {
       const std::string_view color = it.next();
       const std::string_view castle = it.next();
       const std::string_view enpassant = it.next();
-      const std::string_view irreversible_clock = it.next();
+      const std::string_view clock_50mr = it.next();
       const std::string_view ply = it.next();
 
-      const auto pos = Position::parse(board, color, castle, enpassant, irreversible_clock, ply);
+      const auto pos = Position::parse(board, color, castle, enpassant, clock_50mr, ply);
       if (!pos)
         return printProtocolError("position", "invalid fen provided: {}", pos.error());
       game.setPosition(pos.value());
