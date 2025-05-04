@@ -158,6 +158,8 @@ namespace rose {
     std::print("readyok\n");
   }
 
+  static auto uciParseStop(Engine &engine, Game &game, Tokenizer &it) -> void { engine.stop(); }
+
   static auto uciParseUci(Engine &engine, Game &game, Tokenizer &it) -> void {
     static constexpr auto max_threads = std::min<std::ptrdiff_t>(std::barrier<>::max(), std::numeric_limits<int>::max());
 
@@ -256,6 +258,8 @@ namespace rose {
       uciParseNewGame(engine, game, it);
     } else if (cmd == "isready") {
       uciParseIsReady(engine, game, it);
+    } else if (cmd == "stop") {
+      uciParseStop(engine, game, it);
     } else if (cmd == "uci") {
       uciParseUci(engine, game, it);
     } else if (cmd == "setoption") {
