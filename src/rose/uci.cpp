@@ -17,9 +17,9 @@
 
 namespace rose {
 
-  static auto parseInt(std::string_view str) -> std::optional<i64> {
+  static auto parseInt(std::string_view str) -> std::optional<int> {
     bool negate = false;
-    i64 result = 0;
+    int result = 0;
     usize i = 0;
 
     if (str.size() == 0)
@@ -35,7 +35,10 @@ namespace rose {
     for (; i < str.size(); i++) {
       if (str[i] < '0' && str[i] > '9')
         return std::nullopt;
-      result = result * 10 + (str[i] - '0');
+      const int new_result = result * 10 + (str[i] - '0');
+      if (new_result < result)
+        return std::nullopt;
+      result = new_result;
     }
 
     return negate ? -result : result;
@@ -63,7 +66,44 @@ namespace rose {
     return false;
   }
 
-  static auto uciParseGo(Engine &engine, Game &game, Tokenizer &it) -> void { engine.runSearch(); }
+  static auto uciParseGo(Engine &engine, Game &game, Tokenizer &it) -> void {
+    const time::TimePoint start_time = time::Clock::now();
+    SearchLimit limits;
+    for (std::string_view part = it.next(); !part.empty(); part = it.next()) {
+#define DO_PART(section, x)                                                                                                                          \
+  limits.has_##section = true;                                                                                                                       \
+  const std::string_view value_str = it.next();                                                                                                      \
+  const auto value = parseInt(value_str);                                                                                                            \
+  if (!value)                                                                                                                                        \
+    return printUnrecognizedToken("go", value_str);                                                                                                  \
+  limits.x = std::max<int>(0, *value);
+      if (part == "wtime") {
+        DO_PART(time, wtime);
+      } else if (part == "btime") {
+        DO_PART(time, btime);
+      } else if (part == "winc") {
+        DO_PART(time, winc);
+      } else if (part == "binc") {
+        DO_PART(time, binc);
+      } else if (part == "movestogo") {
+        DO_PART(time, movestogo);
+      } else if (part == "movetime") {
+        DO_PART(time, movetime);
+      } else if (part == "nodes") {
+        DO_PART(other, hard_nodes);
+      } else if (part == "softnodes") {
+        DO_PART(other, soft_nodes);
+      } else if (part == "depth") {
+        DO_PART(other, depth);
+      } else if (part == "perft") {
+        return printProtocolError("go", "perft is a standalone command in Rose, and is not a subcommand of go");
+      } else {
+        return printUnrecognizedToken("go", part);
+      }
+#undef DO_PART
+    }
+    engine.runSearch(start_time, limits);
+  }
 
   static auto uciParseMoves(Engine &engine, Game &game, Tokenizer &it) -> void {
     rose_defer { engine.setGame(game); };
@@ -145,11 +185,10 @@ namespace rose {
         return printUnrecognizedToken("setoption", value);
       }
     } else if (name == "Threads") {
-      if (const auto count = parseInt(value)) {
-        engine.setThreadCount(*count);
-      } else {
+      const auto count = parseInt(value);
+      if (!count || *count <= 0)
         return printUnrecognizedToken("setoption", value);
-      }
+      engine.setThreadCount(*count);
     } else {
       return printUnrecognizedToken("setoption", name);
     }

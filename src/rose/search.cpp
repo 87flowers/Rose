@@ -4,6 +4,7 @@
 #include <thread>
 
 #include "rose/game.h"
+#include "rose/search_control.h"
 #include "rose/util/assert.h"
 #include "rose/util/types.h"
 
@@ -33,8 +34,18 @@ namespace rose {
       std::shared_lock _{m_shared.mutex};
       (void)m_shared.started_barrier.arrive();
 
-      m_game.printGameRecord();
+      m_stats.reset();
+      if (isMainThread()) {
+        std::visit([this](const auto &ctrl) { this->searchRoot(ctrl); }, m_shared.ctrl);
+      } else {
+        searchRoot<controls::None>({});
+      }
     }
+  }
+
+  template <typename Controls> auto Search::searchRoot(const Controls &ctrl) -> void {
+    ctrl.dump();
+    m_game.printGameRecord();
   }
 
 } // namespace rose

@@ -46,6 +46,8 @@ set(srcs
   src/rose/rays.h
   src/rose/search.cpp
   src/rose/search.h
+  src/rose/search_control.h
+  src/rose/search_stats.h
   src/rose/square.h
   src/rose/uci.cpp
   src/rose/uci.h
