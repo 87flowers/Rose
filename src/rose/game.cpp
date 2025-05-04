@@ -5,8 +5,6 @@
 
 namespace rose {
 
-  auto Game::reset() -> void { setPositionStartpos(); }
-
   auto Game::isRepetition() const -> bool {
     const int height = static_cast<int>(m_hash_stack.size()) - 1;
 
@@ -15,7 +13,7 @@ namespace rose {
 
     for (int i = height - 4; i >= 0; i -= 2) {
       if (m_hash_stack[i] == h) {
-        const usize clone_limit = (i < m_waterline) ? 2 : 1;
+        const usize clone_limit = (i < m_hash_waterline) ? 2 : 1;
         clones++;
         if (clones >= clone_limit)
           return true;
