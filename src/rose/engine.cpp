@@ -16,6 +16,7 @@ namespace rose {
   auto Engine::reset() -> void {
     const std::unique_lock _{m_shared->mutex};
     m_active_color = Color::white;
+    m_shared->movegen_precomp = PrecompMoveGenInfo{};
     for (const auto &search : m_searches)
       search->reset();
   }
@@ -39,6 +40,7 @@ namespace rose {
   auto Engine::setGame(const Game &g) -> void {
     const std::unique_lock _{m_shared->mutex};
     m_active_color = g.position().activeColor();
+    m_shared->movegen_precomp = PrecompMoveGenInfo{g.position()};
     for (const auto &search : m_searches)
       search->setGame(g);
   }

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "rose/game.h"
+#include "rose/movegen.h"
 #include "rose/search_control.h"
 #include "rose/search_stats.h"
 #include "rose/util/types.h"
@@ -20,6 +21,8 @@ namespace rose {
     std::barrier<> idle_barrier;
     std::barrier<> started_barrier;
     controls::Any ctrl;
+
+    PrecompMoveGenInfo movegen_precomp;
   };
 
   struct Search {

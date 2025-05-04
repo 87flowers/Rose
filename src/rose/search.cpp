@@ -1,9 +1,12 @@
 #include "rose/search.h"
 
 #include <mutex>
+#include <print>
+#include <random>
 #include <thread>
 
 #include "rose/game.h"
+#include "rose/movegen.h"
 #include "rose/search_control.h"
 #include "rose/util/assert.h"
 #include "rose/util/types.h"
@@ -44,8 +47,26 @@ namespace rose {
   }
 
   template <typename Controls> auto Search::searchRoot(const Controls &ctrl) -> void {
-    ctrl.dump();
-    m_game.printGameRecord();
+    if (isMainThread()) {
+      ctrl.dump();
+
+      static std::mt19937_64 prng_engine{};
+
+      MoveList moves;
+      {
+        MoveGen movegen{m_game.position(), m_shared.movegen_precomp};
+        movegen.generateMoves(moves);
+      }
+
+      if (moves.size() == 0) {
+        std::print("bestmove null\n");
+      } else {
+        std::uniform_int_distribution<usize> rand{0, moves.size() - 1};
+        const Move m = moves[rand(prng_engine)];
+        std::print("info depth 0 score 0 nodes {} pv {}\n", moves.size(), m);
+        std::print("bestmove {}\n", m);
+      }
+    }
   }
 
 } // namespace rose

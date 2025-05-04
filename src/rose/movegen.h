@@ -25,6 +25,7 @@ namespace rose {
     std::array<u64, 2> hside_rook;
     std::array<u64, 2> hside_king;
 
+    PrecompMoveGenInfo() : PrecompMoveGenInfo(Position::startpos()) {}
     explicit PrecompMoveGenInfo(const Position &position);
   };
 
