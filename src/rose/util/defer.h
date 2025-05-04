@@ -8,7 +8,4 @@ namespace rose::internal {
   };
 } // namespace rose::internal
 
-#define ROSE_CONCAT2(x, y) x##y
-#define ROSE_CONCAT(x, y) ROSE_CONCAT2(x, y)
-
-#define rose_defer const rose::internal::DeferHelper ROSE_CONCAT(_rose_internal_defer_guard_, __COUNTER__) = [&]() -> void
+#define rose_defer const rose::internal::DeferHelper _ = [&]() -> void

@@ -27,6 +27,8 @@ set(srcs
   src/rose/config.cpp
   src/rose/config.h
   src/rose/common.h
+  src/rose/engine.cpp
+  src/rose/engine.h
   src/rose/game.cpp
   src/rose/game.h
   src/rose/geometry.h
@@ -42,6 +44,8 @@ set(srcs
   src/rose/position.cpp
   src/rose/position.h
   src/rose/rays.h
+  src/rose/search.cpp
+  src/rose/search.h
   src/rose/square.h
   src/rose/uci.cpp
   src/rose/uci.h

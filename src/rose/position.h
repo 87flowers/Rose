@@ -72,6 +72,7 @@ namespace rose {
     constexpr auto pieceListType(Color color) const -> PieceList<PieceType> { return m_piece_list_ptype[color.toIndex()]; }
     constexpr auto activeColor() const -> Color { return m_active_color; }
     constexpr auto hash() const -> u64 { return m_hash; }
+    constexpr auto fiftyMoveClock() const -> u16 { return m_50mr; }
 
     auto kingSq(Color color) const -> Square { return m_piece_list_sq[color.toIndex()].m[0]; }
     auto enpassant() const -> Square { return m_enpassant; }

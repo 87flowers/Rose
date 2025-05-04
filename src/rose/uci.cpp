@@ -6,8 +6,10 @@
 
 #include "rose/common.h"
 #include "rose/config.h"
+#include "rose/engine.h"
 #include "rose/game.h"
 #include "rose/perft.h"
+#include "rose/util/defer.h"
 #include "rose/util/tokenizer.h"
 
 #define xstr(s) str(s)
@@ -61,7 +63,10 @@ namespace rose {
     return false;
   }
 
-  static auto uciParseMoves(Game &game, Tokenizer &it) -> void {
+  static auto uciParseGo(Engine &engine, Game &game, Tokenizer &it) -> void { engine.runSearch(); }
+
+  static auto uciParseMoves(Engine &engine, Game &game, Tokenizer &it) -> void {
+    rose_defer { engine.setGame(game); };
     while (true) {
       const std::string_view move_str = it.next();
       if (move_str.empty())
@@ -73,7 +78,7 @@ namespace rose {
     }
   }
 
-  static auto uciParsePosition(Game &game, Tokenizer &it) -> void {
+  static auto uciParsePosition(Engine &engine, Game &game, Tokenizer &it) -> void {
     const std::string_view pos_type = it.next();
     if (pos_type.empty())
       return printProtocolError("position", "no position provided");
@@ -97,22 +102,34 @@ namespace rose {
     }
 
     if (expectToken("position", it, "moves")) {
-      uciParseMoves(game, it);
+      uciParseMoves(engine, game, it);
+    } else {
+      engine.setGame(game);
     }
   }
 
-  static auto uciParseNewGame(Game &game, Tokenizer &it) -> void { game.reset(); }
-
-  static auto uciParseIsReady(Game &game, Tokenizer &it) -> void { std::print("readyok\n"); }
-
-  static auto uciParseUci(Game &game, Tokenizer &it) -> void {
-    std::print("id name Rose " ROSE_VERSION "\n"
-               "id author 87 (87flowers.com)\n"
-               "option name UCI_Chess960 type check default false\n"
-               "uciok\n");
+  static auto uciParseNewGame(Engine &engine, Game &game, Tokenizer &it) -> void {
+    game.reset();
+    engine.reset();
   }
 
-  static auto uciParseSetOption(Game &game, Tokenizer &it) -> void {
+  static auto uciParseIsReady(Engine &engine, Game &game, Tokenizer &it) -> void {
+    engine.isReady();
+    std::print("readyok\n");
+  }
+
+  static auto uciParseUci(Engine &engine, Game &game, Tokenizer &it) -> void {
+    static constexpr auto max_threads = std::min<std::ptrdiff_t>(std::barrier<>::max(), std::numeric_limits<int>::max());
+
+    std::print("id name Rose " ROSE_VERSION "\n"
+               "id author 87 (87flowers.com)\n"
+               "option name Threads type spin default 1 min 1 max {}\n"
+               "option name UCI_Chess960 type check default false\n"
+               "uciok\n",
+               max_threads);
+  }
+
+  static auto uciParseSetOption(Engine &engine, Game &game, Tokenizer &it) -> void {
     if (!expectToken("setoption", it, "name"))
       return;
     const std::string_view name = it.next();
@@ -127,12 +144,18 @@ namespace rose {
       } else {
         return printUnrecognizedToken("setoption", value);
       }
+    } else if (name == "Threads") {
+      if (const auto count = parseInt(value)) {
+        engine.setThreadCount(*count);
+      } else {
+        return printUnrecognizedToken("setoption", value);
+      }
     } else {
       return printUnrecognizedToken("setoption", name);
     }
   }
 
-  static auto uciParsePerft(Game &game, Tokenizer &it) -> void {
+  static auto uciParsePerft(Engine &engine, Game &game, Tokenizer &it) -> void {
     const std::string_view depth_str = it.rest().empty() ? "1" : it.next();
     const auto depth = parseInt(depth_str);
     if (!depth || *depth < 0)
@@ -140,22 +163,23 @@ namespace rose {
     perft::run(game.position(), static_cast<usize>(*depth));
   }
 
-  static auto uciParseUndo(Game &game, Tokenizer &it) -> void {
+  static auto uciParseUndo(Engine &engine, Game &game, Tokenizer &it) -> void {
     const std::string_view count_str = it.rest().empty() ? "1" : it.next();
     const auto count = parseInt(count_str);
     if (!count || *count < 0)
       return printUnrecognizedToken("undo", count_str);
     for (i64 i = 0; i < count; i++)
       game.unmove();
+    engine.setGame(game);
   }
 
-  static auto uciParseDisplay(Game &game, Tokenizer &it) -> void {
+  static auto uciParseDisplay(Engine &engine, Game &game, Tokenizer &it) -> void {
     game.position().prettyPrint();
 
     std::print("fen: {}\n", game.position());
   }
 
-  static auto uciParseCompiler(Game &game, Tokenizer &it) -> void {
+  static auto uciParseCompiler(Engine &engine, Game &game, Tokenizer &it) -> void {
     // clang-format off
     std::print("compiler build-datetime " __DATE__ " " __TIME__ "\n"
 #if defined(__VERSION__)
@@ -179,39 +203,39 @@ namespace rose {
     // clang-format on
   }
 
-  auto uciParseCommand(Game &game, std::string_view line) -> void {
+  auto uciParseCommand(Engine &engine, Game &game, std::string_view line) -> void {
     const time::TimePoint start_time = time::Clock::now();
 
     Tokenizer it{line};
     const std::string_view cmd = it.next();
 
     if (cmd == "go") {
-      std::print("TODO\n");
+      uciParseGo(engine, game, it);
     } else if (cmd == "position") {
-      uciParsePosition(game, it);
+      uciParsePosition(engine, game, it);
     } else if (cmd == "ucinewgame") {
-      uciParseNewGame(game, it);
+      uciParseNewGame(engine, game, it);
     } else if (cmd == "isready") {
-      uciParseIsReady(game, it);
+      uciParseIsReady(engine, game, it);
     } else if (cmd == "uci") {
-      uciParseUci(game, it);
+      uciParseUci(engine, game, it);
     } else if (cmd == "setoption") {
-      uciParseSetOption(game, it);
+      uciParseSetOption(engine, game, it);
     } else if (cmd == "perft") {
-      uciParsePerft(game, it);
+      uciParsePerft(engine, game, it);
     } else if (cmd == "moves" || cmd == "move") {
-      uciParseMoves(game, it);
+      uciParseMoves(engine, game, it);
     } else if (cmd == "undo") {
-      uciParseUndo(game, it);
+      uciParseUndo(engine, game, it);
     } else if (cmd == "d") {
-      uciParseDisplay(game, it);
+      uciParseDisplay(engine, game, it);
     } else if (cmd == "attacks") {
       game.position().attackTable(game.position().activeColor()).dumpRaw();
       game.position().printAttackTable();
     } else if (cmd == "getposition") {
       game.printGameRecord();
     } else if (cmd == "compiler") {
-      uciParseCompiler(game, it);
+      uciParseCompiler(engine, game, it);
     } else if (cmd == "quit") {
       std::exit(0);
     } else {
