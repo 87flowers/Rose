@@ -26,6 +26,8 @@ set(srcs
   src/rose/byteboard.h
   src/rose/config.cpp
   src/rose/config.h
+  src/rose/cmd/perft.cpp
+  src/rose/cmd/perft.h
   src/rose/common.h
   src/rose/engine.cpp
   src/rose/engine.h
@@ -39,8 +41,6 @@ set(srcs
   src/rose/movegen.cpp
   src/rose/movegen.h
   src/rose/pawns.h
-  src/rose/perft.cpp
-  src/rose/perft.h
   src/rose/position.cpp
   src/rose/position.h
   src/rose/rays.h

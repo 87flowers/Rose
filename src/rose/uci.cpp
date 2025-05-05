@@ -4,11 +4,11 @@
 #include <optional>
 #include <print>
 
+#include "rose/cmd/perft.h"
 #include "rose/common.h"
 #include "rose/config.h"
 #include "rose/engine.h"
 #include "rose/game.h"
-#include "rose/perft.h"
 #include "rose/util/defer.h"
 #include "rose/util/tokenizer.h"
 

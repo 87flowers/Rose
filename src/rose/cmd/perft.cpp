@@ -1,4 +1,4 @@
-#include "rose/perft.h"
+#include "rose/cmd/perft.h"
 
 #include <print>
 
