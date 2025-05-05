@@ -24,13 +24,16 @@ add_compile_definitions(ROSE_VERSION="${ROSE_VERSION}")
 set(srcs
   src/rose/byteboard.cpp
   src/rose/byteboard.h
-  src/rose/config.cpp
-  src/rose/config.h
   src/rose/cmd/perft.cpp
   src/rose/cmd/perft.h
   src/rose/common.h
+  src/rose/config.cpp
+  src/rose/config.h
   src/rose/engine.cpp
   src/rose/engine.h
+  src/rose/eval/eval.h
+  src/rose/eval/hce.cpp
+  src/rose/eval/hce.h
   src/rose/game.cpp
   src/rose/game.h
   src/rose/geometry.h

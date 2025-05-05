@@ -8,6 +8,7 @@
 #include "rose/common.h"
 #include "rose/config.h"
 #include "rose/engine.h"
+#include "rose/eval/hce.h"
 #include "rose/game.h"
 #include "rose/util/defer.h"
 #include "rose/util/tokenizer.h"
@@ -277,6 +278,8 @@ namespace rose {
       game.position().printAttackTable();
     } else if (cmd == "getposition") {
       game.printGameRecord();
+    } else if (cmd == "eval") {
+      std::print("score cp {}\n", eval::hce(game.position()));
     } else if (cmd == "compiler") {
       uciParseCompiler(engine, game, it);
     } else if (cmd == "quit") {
