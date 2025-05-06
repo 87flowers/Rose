@@ -53,6 +53,17 @@ namespace rose {
   }
 
   template <typename Controls> auto Search::searchRoot(const Controls &ctrl) -> void {
+    const auto print_info = [this, &ctrl](i32 depth, i32 score, const Line &pv) {
+      if (!isMainThread())
+        return;
+
+      const u64 nodes = totalNodes();
+      const time::Duration elapsed = ctrl.elapsed();
+      const time::Milliseconds elapsed_ms = time::cast<time::Milliseconds>(elapsed);
+      const f64 nps = static_cast<f64>(nodes) / time::cast<time::FloatSeconds>(elapsed).count();
+      std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", depth, score, elapsed_ms.count(), nodes, static_cast<u64>(nps), pv);
+    };
+
     Line last_pv;
     i32 last_score;
     i32 last_depth;
@@ -71,12 +82,12 @@ namespace rose {
       if (isMainThread() && ctrl.checkSoftTermination(stats(), depth))
         break;
 
-      std::print("info depth {} score cp {} pv {}\n", depth, score, pv);
+      print_info(depth, score, pv);
     }
 
     requestStop();
 
-    std::print("info depth {} score cp {} pv {}\n", last_depth, last_score, last_pv);
+    print_info(last_depth, last_score, last_pv);
     std::print("bestmove {}\n", last_pv.pv[0]);
     std::fflush(stdout);
   }
@@ -84,16 +95,16 @@ namespace rose {
   template <typename Controls> auto Search::search(const Controls &ctrl, Line &pv, i32 ply, i32 depth) -> i32 {
     const bool is_in_check = m_game.position().isInCheck();
 
-    if (depth <= 0)
-      return eval::hce(m_game.position());
-    if (ply >= max_search_ply)
-      return is_in_check ? 0 : eval::hce(m_game.position());
-
-    if (isMainThread() && ply > 1 && ctrl.checkHardTermination(stats(), depth)) {
+    if (isMainThread() && ply > 1 && ctrl.checkHardTermination(stats(), depth)) [[unlikely]] {
       requestStop();
       return 0;
     }
     stats().nodes.fetch_add(1, std::memory_order::relaxed);
+
+    if (depth <= 0)
+      return eval::hce(m_game.position());
+    if (ply >= max_search_ply) [[unlikely]]
+      return is_in_check ? 0 : eval::hce(m_game.position());
 
     MoveList moves;
     {

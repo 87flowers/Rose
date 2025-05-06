@@ -54,6 +54,13 @@ namespace rose {
     inline auto hasStopped() const -> bool { return m_shared.stop.load(std::memory_order::relaxed); }
     inline auto stats() -> SearchStats & { return m_shared.stats[m_id]; }
 
+    inline auto totalNodes() const -> u64 {
+      u64 nodes = 0;
+      for (const SearchStats &stats : m_shared.stats)
+        nodes += stats.nodes.load(std::memory_order::relaxed);
+      return nodes;
+    }
+
     template <typename Controls> auto searchRoot(const Controls &ctrl) -> void;
     template <typename Controls> auto search(const Controls &ctrl, Line &pv, i32 depth, i32 ply) -> i32;
   };

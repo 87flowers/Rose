@@ -9,8 +9,12 @@
 namespace rose::controls {
 
   struct None {
+    time::TimePoint start_time;
+
+    auto elapsed() const -> time::Duration { return time::Clock::now() - start_time; }
     constexpr auto checkSoftTermination(const SearchStats &stats, int current_depth) const -> bool { return false; }
     constexpr auto checkHardTermination(const SearchStats &stats, int current_depth) const -> bool { return false; }
+
     auto dump() const -> void { std::print("# search control: infinite\n"); }
   };
 
@@ -31,9 +35,11 @@ namespace rose::controls {
   };
 
   struct DataGen {
+    time::TimePoint start_time;
     int hard_nodes;
     int soft_nodes;
 
+    auto elapsed() const -> time::Duration { return time::Clock::now() - start_time; }
     auto checkSoftTermination(const SearchStats &stats, int current_depth) const -> bool {
       return soft_nodes <= stats.nodes.load(std::memory_order::relaxed);
     }
