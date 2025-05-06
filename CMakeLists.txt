@@ -39,6 +39,7 @@ set(srcs
   src/rose/geometry.h
   src/rose/hash.cpp
   src/rose/hash.h
+  src/rose/line.h
   src/rose/move.cpp
   src/rose/move.h
   src/rose/movegen.cpp

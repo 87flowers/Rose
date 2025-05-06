@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "rose/game.h"
+#include "rose/line.h"
 #include "rose/movegen.h"
 #include "rose/search_control.h"
 #include "rose/search_stats.h"
@@ -15,13 +16,14 @@
 namespace rose {
 
   struct SearchShared {
-    explicit SearchShared(int thread_count) : idle_barrier(1 + thread_count), started_barrier(1 + thread_count) {}
+    explicit SearchShared(int thread_count) : idle_barrier(1 + thread_count), started_barrier(1 + thread_count), stats(thread_count) {}
     std::shared_mutex mutex{};
     std::atomic_bool stop;
     std::barrier<> idle_barrier;
     std::barrier<> started_barrier;
     controls::Any ctrl;
 
+    std::vector<SearchStats> stats;
     PrecompMoveGenInfo movegen_precomp;
   };
 
@@ -32,8 +34,6 @@ namespace rose {
 
     std::jthread m_thread;
     Game m_game;
-
-    SearchStats m_stats;
 
   public:
     Search(usize id, SearchShared &shared);
@@ -50,7 +50,12 @@ namespace rose {
   private:
     auto threadMain(std::stop_token quit) -> void;
 
+    inline auto requestStop() -> void { return m_shared.stop.store(true, std::memory_order::relaxed); }
+    inline auto hasStopped() const -> bool { return m_shared.stop.load(std::memory_order::relaxed); }
+    inline auto stats() -> SearchStats & { return m_shared.stats[m_id]; }
+
     template <typename Controls> auto searchRoot(const Controls &ctrl) -> void;
+    template <typename Controls> auto search(const Controls &ctrl, Line &pv, i32 depth, i32 ply) -> i32;
   };
 
 } // namespace rose

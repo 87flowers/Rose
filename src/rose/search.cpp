@@ -1,14 +1,19 @@
 #include "rose/search.h"
 
+#include <cstdio>
 #include <mutex>
 #include <print>
 #include <random>
 #include <thread>
 
+#include "rose/eval/eval.h"
+#include "rose/eval/hce.h"
 #include "rose/game.h"
+#include "rose/line.h"
 #include "rose/movegen.h"
 #include "rose/search_control.h"
 #include "rose/util/assert.h"
+#include "rose/util/defer.h"
 #include "rose/util/types.h"
 
 namespace rose {
@@ -37,7 +42,8 @@ namespace rose {
       std::shared_lock _{m_shared.mutex};
       (void)m_shared.started_barrier.arrive();
 
-      m_stats.reset();
+      stats().reset();
+
       if (isMainThread()) {
         std::visit([this](const auto &ctrl) { this->searchRoot(ctrl); }, m_shared.ctrl);
       } else {
@@ -47,26 +53,75 @@ namespace rose {
   }
 
   template <typename Controls> auto Search::searchRoot(const Controls &ctrl) -> void {
-    if (isMainThread()) {
-      ctrl.dump();
+    Line last_pv;
+    i32 last_score;
+    i32 last_depth;
 
-      static std::mt19937_64 prng_engine{};
+    for (i32 depth = 1; depth < max_search_ply; depth++) {
+      Line pv{};
+      const i32 score = search(ctrl, pv, 0, depth);
 
-      MoveList moves;
-      {
-        MoveGen movegen{m_game.position(), m_shared.movegen_precomp};
-        movegen.generateMoves(moves);
-      }
+      if (hasStopped())
+        break;
 
-      if (moves.size() == 0) {
-        std::print("bestmove null\n");
-      } else {
-        std::uniform_int_distribution<usize> rand{0, moves.size() - 1};
-        const Move m = moves[rand(prng_engine)];
-        std::print("info depth 0 score 0 nodes {} pv {}\n", moves.size(), m);
-        std::print("bestmove {}\n", m);
+      last_score = score;
+      last_pv = pv;
+      last_depth = depth;
+
+      if (isMainThread() && ctrl.checkSoftTermination(stats(), depth))
+        break;
+
+      std::print("info depth {} score cp {} pv {}\n", depth, score, pv);
+    }
+
+    requestStop();
+
+    std::print("info depth {} score cp {} pv {}\n", last_depth, last_score, last_pv);
+    std::print("bestmove {}\n", last_pv.pv[0]);
+    std::fflush(stdout);
+  }
+
+  template <typename Controls> auto Search::search(const Controls &ctrl, Line &pv, i32 ply, i32 depth) -> i32 {
+    const bool is_in_check = m_game.position().isInCheck();
+
+    if (depth <= 0)
+      return eval::hce(m_game.position());
+    if (ply >= max_search_ply)
+      return is_in_check ? 0 : eval::hce(m_game.position());
+
+    if (isMainThread() && ply > 1 && ctrl.checkHardTermination(stats(), depth)) {
+      requestStop();
+      return 0;
+    }
+    stats().nodes.fetch_add(1, std::memory_order::relaxed);
+
+    MoveList moves;
+    {
+      MoveGen movegen{m_game.position(), m_shared.movegen_precomp};
+      movegen.generateMoves(moves);
+    }
+
+    if (moves.size() == 0)
+      return is_in_check ? eval::mated(ply) : 0;
+
+    i32 best_score = eval::no_moves;
+    for (const auto m : moves) {
+      m_game.move(m);
+      rose_defer { m_game.unmove(); };
+
+      Line child_pv{};
+      const i32 child_score = -search(ctrl, child_pv, ply + 1, depth - 1);
+
+      if (hasStopped())
+        return 0;
+
+      if (child_score > best_score) {
+        best_score = child_score;
+        pv.write(m, std::move(child_pv));
       }
     }
+
+    return best_score;
   }
 
 } // namespace rose

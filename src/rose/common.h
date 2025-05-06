@@ -14,6 +14,7 @@
 namespace rose {
 
   static inline constexpr usize max_legal_moves = 256;
+  static inline constexpr i32 max_search_ply = 255;
 
   enum class ParseError {
     invalid_char,
