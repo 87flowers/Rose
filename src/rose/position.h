@@ -79,7 +79,7 @@ namespace rose {
     auto rookInfo(Color color) const -> RookInfo { return m_rook_info[color.toIndex()]; }
 
     auto isValid() const -> bool { return attackTable(m_active_color).r[kingSq(m_active_color.invert()).raw] == 0; }
-    auto isInCheck() const -> bool { return attackTable(m_active_color.invert()).r[kingSq(m_active_color).raw] == 0; }
+    auto isInCheck() const -> bool { return attackTable(m_active_color.invert()).r[kingSq(m_active_color).raw] != 0; }
 
     auto move(Move m) const -> Position;
 

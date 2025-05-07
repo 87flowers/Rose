@@ -101,6 +101,16 @@ namespace rose {
     }
     stats().nodes.fetch_add(1, std::memory_order::relaxed);
 
+    if (m_game.isRepetition())
+      return 0;
+    if (m_game.position().fiftyMoveClock() >= 100) {
+      if (!is_in_check)
+        return 0;
+      MoveList moves;
+      MoveGen movegen{m_game.position(), m_shared.movegen_precomp};
+      movegen.generateMoves(moves);
+      return moves.size() == 0 ? eval::mated(ply) : 0;
+    }
     if (depth <= 0)
       return eval::hce(m_game.position());
     if (ply >= max_search_ply) [[unlikely]]
