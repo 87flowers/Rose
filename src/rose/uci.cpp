@@ -26,7 +26,7 @@ namespace rose {
     if (str.size() == 0)
       return std::nullopt;
 
-    if (str[0] == '-') {
+    if (str[0] == '-') [[unlikely]] {
       if (str.size() == 1)
         return std::nullopt;
       negate = true;
@@ -34,10 +34,10 @@ namespace rose {
     }
 
     for (; i < str.size(); i++) {
-      if (str[i] < '0' && str[i] > '9')
+      if (str[i] < '0' && str[i] > '9') [[unlikely]]
         return std::nullopt;
       const int new_result = result * 10 + (str[i] - '0');
-      if (new_result < result)
+      if (new_result < result) [[unlikely]]
         return std::nullopt;
       result = new_result;
     }
@@ -67,15 +67,14 @@ namespace rose {
     return false;
   }
 
-  static auto uciParseGo(Engine &engine, Game &game, Tokenizer &it) -> void {
-    const time::TimePoint start_time = time::Clock::now();
+  static auto uciParseGo(Engine &engine, Game &game, Tokenizer &it, time::TimePoint start_time) -> void {
     SearchLimit limits;
     for (std::string_view part = it.next(); !part.empty(); part = it.next()) {
 #define DO_PART(section, x)                                                                                                                          \
   limits.has_##section = true;                                                                                                                       \
   const std::string_view value_str = it.next();                                                                                                      \
   const auto value = parseInt(value_str);                                                                                                            \
-  if (!value)                                                                                                                                        \
+  if (!value) [[unlikely]]                                                                                                                           \
     return printUnrecognizedToken("go", value_str);                                                                                                  \
   limits.x = std::max<int>(0, *value);
       if (part == "wtime") {
@@ -92,11 +91,13 @@ namespace rose {
         DO_PART(time, movetime);
       } else if (part == "nodes") {
         DO_PART(other, hard_nodes);
+        if (!limits.soft_nodes)
+          limits.soft_nodes = limits.hard_nodes;
       } else if (part == "softnodes") {
         DO_PART(other, soft_nodes);
       } else if (part == "depth") {
         DO_PART(other, depth);
-      } else if (part == "perft") {
+      } else [[unlikely]] if (part == "perft") {
         return printProtocolError("go", "perft is a standalone command in Rose, and is not a subcommand of go");
       } else {
         return printUnrecognizedToken("go", part);
@@ -113,7 +114,7 @@ namespace rose {
       if (move_str.empty())
         break;
       const auto m = Move::parse(move_str, game.position());
-      if (!m)
+      if (!m) [[unlikely]]
         return printIllegalMove(move_str);
       game.move(m.value());
     }
@@ -252,7 +253,7 @@ namespace rose {
     const std::string_view cmd = it.next();
 
     if (cmd == "go") {
-      uciParseGo(engine, game, it);
+      uciParseGo(engine, game, it, start_time);
     } else if (cmd == "position") {
       uciParsePosition(engine, game, it);
     } else if (cmd == "ucinewgame") {
