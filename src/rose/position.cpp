@@ -205,8 +205,6 @@ namespace rose {
     case MF(cap_promo_b):
       cap_promo(std::integral_constant<PieceType, PieceType::b>{});
       break;
-    default:
-      std::unreachable();
     }
 #undef MF
 
