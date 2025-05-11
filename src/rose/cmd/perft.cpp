@@ -49,7 +49,7 @@ namespace rose::perft {
     const time::FloatSeconds elapsed = end - start;
 
     std::print("total: {}\n", total);
-    std::print("perft to depth {} complete in {:.1f}ms ({:.1f} Mnps)\n", depth, elapsed.count() * 1000, total / (1'000'000 * elapsed.count()));
+    std::print("perft to depth {} complete in {:.1f}ms ({:.1f} Mnps)\n", depth, elapsed.count() * 1000, time::nps<f64>(total, elapsed) / 1'000'000);
   }
 
 } // namespace rose::perft

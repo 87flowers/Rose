@@ -24,6 +24,8 @@ add_compile_definitions(ROSE_VERSION="${ROSE_VERSION}")
 set(srcs
   src/rose/byteboard.cpp
   src/rose/byteboard.h
+  src/rose/cmd/bench.cpp
+  src/rose/cmd/bench.h
   src/rose/cmd/perft.cpp
   src/rose/cmd/perft.h
   src/rose/common.h

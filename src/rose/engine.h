@@ -49,6 +49,8 @@ namespace rose {
 
     auto stop() -> void;
 
+    auto lastSearchTotalNodes() -> u64;
+
   private:
     auto calcTime(const SearchLimit &limits) const -> std::tuple<time::Duration, time::Duration>;
 

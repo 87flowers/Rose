@@ -2,6 +2,7 @@
 #include <iostream>
 #include <print>
 #include <ranges>
+#include <unistd.h>
 
 #include "rose/engine.h"
 #include "rose/game.h"
@@ -9,8 +10,10 @@
 #include "rose/util/types.h"
 
 auto main(int argc, char *argv[]) -> int {
-  std::print("# 🌹 Rose {}\n", ROSE_VERSION);
-  std::fflush(stdout);
+  if (isatty(STDOUT_FILENO)) {
+    std::print("# 🌹 Rose {}\n", ROSE_VERSION);
+    std::fflush(stdout);
+  }
 
   rose::Engine engine;
   rose::Game game;

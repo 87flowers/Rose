@@ -4,6 +4,7 @@
 #include <optional>
 #include <print>
 
+#include "rose/cmd/bench.h"
 #include "rose/cmd/perft.h"
 #include "rose/common.h"
 #include "rose/config.h"
@@ -268,6 +269,8 @@ namespace rose {
       uciParseSetOption(engine, game, it);
     } else if (cmd == "perft") {
       uciParsePerft(engine, game, it);
+    } else if (cmd == "bench") {
+      bench::run(engine, game);
     } else if (cmd == "moves" || cmd == "move") {
       uciParseMoves(engine, game, it);
     } else if (cmd == "undo") {

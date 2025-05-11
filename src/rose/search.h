@@ -26,6 +26,13 @@ namespace rose {
 
     std::vector<SearchStats> stats;
     PrecompMoveGenInfo movegen_precomp;
+
+    inline auto totalNodes() const -> u64 {
+      u64 nodes = 0;
+      for (const SearchStats &s : stats)
+        nodes += s.nodes.load(std::memory_order::relaxed);
+      return nodes;
+    }
   };
 
   struct Search {
@@ -54,13 +61,6 @@ namespace rose {
     inline auto requestStop() -> void { return m_shared.stop.store(true, std::memory_order::relaxed); }
     inline auto hasStopped() const -> bool { return m_shared.stop.load(std::memory_order::relaxed); }
     inline auto stats() -> SearchStats & { return m_shared.stats[m_id]; }
-
-    inline auto totalNodes() const -> u64 {
-      u64 nodes = 0;
-      for (const SearchStats &stats : m_shared.stats)
-        nodes += stats.nodes.load(std::memory_order::relaxed);
-      return nodes;
-    }
 
     template <typename Controls> auto searchRoot(const Controls &ctrl) -> void;
 

@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 #define forceinline inline __attribute__((always_inline))
 
@@ -44,6 +45,10 @@ namespace rose {
     using Milliseconds = std::chrono::duration<i64, std::milli>;
 
     template <typename T> constexpr auto cast(const auto &d) -> T { return std::chrono::duration_cast<T>(d); }
+    template <typename T> constexpr auto nps(u64 nodes, const auto &elapsed) -> T {
+      static_assert(std::is_same_v<T, u64> || std::is_same_v<T, f64>);
+      return static_cast<T>(static_cast<f64>(nodes) / cast<FloatSeconds>(elapsed).count());
+    }
   } // namespace time
 
 } // namespace rose

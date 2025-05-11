@@ -57,11 +57,11 @@ namespace rose {
       if (!isMainThread())
         return;
 
-      const u64 nodes = totalNodes();
+      const u64 nodes = m_shared.totalNodes();
       const time::Duration elapsed = ctrl.elapsed();
       const time::Milliseconds elapsed_ms = time::cast<time::Milliseconds>(elapsed);
-      const f64 nps = static_cast<f64>(nodes) / time::cast<time::FloatSeconds>(elapsed).count();
-      std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", depth, score, elapsed_ms.count(), nodes, static_cast<u64>(nps), pv);
+      const u64 nps = time::nps<u64>(nodes, elapsed);
+      std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", depth, score, elapsed_ms.count(), nodes, nps, pv);
     };
 
     Line last_pv;

@@ -84,6 +84,11 @@ namespace rose {
 
   auto Engine::stop() -> void { m_shared->stop.store(true); }
 
+  auto Engine::lastSearchTotalNodes() -> u64 {
+    const std::unique_lock _{m_shared->mutex};
+    return m_shared->totalNodes();
+  }
+
   auto Engine::calcTime(const SearchLimit &limits) const -> std::tuple<time::Duration, time::Duration> {
     constexpr time::Milliseconds margin_ms{100};
     constexpr time::Milliseconds zero_ms{0};
