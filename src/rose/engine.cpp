@@ -76,7 +76,7 @@ namespace rose {
 
         m_shared->ctrl = ctrl;
       } else {
-        m_shared->ctrl = controls::None{};
+        m_shared->ctrl = controls::None{start_time};
       }
     }
     startAllThreads();
