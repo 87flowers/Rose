@@ -92,6 +92,21 @@ namespace rose {
     std::fflush(stdout);
   }
 
+  inline auto Search::isDraw(bool is_in_check, i32 ply) -> std::optional<i32> {
+    if (m_game.isRepetition())
+      return 0;
+    if (m_game.position().fiftyMoveClock() >= 100) {
+      if (!is_in_check)
+        return 0;
+      [[unlikely]];
+      MoveList moves;
+      MoveGen movegen{m_game.position(), m_shared.movegen_precomp};
+      movegen.generateMoves(moves);
+      return moves.size() == 0 ? eval::mated(ply) : 0;
+    }
+    return std::nullopt;
+  }
+
   template <typename Controls> auto Search::search(const Controls &ctrl, Line &pv, i32 ply, i32 depth) -> i32 {
     const bool is_in_check = m_game.position().isInCheck();
 
@@ -101,16 +116,8 @@ namespace rose {
     }
     stats().nodes.fetch_add(1, std::memory_order::relaxed);
 
-    if (m_game.isRepetition())
-      return 0;
-    if (m_game.position().fiftyMoveClock() >= 100) {
-      if (!is_in_check)
-        return 0;
-      MoveList moves;
-      MoveGen movegen{m_game.position(), m_shared.movegen_precomp};
-      movegen.generateMoves(moves);
-      return moves.size() == 0 ? eval::mated(ply) : 0;
-    }
+    if (const auto score = isDraw(is_in_check, ply))
+      return *score;
     if (depth <= 0)
       return eval::hce(m_game.position());
     if (ply >= max_search_ply) [[unlikely]]

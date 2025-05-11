@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <barrier>
+#include <optional>
 #include <shared_mutex>
 #include <thread>
 #include <vector>
@@ -62,6 +63,9 @@ namespace rose {
     }
 
     template <typename Controls> auto searchRoot(const Controls &ctrl) -> void;
+
+    inline auto isDraw(bool is_in_check, i32 ply) -> std::optional<i32>;
+
     template <typename Controls> auto search(const Controls &ctrl, Line &pv, i32 depth, i32 ply) -> i32;
   };
 
