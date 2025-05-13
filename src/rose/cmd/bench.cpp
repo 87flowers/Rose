@@ -86,7 +86,7 @@ namespace rose::bench {
     const time::FloatSeconds elapsed = time::Clock::now() - start_time;
     std::print("bench results:\n");
     std::print("nodes: {} nodes\n", nodes_total);
-    std::print("time:  {} miliseconds\n", time::cast<time::Milliseconds>(elapsed).count());
+    std::print("time:  {} milliseconds\n", time::cast<time::Milliseconds>(elapsed).count());
     std::print("nps:   {} nps\n", time::nps<u64>(nodes_total, elapsed));
   }
 
