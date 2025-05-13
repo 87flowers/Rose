@@ -31,6 +31,9 @@ clean:
 test: $(TESTS)
 > for t in $(TESTS); do echo "Running" $$t && $$t > /dev/null || exit 1; done
 
+bench: $(EXE)
+> ./$(EXE) bench
+
 $(EXE): $(BUILD_DIR)/rel/src/main.o $(LIB_REL_OBJS)
 > $(CXX) $^ -o $@ $(LDFLAGS) $(RELFLAGS)
 
@@ -45,6 +48,6 @@ $(BUILD_DIR)/deb/%.o: %.cpp
 > mkdir -p $(dir $@)
 > $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEBFLAGS) -c $< -o $@
 
-.PHONY: all clean
+.PHONY: all clean test bench
 
 -include $(DEPS)
