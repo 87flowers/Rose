@@ -70,7 +70,7 @@ namespace rose {
 
     for (i32 depth = 1; depth < max_search_ply; depth++) {
       Line pv{};
-      const i32 score = search(ctrl, pv, 0, depth);
+      const i32 score = search(ctrl, pv, eval::min_score, eval::max_score, 0, depth);
 
       if (hasStopped())
         break;
@@ -107,7 +107,7 @@ namespace rose {
     return std::nullopt;
   }
 
-  template <typename Controls> auto Search::search(const Controls &ctrl, Line &pv, i32 ply, i32 depth) -> i32 {
+  template <typename Controls> auto Search::search(const Controls &ctrl, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32 {
     const bool is_in_check = m_game.position().isInCheck();
 
     if (isMainThread() && ply > 1 && ctrl.checkHardTermination(stats(), depth)) [[unlikely]] {
@@ -138,14 +138,19 @@ namespace rose {
       rose_defer { m_game.unmove(); };
 
       Line child_pv{};
-      const i32 child_score = -search(ctrl, child_pv, ply + 1, depth - 1);
+      const i32 child_score = -search(ctrl, child_pv, -beta, -alpha, ply + 1, depth - 1);
 
       if (hasStopped())
         return 0;
 
       if (child_score > best_score) {
         best_score = child_score;
-        pv.write(m, std::move(child_pv));
+        if (child_score > alpha) {
+          alpha = child_score;
+          pv.write(m, std::move(child_pv));
+          if (child_score >= beta)
+            break;
+        }
       }
     }
 
