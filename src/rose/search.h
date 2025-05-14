@@ -67,13 +67,14 @@ namespace rose {
     inline auto hasStopped() const -> bool { return m_shared.stop.load(std::memory_order::relaxed); }
     inline auto stats() -> SearchStats & { return m_shared.stats[m_id]; }
 
-    template <typename Controls> auto searchRoot(const Controls &ctrl) -> void;
+    template <typename Controls> auto go(const Controls &ctrl) -> void;
 
     inline auto isDraw(bool is_in_check, i32 ply) -> std::optional<i32>;
     inline auto ttLoad(int ply) const -> tt::LookupResult;
     inline auto ttStore(int ply, tt::LookupResult lr) -> void;
 
-    template <typename Controls> auto search(const Controls &ctrl, Line &pv, i32 alpha, i32 beta, i32 depth, i32 ply) -> i32;
+    template <typename Controls> auto searchRoot(const Controls &ctrl, Line &pv, i32 depth) -> i32;
+    template <typename Controls> auto search(const Controls &ctrl, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32;
   };
 
 } // namespace rose
