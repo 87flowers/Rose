@@ -100,6 +100,9 @@ namespace rose {
     const u16 has_attacker_vecmask = v128::from64(attackers).nonzero8();
     const u64 pinned = vec::mask8(has_attacker_vecmask, v128::from64(potentially_pinned)).to64() & ~enemy;
 
+    if (!pinned)
+      return {{v512::broadcast16(0xFFFF), v512::broadcast16(0xFFFF)}, 0};
+
     // Translate to valid move rays
     const v512 pinned_ids = vec::mask8(pin_raymasks, vec::lanebroadcast8to64(vec::mask8(pinned, ray_places)));
     const v512 board_layout = vec::permute8_mz(~perm.msb8(), perm, pinned_ids);
