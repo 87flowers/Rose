@@ -41,11 +41,11 @@ $(TESTS): $(BUILD_DIR)/test_%: $(BUILD_DIR)/deb/tests/%.o $(LIB_DEB_OBJS)
 > $(CXX) $^ -o $@ $(LDFLAGS) $(DEBFLAGS)
 
 $(BUILD_DIR)/rel/%.o: %.cpp
-> mkdir -p $(dir $@)
+> @mkdir -p $(dir $@)
 > $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(RELFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/deb/%.o: %.cpp
-> mkdir -p $(dir $@)
+> @mkdir -p $(dir $@)
 > $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEBFLAGS) -c $< -o $@
 
 .PHONY: all clean test bench
