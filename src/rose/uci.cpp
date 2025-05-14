@@ -154,6 +154,7 @@ namespace rose {
   static auto uciParseNewGame(Engine &engine, Game &game, Tokenizer &it) -> void {
     game.reset();
     engine.reset();
+    engine.setGame(game);
   }
 
   static auto uciParseIsReady(Engine &engine, Game &game, Tokenizer &it) -> void {

@@ -107,6 +107,9 @@ namespace rose {
     return std::nullopt;
   }
 
+  inline auto Search::ttLoad(int ply) const -> tt::LookupResult { return m_shared.transposition_table.load(m_game.hash(), ply); }
+  inline auto Search::ttStore(int ply, tt::LookupResult lr) -> void { m_shared.transposition_table.store(m_game.hash(), ply, lr); }
+
   template <typename Controls> auto Search::search(const Controls &ctrl, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32 {
     const bool is_in_check = m_game.position().isInCheck();
 
@@ -123,6 +126,23 @@ namespace rose {
     if (ply >= max_search_ply) [[unlikely]]
       return is_in_check ? 0 : eval::hce(m_game.position());
 
+    const auto tte = ttLoad(ply);
+    if (tte.depth >= depth && [&] {
+          switch (tte.bound) {
+          case tt::Bound::none:
+            return false;
+          case tt::Bound::lower_bound:
+            return tte.score >= beta;
+          case tt::Bound::exact:
+            return true;
+          case tt::Bound::upper_bound:
+            return tte.score <= alpha;
+          }
+        }()) {
+      pv.write(tte.move);
+      return tte.score;
+    }
+
     MoveList moves;
     {
       MoveGen movegen{m_game.position(), m_shared.movegen_precomp};
@@ -133,6 +153,9 @@ namespace rose {
       return is_in_check ? eval::mated(ply) : 0;
 
     i32 best_score = eval::no_moves;
+    Move best_move = tte.move;
+    tt::Bound tt_bound = tt::Bound::upper_bound;
+
     for (const auto m : moves) {
       m_game.move(m);
       rose_defer { m_game.unmove(); };
@@ -147,12 +170,23 @@ namespace rose {
         best_score = child_score;
         if (child_score > alpha) {
           alpha = child_score;
+          best_move = m;
+          tt_bound = tt::Bound::exact;
           pv.write(m, std::move(child_pv));
-          if (child_score >= beta)
+          if (child_score >= beta) {
+            tt_bound = tt::Bound::lower_bound;
             break;
+          }
         }
       }
     }
+
+    ttStore(ply, {
+                     .depth = depth,
+                     .bound = tt_bound,
+                     .score = best_score,
+                     .move = best_move,
+                 });
 
     return best_score;
   }
