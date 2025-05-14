@@ -12,6 +12,7 @@
 #include "rose/movegen.h"
 #include "rose/search_control.h"
 #include "rose/search_stats.h"
+#include "rose/tt.h"
 #include "rose/util/types.h"
 
 namespace rose {
@@ -26,6 +27,8 @@ namespace rose {
 
     std::vector<SearchStats> stats;
     PrecompMoveGenInfo movegen_precomp;
+
+    tt::TT transposition_table{tt::default_hash_size_mb};
 
     inline auto totalNodes() const -> u64 {
       u64 nodes = 0;
@@ -65,6 +68,8 @@ namespace rose {
     template <typename Controls> auto searchRoot(const Controls &ctrl) -> void;
 
     inline auto isDraw(bool is_in_check, i32 ply) -> std::optional<i32>;
+    inline auto ttLoad(int ply) const -> tt::LookupResult;
+    inline auto ttStore(int ply, tt::LookupResult lr) -> void;
 
     template <typename Controls> auto search(const Controls &ctrl, Line &pv, i32 alpha, i32 beta, i32 depth, i32 ply) -> i32;
   };

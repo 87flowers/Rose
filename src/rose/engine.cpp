@@ -17,6 +17,7 @@ namespace rose {
     const std::unique_lock _{m_shared->mutex};
     m_active_color = Color::white;
     m_shared->movegen_precomp = PrecompMoveGenInfo{};
+    m_shared->transposition_table.clear();
     for (const auto &search : m_searches)
       search->reset();
   }
