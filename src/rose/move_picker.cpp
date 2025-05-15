@@ -6,8 +6,7 @@
 
 namespace rose {
 
-  MovePicker::MovePicker(const Search &search, Move tt_move)
-      : m_search(search), m_tt_move(tt_move), m_movegen(search.m_game.position(), search.m_shared.movegen_precomp) {}
+  MovePicker::MovePicker(const Search &search, Move tt_move) : m_search(search), m_tt_move(tt_move) {}
 
   auto MovePicker::next() -> Move {
     switch (m_stage) {
@@ -19,7 +18,10 @@ namespace rose {
       [[fallthrough]];
     case Stage::generate_moves:
       m_moves.clear();
-      m_movegen.generateMoves(m_moves);
+      {
+        MoveGen movegen(m_search.m_game.position(), m_search.m_shared.movegen_precomp);
+        movegen.generateMoves(m_moves);
+      }
       m_stage = Stage::emit_moves;
       [[fallthrough]];
     case Stage::emit_moves:

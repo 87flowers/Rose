@@ -21,8 +21,6 @@ namespace rose {
     const Search &m_search;
     Move m_tt_move;
 
-    MoveGen m_movegen;
-
     usize m_current_index = 0;
     MoveList m_moves;
 

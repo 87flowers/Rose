@@ -144,7 +144,7 @@ namespace rose {
       return tte.score;
     }
 
-    MovePicker moves{*this, Move::none()};
+    MovePicker moves{*this, tte.move};
 
     i32 best_score = eval::no_moves;
     Move best_move = tte.move;
