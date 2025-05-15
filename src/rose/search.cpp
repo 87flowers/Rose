@@ -10,6 +10,7 @@
 #include "rose/eval/hce.h"
 #include "rose/game.h"
 #include "rose/line.h"
+#include "rose/move_picker.h"
 #include "rose/movegen.h"
 #include "rose/search_control.h"
 #include "rose/util/assert.h"
@@ -143,20 +144,13 @@ namespace rose {
       return tte.score;
     }
 
-    MoveList moves;
-    {
-      MoveGen movegen{m_game.position(), m_shared.movegen_precomp};
-      movegen.generateMoves(moves);
-    }
-
-    if (moves.size() == 0)
-      return is_in_check ? eval::mated(ply) : 0;
+    MovePicker moves{*this, Move::none()};
 
     i32 best_score = eval::no_moves;
     Move best_move = tte.move;
     tt::Bound tt_bound = tt::Bound::upper_bound;
 
-    for (const auto m : moves) {
+    for (Move m = moves.next(); m != Move::none(); m = moves.next()) {
       m_game.move(m);
       rose_defer { m_game.unmove(); };
 
@@ -180,6 +174,9 @@ namespace rose {
         }
       }
     }
+
+    if (best_score == eval::no_moves)
+      return is_in_check ? eval::mated(ply) : 0;
 
     ttStore(ply, {
                      .depth = depth,

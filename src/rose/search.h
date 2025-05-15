@@ -40,6 +40,8 @@ namespace rose {
 
   struct Search {
   private:
+    friend struct MovePicker;
+
     usize m_id;
     SearchShared &m_shared;
 
