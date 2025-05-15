@@ -19,6 +19,27 @@
 
 namespace rose {
 
+  namespace nodetype {
+    struct Root;
+    struct Pv;
+    struct NonPv;
+
+    struct Root {
+      inline static constexpr bool is_root = true;
+      inline static constexpr bool is_pv = true;
+    };
+
+    struct Pv {
+      inline static constexpr bool is_root = false;
+      inline static constexpr bool is_pv = true;
+    };
+
+    struct NonPv {
+      inline static constexpr bool is_root = false;
+      inline static constexpr bool is_pv = false;
+    };
+  } // namespace nodetype
+
   Search::Search(usize id, SearchShared &shared) : m_id(id), m_shared(shared) { reset(); }
 
   auto Search::reset() -> void { m_game.reset(); }
@@ -71,7 +92,7 @@ namespace rose {
 
     for (i32 depth = 1; depth < max_search_ply; depth++) {
       Line pv{};
-      const i32 score = search(ctrl, pv, eval::min_score, eval::max_score, 0, depth);
+      const i32 score = search<nodetype::Root>(ctrl, pv, eval::min_score, eval::max_score, 0, depth);
 
       if (hasStopped())
         break;
@@ -111,10 +132,10 @@ namespace rose {
   inline auto Search::ttLoad(int ply) const -> tt::LookupResult { return m_shared.transposition_table.load(m_game.hash(), ply); }
   inline auto Search::ttStore(int ply, tt::LookupResult lr) -> void { m_shared.transposition_table.store(m_game.hash(), ply, lr); }
 
-  template <typename Controls> auto Search::search(const Controls &ctrl, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32 {
+  template <typename NodeT, typename Controls> auto Search::search(const Controls &ctrl, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32 {
     const bool is_in_check = m_game.position().isInCheck();
 
-    if (isMainThread() && ply > 1 && ctrl.checkHardTermination(stats(), depth)) [[unlikely]] {
+    if (!NodeT::is_root && isMainThread() && ctrl.checkHardTermination(stats(), depth)) [[unlikely]] {
       requestStop();
       return 0;
     }
@@ -128,20 +149,23 @@ namespace rose {
       return is_in_check ? 0 : eval::hce(m_game.position());
 
     const auto tte = ttLoad(ply);
-    if (tte.depth >= depth && [&] {
-          switch (tte.bound) {
-          case tt::Bound::none:
-            return false;
-          case tt::Bound::lower_bound:
-            return tte.score >= beta;
-          case tt::Bound::exact:
-            return true;
-          case tt::Bound::upper_bound:
-            return tte.score <= alpha;
-          }
-        }()) {
-      pv.write(tte.move);
-      return tte.score;
+
+    if constexpr (!NodeT::is_pv) {
+      if (tte.depth >= depth && [&] {
+            switch (tte.bound) {
+            case tt::Bound::none:
+              return false;
+            case tt::Bound::lower_bound:
+              return tte.score >= beta;
+            case tt::Bound::exact:
+              return true;
+            case tt::Bound::upper_bound:
+              return tte.score <= alpha;
+            }
+          }()) {
+        pv.write(tte.move);
+        return tte.score;
+      }
     }
 
     MovePicker moves{*this, tte.move};
@@ -149,24 +173,37 @@ namespace rose {
     i32 best_score = eval::no_moves;
     Move best_move = tte.move;
     tt::Bound tt_bound = tt::Bound::upper_bound;
+    usize moves_searched = 0;
 
     for (Move m = moves.next(); m != Move::none(); m = moves.next()) {
       m_game.move(m);
       rose_defer { m_game.unmove(); };
 
       Line child_pv{};
-      const i32 child_score = -search(ctrl, child_pv, -beta, -alpha, ply + 1, depth - 1);
+      i32 child_score = eval::no_moves;
+
+      if (!NodeT::is_pv || moves_searched > 0)
+        child_score = -search<nodetype::NonPv>(ctrl, child_pv, -(alpha + 1), -alpha, ply + 1, depth - 1);
+
+      if (NodeT::is_pv && (moves_searched == 0 || child_score > alpha))
+        child_score = -search<nodetype::Pv>(ctrl, child_pv, -beta, -alpha, ply + 1, depth - 1);
+
+      moves_searched++;
 
       if (hasStopped())
         return 0;
 
       if (child_score > best_score) {
         best_score = child_score;
+
         if (child_score > alpha) {
           alpha = child_score;
           best_move = m;
           tt_bound = tt::Bound::exact;
-          pv.write(m, std::move(child_pv));
+
+          if constexpr (NodeT::is_pv)
+            pv.write(m, std::move(child_pv));
+
           if (child_score >= beta) {
             tt_bound = tt::Bound::lower_bound;
             break;
@@ -175,7 +212,7 @@ namespace rose {
       }
     }
 
-    if (best_score == eval::no_moves)
+    if (moves_searched == 0)
       return is_in_check ? eval::mated(ply) : 0;
 
     ttStore(ply, {
