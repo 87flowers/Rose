@@ -141,7 +141,7 @@ namespace rose {
       const Square sq{narrow_cast<u8>(std::countr_zero(bitboard))};
       const u16 mask = piecemask & attack_table.r[sq.raw];
       if (mask) {
-        const v256 dest = v256::broadcast16(static_cast<u16>(MoveFlags::capture) | (static_cast<u16>(sq.raw) << 6));
+        const v256 dest = v256::broadcast16(static_cast<u16>(MoveFlags::cap_normal) | (static_cast<u16>(sq.raw) << 6));
         moves.write(mask, srcs | dest);
       }
     }
@@ -352,8 +352,8 @@ namespace rose {
 
     destinations &= ~additional_checks;
 
-    const v128 write_vector =
-        vec::shl16(king_leaps16, 6) | v128::broadcast16(king_sq.raw) | vec::mask16(occupied, v128::broadcast16(static_cast<u16>(MoveFlags::capture)));
+    const v128 write_vector = vec::shl16(king_leaps16, 6) | v128::broadcast16(king_sq.raw) |
+                              vec::mask16(occupied, v128::broadcast16(static_cast<u16>(MoveFlags::cap_normal)));
     moves.write(destinations, write_vector);
   }
 
