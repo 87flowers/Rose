@@ -49,7 +49,7 @@ namespace rose {
         if (!config::frc && from.value().file() == 4 && to.value().file() == 6)
           return make(from.value(), context.rookInfo(context.activeColor()).hside, MoveFlags::castle_hside);
       }
-      return make(from.value(), to.value(), capture ? MoveFlags::capture : MoveFlags::normal);
+      return make(from.value(), to.value(), capture ? MoveFlags::cap_normal : MoveFlags::normal);
     }
 
     // This check needs to be here because castling = king captures rook.

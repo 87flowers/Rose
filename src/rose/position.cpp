@@ -73,7 +73,7 @@ namespace rose {
       check_src_castling_rights();
     };
 
-    const auto capture = [&] {
+    const auto cap_normal = [&] {
       new_pos.m_piece_list_sq[!color].m[dest_id] = Square::invalid();
       new_pos.m_piece_list_ptype[!color].m[dest_id] = PieceType::none;
       new_pos.removeAttacks(!color, dest_id);
@@ -187,8 +187,8 @@ namespace rose {
     case MF(promo_b):
       promo(std::integral_constant<PieceType, PieceType::b>{});
       break;
-    case MF(capture):
-      capture();
+    case MF(cap_normal):
+      cap_normal();
       break;
     case MF(enpassant):
       enpassant();
