@@ -39,6 +39,7 @@ namespace rose {
 
     auto reset() -> void;
 
+    auto setHashSize(int mb) -> void;
     auto setThreadCount(int thread_count) -> void;
 
     auto setGame(const Game &g) -> void;

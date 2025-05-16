@@ -11,6 +11,7 @@
 #include "rose/engine.h"
 #include "rose/eval/hce.h"
 #include "rose/game.h"
+#include "rose/tt.h"
 #include "rose/util/defer.h"
 #include "rose/util/tokenizer.h"
 
@@ -169,10 +170,11 @@ namespace rose {
 
     std::print("id name Rose " ROSE_VERSION "\n"
                "id author 87 (87flowers.com)\n"
+               "option name Hash type spin default {} min 1 max 1048576\n"
                "option name Threads type spin default 1 min 1 max {}\n"
                "option name UCI_Chess960 type check default false\n"
                "uciok\n",
-               max_threads);
+               tt::default_hash_size_mb, max_threads);
   }
 
   static auto uciParseSetOption(Engine &engine, Game &game, Tokenizer &it) -> void {
@@ -182,7 +184,17 @@ namespace rose {
     if (!expectToken("setoption", it, "value"))
       return;
     const std::string_view value = it.next();
-    if (name == "UCI_Chess960") {
+    if (name == "Hash") {
+      const auto hash = parseInt(value);
+      if (!hash || *hash <= 0)
+        return printUnrecognizedToken("setoption", value);
+      engine.setHashSize(*hash);
+    } else if (name == "Threads") {
+      const auto count = parseInt(value);
+      if (!count || *count <= 0)
+        return printUnrecognizedToken("setoption", value);
+      engine.setThreadCount(*count);
+    } else if (name == "UCI_Chess960") {
       if (value == "true") {
         config::frc = true;
       } else if (value == "false") {
@@ -190,11 +202,6 @@ namespace rose {
       } else {
         return printUnrecognizedToken("setoption", value);
       }
-    } else if (name == "Threads") {
-      const auto count = parseInt(value);
-      if (!count || *count <= 0)
-        return printUnrecognizedToken("setoption", value);
-      engine.setThreadCount(*count);
     } else {
       return printUnrecognizedToken("setoption", name);
     }

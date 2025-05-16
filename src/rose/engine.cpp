@@ -22,6 +22,11 @@ namespace rose {
       search->reset();
   }
 
+  auto Engine::setHashSize(int mb) -> void {
+    rose_assert(mb > 0);
+    m_shared->transposition_table.resize(static_cast<usize>(mb));
+  }
+
   auto Engine::setThreadCount(int thread_count) -> void {
     rose_assert(thread_count > 0);
 
