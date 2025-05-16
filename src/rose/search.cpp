@@ -76,9 +76,6 @@ namespace rose {
 
   template <typename Controls> auto Search::searchRoot(const Controls &ctrl) -> void {
     const auto print_info = [this, &ctrl](i32 depth, i32 score, const Line &pv) {
-      if (!isMainThread())
-        return;
-
       const u64 nodes = m_shared.totalNodes();
       const time::Duration elapsed = ctrl.elapsed();
       const time::Milliseconds elapsed_ms = time::cast<time::Milliseconds>(elapsed);
@@ -101,17 +98,21 @@ namespace rose {
       last_pv = pv;
       last_depth = depth;
 
-      if (isMainThread() && ctrl.checkSoftTermination(stats(), depth))
-        break;
+      if (isMainThread()) {
+        if (ctrl.checkSoftTermination(stats(), depth))
+          break;
+      }
 
       print_info(depth, score, pv);
     }
 
     requestStop();
 
-    print_info(last_depth, last_score, last_pv);
-    std::print("bestmove {}\n", last_pv.pv[0]);
-    std::fflush(stdout);
+    if (isMainThread()) {
+      print_info(last_depth, last_score, last_pv);
+      std::print("bestmove {}\n", last_pv.pv[0]);
+      std::fflush(stdout);
+    }
   }
 
   inline auto Search::isDraw(bool is_in_check, i32 ply) -> std::optional<i32> {
