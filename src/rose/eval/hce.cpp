@@ -184,7 +184,7 @@ namespace rose::eval {
     }
     for (int i = 0; i < 16; i++) {
       const PieceType ptype = position.pieceListType(Color::black).m[i];
-      const Square where = position.pieceListSq(Color::black).m[i];
+      const Square where = position.pieceListSq(Color::black).m[i].flipRanks();
       switch (ptype.raw) {
       case PieceType::none:
         break;
