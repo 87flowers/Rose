@@ -20,7 +20,9 @@ namespace rose {
     constexpr auto file() const -> int { return raw % 8; }
     constexpr auto rank() const -> int { return raw / 8; }
 
-    static constexpr auto fromFileAndRank(usize file, usize rank) -> Square { return Square{narrow_cast<u8>(rank * 8 + file)}; }
+    constexpr auto flipRanks() const -> Square { return {narrow_cast<u8>(raw ^ 0b111000)}; }
+
+    static constexpr auto fromFileAndRank(usize file, usize rank) -> Square { return {narrow_cast<u8>(rank * 8 + file)}; }
     constexpr auto toFileAndRank() const -> std::tuple<usize, usize> { return {raw % 8, raw / 8}; }
 
     constexpr auto toBitboard() const -> u64 { return static_cast<u64>(1) << raw; }
