@@ -23,11 +23,15 @@ namespace rose {
 
     usize m_current_index = 0;
     MoveList m_moves;
+    MoveList::iterator m_first_quiet;
 
   public:
     MovePicker(const Search &search, Move tt_move);
 
     auto next() -> Move;
+
+  private:
+    auto sortMoves() -> void;
   };
 
 } // namespace rose
