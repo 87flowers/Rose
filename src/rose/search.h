@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "rose/game.h"
+#include "rose/history.h"
 #include "rose/line.h"
 #include "rose/movegen.h"
 #include "rose/search_control.h"
@@ -47,6 +48,7 @@ namespace rose {
 
     std::jthread m_thread;
     Game m_game;
+    History m_history;
 
   public:
     Search(usize id, SearchShared &shared);
