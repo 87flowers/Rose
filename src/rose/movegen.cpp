@@ -92,7 +92,7 @@ namespace rose {
     const v128 maybe_pinned = v128::from64(blockers & pin_raymasks);
     const v128 count_on_rays = vec::popcount8(maybe_pinned);
     const u16 one_on_rays = vec::eq8(count_on_rays, v128::broadcast8(2));
-    const u64 pinned = vec::mask8(one_on_rays & has_attacker_vecmask, maybe_pinned).to64();
+    const u64 pinned = vec::mask8(one_on_rays & has_attacker_vecmask, maybe_pinned).to64() & ~enemy;
 
     // Translate to valid move rays
     const v512 pinned_ids = vec::mask8(pin_raymasks, vec::lanebroadcast8to64(vec::mask8(pinned, ray_places)));
