@@ -29,6 +29,13 @@ namespace rose {
     explicit PrecompMoveGenInfo(const Position &position);
   };
 
+  struct MoveLists {
+    MoveList &unprotected_noisy;
+    MoveList &protected_noisy;
+    MoveList &unprotected_quiet;
+    MoveList &protected_quiet;
+  };
+
   struct MoveGen {
   private:
     const Position &m_position;
@@ -41,15 +48,16 @@ namespace rose {
     auto generateSubsetPCap(MoveList &moves, const Wordboard &attack_table, u64 bitboard, u16 piecemask) -> void;
 
     template <bool king_moves>
-    forceinline auto generateMovesTo(MoveList &moves, Square king_sq, u64 valid_destinations, PieceType checker_ptype) -> void;
-    auto generateMovesNoCheckers(MoveList &moves, Square king_sq) -> void;
-    auto generateMovesOneChecker(MoveList &moves, Square king_sq, u16 checkers) -> void;
-    auto generateMovesTwoCheckers(MoveList &moves, Square king_sq, u16 checkers) -> void;
+    forceinline auto generateMovesTo(const MoveLists &moves, Square king_sq, u64 valid_destinations, PieceType checker_ptype) -> void;
+    auto generateMovesNoCheckers(const MoveLists &moves, Square king_sq) -> void;
+    auto generateMovesOneChecker(const MoveLists &moves, Square king_sq, u16 checkers) -> void;
+    auto generateMovesTwoCheckers(const MoveLists &moves, Square king_sq, u16 checkers) -> void;
 
   public:
     MoveGen(const Position &position, const PrecompMoveGenInfo &precomp_info) : m_position(position), m_precomp_info(precomp_info) {}
 
-    auto generateMoves(MoveList &moves) -> void;
+    auto generateMoves(const MoveLists &moves) -> void;
+    auto generateMoves(MoveList &moves) -> void { generateMoves({moves, moves, moves, moves}); }
   };
 
 } // namespace rose

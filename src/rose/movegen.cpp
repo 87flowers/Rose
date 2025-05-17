@@ -163,7 +163,8 @@ namespace rose {
     }
   }
 
-  template <bool king_moves> auto MoveGen::generateMovesTo(MoveList &moves, Square king_sq, u64 valid_destinations, PieceType checker_ptype) -> void {
+  template <bool king_moves>
+  auto MoveGen::generateMovesTo(const MoveLists &moves, Square king_sq, u64 valid_destinations, PieceType checker_ptype) -> void {
     const Position &position = m_position;
     const Color active_color = position.activeColor();
 
@@ -187,9 +188,9 @@ namespace rose {
     const v256 srcs = vec::zext8to16(position.pieceListSq(active_color).x);
 
     // Unprotected captures
-    generateSubsetCaps(moves, attack_table, srcs, active & enemy & ~danger, valid_plist & ~pawn_mask);
+    generateSubsetCaps(moves.unprotected_noisy, attack_table, srcs, active & enemy & ~danger, valid_plist & ~pawn_mask);
     // Capture-with-promotion
-    generateSubsetPCap(moves, attack_table, active & enemy & pawn_info.promo_zone, pawn_mask);
+    generateSubsetPCap(moves.unprotected_noisy, attack_table, active & enemy & pawn_info.promo_zone, pawn_mask);
     // Enpassant
     if (position.enpassant().isValid() && (king_moves || checker_ptype == PieceType::p)) {
       const Square sq = position.enpassant();
@@ -212,14 +213,14 @@ namespace rose {
               return true;
             }()) {
           const v256 dest = v256::broadcast16(static_cast<u16>(MoveFlags::enpassant) | (static_cast<u16>(sq.raw) << 6));
-          moves.write(mask, srcs | dest);
+          moves.unprotected_noisy.write(mask, srcs | dest);
         }
       }
     }
     // Pawn captures
-    generateSubsetCaps(moves, attack_table, srcs, active & enemy & pawn_info.non_promo_dest, pawn_mask);
+    generateSubsetCaps(moves.unprotected_noisy, attack_table, srcs, active & enemy & pawn_info.non_promo_dest, pawn_mask);
     // Protected captures
-    generateSubsetCaps(moves, attack_table, srcs, active & enemy & danger, valid_plist & ~pawn_mask & ~king_mask);
+    generateSubsetCaps(moves.protected_noisy, attack_table, srcs, active & enemy & danger, valid_plist & ~pawn_mask & ~king_mask);
     // Castling
     if constexpr (king_moves) {
 #define IS_CLEAR(bb, x) ((~(bb) & m_precomp_info.x[active_color.toIndex()]) == 0)
@@ -230,7 +231,7 @@ namespace rose {
         const u64 rook_bb = static_cast<u64>(1) << rook_info.aside.raw;
         const u64 clear = empty | king_bb | rook_bb;
         if (IS_CLEAR(clear, aside_rook) && IS_CLEAR(~danger & clear, aside_king) && !(rook_bb & pinned_bb)) {
-          moves.push_back(Move::make(king_sq, rook_info.aside, MoveFlags::castle_aside));
+          moves.unprotected_quiet.push_back(Move::make(king_sq, rook_info.aside, MoveFlags::castle_aside));
         }
       }
       if (rook_info.hside.isValid()) {
@@ -238,15 +239,15 @@ namespace rose {
         const u64 rook_bb = static_cast<u64>(1) << rook_info.hside.raw;
         const u64 clear = empty | king_bb | rook_bb;
         if (IS_CLEAR(clear, hside_rook) && IS_CLEAR(~danger & clear, hside_king) && !(rook_bb & pinned_bb)) {
-          moves.push_back(Move::make(king_sq, rook_info.hside, MoveFlags::castle_hside));
+          moves.unprotected_quiet.push_back(Move::make(king_sq, rook_info.hside, MoveFlags::castle_hside));
         }
       }
 #undef IS_CLEAR
     }
     // Unprotected non-pawn quiets
-    generateSubsetNorm(moves, attack_table, srcs, active & empty & ~danger, valid_plist & ~pawn_mask);
+    generateSubsetNorm(moves.unprotected_quiet, attack_table, srcs, active & empty & ~danger, valid_plist & ~pawn_mask);
     // Protected non-pawn quiets
-    generateSubsetNorm(moves, attack_table, srcs, active & empty & danger, valid_plist & ~pawn_mask & ~king_mask);
+    generateSubsetNorm(moves.protected_quiet, attack_table, srcs, active & empty & danger, valid_plist & ~pawn_mask & ~king_mask);
     // Do pawns
     {
       const u64 pinned_pawns = pinned_bb & ~(0x0101010101010101 << king_sq.file());
@@ -261,45 +262,45 @@ namespace rose {
       // Promotions
       {
         const u8 mask = static_cast<u8>(pawn_normal >> pawn_info.promotable_shift);
-        moves.write4(mask, pawn_moves.promotions);
+        moves.unprotected_quiet.write4(mask, pawn_moves.promotions);
       }
       // Relative rank 3-6
       {
         constexpr int normal_shift = 16;
         const u32 mask = static_cast<u32>(pawn_normal >> normal_shift);
-        moves.write(mask, pawn_moves.normal_moves);
+        moves.unprotected_quiet.write(mask, pawn_moves.normal_moves);
       }
       // Relative rank 2
       {
         const u8 normal_mask = static_cast<u8>(pawn_normal >> pawn_info.second_rank_shift);
         const u8 double_mask = static_cast<u8>(pawn_double >> pawn_info.second_rank_shift);
         const u16 mask = (static_cast<u16>(double_mask) << 8) | normal_mask;
-        moves.write(mask, pawn_moves.double_moves);
+        moves.unprotected_quiet.write(mask, pawn_moves.double_moves);
       }
     }
   }
 
-  auto MoveGen::generateMovesNoCheckers(MoveList &moves, Square king_sq) -> void {
+  auto MoveGen::generateMovesNoCheckers(const MoveLists &moves, Square king_sq) -> void {
     generateMovesTo<true>(moves, king_sq, ~static_cast<u64>(0), PieceType::none);
   }
 
   template <usize checkers_count>
   static auto writeKingMovesWithCheckers(MoveList &moves, const Position &position, Square king_sq, u16 checkers) -> void;
 
-  auto MoveGen::generateMovesOneChecker(MoveList &moves, Square king_sq, u16 checkers) -> void {
+  auto MoveGen::generateMovesOneChecker(const MoveLists &moves, Square king_sq, u16 checkers) -> void {
     const int checker_index = std::countr_zero(checkers);
     const PieceType checker_ptype = m_position.pieceListType(m_position.activeColor().invert()).m[checker_index];
     const Square checker_sq = m_position.pieceListSq(m_position.activeColor().invert()).m[checker_index];
     generateMovesTo<false>(moves, king_sq, checker_ptype == PieceType::n ? checker_sq.toBitboard() : rays::calcRayTo(king_sq, checker_sq),
                            checker_ptype);
-    writeKingMovesWithCheckers<1>(moves, m_position, king_sq, checkers);
+    writeKingMovesWithCheckers<1>(moves.unprotected_quiet, m_position, king_sq, checkers);
   }
 
-  auto MoveGen::generateMovesTwoCheckers(MoveList &moves, Square king_sq, u16 checkers) -> void {
-    writeKingMovesWithCheckers<2>(moves, m_position, king_sq, checkers);
+  auto MoveGen::generateMovesTwoCheckers(const MoveLists &moves, Square king_sq, u16 checkers) -> void {
+    writeKingMovesWithCheckers<2>(moves.unprotected_quiet, m_position, king_sq, checkers);
   }
 
-  auto MoveGen::generateMoves(MoveList &moves) -> void {
+  auto MoveGen::generateMoves(const MoveLists &moves) -> void {
     const Color active_color = m_position.activeColor();
     const Square king_sq = m_position.kingSq(active_color);
 

@@ -66,6 +66,7 @@ namespace rose {
 
     constexpr auto isNone() const -> bool { return raw == none; }
     constexpr auto toIndex() const -> usize { return std::to_underlying(raw); }
+    constexpr auto toSortValue() const -> i32 { return (std::to_underlying(raw) - k - 1) & 0b111; }
     constexpr auto toChar() const -> char {
       constexpr std::string_view str = ".kpn?brq";
       return str[toIndex()];
