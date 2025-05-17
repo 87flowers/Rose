@@ -75,4 +75,48 @@ namespace rose {
     return make(from.value(), to.value(), mf.value());
   }
 
+  auto Move::compress(const Position &context) const -> u64 {
+    const u64 id = context.board().m[from().raw].id();
+    if (raw == 0)
+      return static_cast<u64>(context.kingSq(context.activeColor()).raw) << 4;
+    if (promo())
+      return id | static_cast<u64>(Square::fromFileAndRank(to().file(), (raw >> 12) & 7).raw) << 4;
+    return id | static_cast<u64>(to().raw) << 4;
+  }
+
+  // Can return Move::none() if unable to decompress.
+  auto Move::decompress(u64 cmraw, const Position &context) -> Move {
+    const u64 id = cmraw & 0xF;
+    const PieceType ptype = context.pieceListType(context.activeColor()).m[id];
+    const Square from = context.pieceListSq(context.activeColor()).m[id];
+    const Square to = {narrow_cast<u8>((cmraw >> 4) & 0x3F)};
+    const bool capture = !context.board().m[to.raw].isEmpty();
+
+    if (ptype == PieceType::none)
+      return Move::none();
+
+    if (ptype == PieceType::p) {
+      if (from.rank() == context.activeColor().toPenulitmateRank()) {
+        const bool cap_promo = to.file() != from.file();
+        const MoveFlags mf = static_cast<MoveFlags>((cap_promo << 15) | (to.rank() << 12));
+        return make(from, Square::fromFileAndRank(to.file(), context.activeColor().toPromoRank()), mf);
+      }
+      if (to == context.enpassant())
+        return make(from, to, MoveFlags::enpassant);
+      if (std::abs(from.raw - to.raw) == 16)
+        return make(from, to, MoveFlags::double_push);
+    }
+
+    if (ptype == PieceType::k) {
+      if (to == from)
+        return Move::none();
+      if (to == context.rookInfo(context.activeColor()).aside)
+        return make(from, to, MoveFlags::castle_aside);
+      if (to == context.rookInfo(context.activeColor()).hside)
+        return make(from, to, MoveFlags::castle_hside);
+    }
+
+    return make(from, to, capture ? MoveFlags::cap_normal : MoveFlags::normal);
+  }
+
 } // namespace rose

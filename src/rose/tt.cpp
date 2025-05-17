@@ -6,6 +6,7 @@
 #include <optional>
 
 #include "rose/common.h"
+#include "rose/position.h"
 #include "rose/util/types.h"
 #include "rose/util/vec.h"
 
@@ -33,20 +34,20 @@ namespace rose::tt {
 
   auto TT::clear() -> void { std::memset(buckets.get(), 0, bucket_count * sizeof(Bucket)); }
 
-  auto TT::load(u64 hash, int ply) const -> LookupResult {
+  auto TT::load(u64 hash, int ply, const Position &context) const -> LookupResult {
     const auto [bucket_index, ctrl, fragment] = splitHash(bucket_count, hash);
     const Bucket &bucket = buckets.get()[bucket_index];
 
     if (const auto entry_index = getEntryIndex(bucket, ctrl)) {
       const Entry &entry = bucket.entries[*entry_index];
       if (entry.fragment() == fragment) {
-        return entry.toResult(ply);
+        return entry.toResult(ply, context);
       }
     }
     return {};
   }
 
-  auto TT::store(u64 hash, int ply, LookupResult lr) -> void {
+  auto TT::store(u64 hash, int ply, LookupResult lr, const Position &context) -> void {
     const auto [bucket_index, ctrl, fragment] = splitHash(bucket_count, hash);
     Bucket &bucket = buckets.get()[bucket_index];
 
@@ -58,8 +59,12 @@ namespace rose::tt {
                                   })
                                   .value();
 
+    const Entry entry{fragment, ply, lr, context};
+
     bucket.ctrls.b[entry_index] = ctrl;
-    bucket.entries[entry_index] = Entry{fragment, ply, lr};
+    bucket.entries[entry_index] = entry;
+
+    rose_assert(lr.move == entry.move(context), "{} {} {}", lr.move, entry.move(context), context);
   }
 
 } // namespace rose::tt

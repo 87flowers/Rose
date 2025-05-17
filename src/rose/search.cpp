@@ -134,8 +134,8 @@ namespace rose {
     return std::nullopt;
   }
 
-  inline auto Search::ttLoad(int ply) const -> tt::LookupResult { return m_shared.transposition_table.load(m_game.hash(), ply); }
-  inline auto Search::ttStore(int ply, tt::LookupResult lr) -> void { m_shared.transposition_table.store(m_game.hash(), ply, lr); }
+  inline auto Search::ttLoad(int ply) const -> tt::LookupResult { return m_shared.transposition_table.load(m_game.hash(), ply, m_game.position()); }
+  inline auto Search::ttStore(int ply, tt::LookupResult lr) -> void { m_shared.transposition_table.store(m_game.hash(), ply, lr, m_game.position()); }
 
   template <typename NodeT, typename Controls> auto Search::search(const Controls &ctrl, Line &pv, i32 alpha, i32 beta, i32 ply, Depth depth) -> i32 {
     const bool is_in_check = m_game.position().isInCheck();

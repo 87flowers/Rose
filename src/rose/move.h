@@ -63,6 +63,10 @@ namespace rose {
 
     static auto parse(std::string_view str, const Position &context) -> std::expected<Move, ParseError>;
 
+    auto compress(const Position &context) const -> u64;
+    // Can return Move::none() if unable to decompress.
+    static auto decompress(u64 cmraw, const Position &context) -> Move;
+
     inline constexpr auto operator==(const Move &) const -> bool = default;
   };
 
