@@ -109,6 +109,7 @@ function drillIntoPerft(fen, max_depth)
     end
 end
 
+drillIntoPerft("3k1b2/p4r2/1P6/P1p1pnpP/2P5/R4B1R/6N1/4K3 b - - 0 1", 6)
 drillIntoPerft("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 6)
 drillIntoPerft("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 5)
 drillIntoPerft("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 6)
