@@ -220,7 +220,8 @@ namespace rose {
     if (moves_searched == 0)
       return is_in_check ? eval::mated(ply) : 0;
 
-    if (best_score >= beta && !best_move.capture()) {
+    // Update history on alpha raise
+    if (tt_bound != tt::Bound::upper_bound && !best_move.capture()) {
       m_history.updateQuietHistory(+1, best_move, depth);
 
       const std::span<Move> bad_moves = moves.getMarkedQuiets();
