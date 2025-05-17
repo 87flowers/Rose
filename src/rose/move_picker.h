@@ -13,7 +13,9 @@ namespace rose {
     enum class Stage {
       tt_move,
       generate_moves,
-      emit_moves,
+      emit_noisy,
+      emit_quiet,
+      end,
     };
 
     Stage m_stage = Stage::tt_move;
@@ -23,7 +25,8 @@ namespace rose {
 
     usize m_current_index = 0;
     MoveList m_moves;
-    MoveList::iterator m_first_quiet;
+    std::span<Move> m_noisy;
+    std::span<Move> m_quiet;
 
   public:
     MovePicker(const Search &search, Move tt_move);
@@ -31,7 +34,9 @@ namespace rose {
     auto next() -> Move;
 
   private:
-    auto sortMoves() -> void;
+    auto generateMoves() -> void;
+    auto sortNoisy() -> void;
+    auto sortQuiet() -> void;
   };
 
 } // namespace rose

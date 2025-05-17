@@ -9,6 +9,7 @@
 #include "rose/eval/eval.h"
 #include "rose/eval/hce.h"
 #include "rose/game.h"
+#include "rose/history.h"
 #include "rose/line.h"
 #include "rose/move_picker.h"
 #include "rose/movegen.h"
@@ -42,7 +43,10 @@ namespace rose {
 
   Search::Search(usize id, SearchShared &shared) : m_id(id), m_shared(shared) { reset(); }
 
-  auto Search::reset() -> void { m_game.reset(); }
+  auto Search::reset() -> void {
+    m_game.reset();
+    m_history.clear();
+  }
 
   auto Search::setGame(const Game &g) -> void {
     m_game = g;
@@ -214,6 +218,10 @@ namespace rose {
 
     if (moves_searched == 0)
       return is_in_check ? eval::mated(ply) : 0;
+
+    if (best_score >= beta && !best_move.capture()) {
+      m_history.updateQuietHistory(+1, best_move, depth);
+    }
 
     ttStore(ply, {
                      .depth = depth,
