@@ -204,6 +204,7 @@ namespace rose {
           alpha = child_score;
           best_move = m;
           tt_bound = tt::Bound::exact;
+          moves.setMarker();
 
           if constexpr (NodeT::is_pv)
             pv.write(m, std::move(child_pv));
@@ -221,6 +222,10 @@ namespace rose {
 
     if (best_score >= beta && !best_move.capture()) {
       m_history.updateQuietHistory(+1, best_move, depth);
+
+      const std::span<Move> bad_moves = moves.getMarkedQuiets();
+      for (Move badm : bad_moves)
+        m_history.updateQuietHistory(-1, badm, depth);
     }
 
     ttStore(ply, {

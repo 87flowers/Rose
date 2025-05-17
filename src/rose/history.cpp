@@ -12,6 +12,7 @@ namespace rose {
 
   auto History::updateQuietHistory(i32 sign, Move m, i32 depth) -> void {
     rose_assert(sign == +1 || sign == -1);
+    rose_assert(!m.capture());
 
     constexpr i32 k = tunable::history_bonus_scale;
     constexpr i32 c = tunable::history_bonus_const;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "rose/move.h"
 #include "rose/movegen.h"
 #include "rose/util/types.h"
@@ -28,10 +30,18 @@ namespace rose {
     std::span<Move> m_noisy;
     std::span<Move> m_quiet;
 
+    usize m_quiet_marker = 1;
+
   public:
     MovePicker(const Search &search, Move tt_move);
 
     auto next() -> Move;
+
+    auto setMarker() -> void {
+      if (m_stage == Stage::emit_quiet)
+        m_quiet_marker = std::max<usize>(1, m_current_index);
+    }
+    auto getMarkedQuiets() const -> std::span<Move> { return m_quiet.subspan(0, m_quiet_marker - 1); }
 
   private:
     auto generateMoves() -> void;
