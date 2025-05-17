@@ -5,6 +5,7 @@
 #include <print>
 
 #include "rose/cmd/bench.h"
+#include "rose/cmd/check_perft.h"
 #include "rose/cmd/perft.h"
 #include "rose/common.h"
 #include "rose/config.h"
@@ -13,39 +14,13 @@
 #include "rose/game.h"
 #include "rose/tt.h"
 #include "rose/util/defer.h"
+#include "rose/util/string.h"
 #include "rose/util/tokenizer.h"
 
 #define xstr(s) str(s)
 #define str(s) #s
 
 namespace rose {
-
-  static auto parseInt(std::string_view str) -> std::optional<int> {
-    bool negate = false;
-    int result = 0;
-    usize i = 0;
-
-    if (str.size() == 0)
-      return std::nullopt;
-
-    if (str[0] == '-') [[unlikely]] {
-      if (str.size() == 1)
-        return std::nullopt;
-      negate = true;
-      i = 1;
-    }
-
-    for (; i < str.size(); i++) {
-      if (str[i] < '0' && str[i] > '9') [[unlikely]]
-        return std::nullopt;
-      const int new_result = result * 10 + (str[i] - '0');
-      if (new_result < result) [[unlikely]]
-        return std::nullopt;
-      result = new_result;
-    }
-
-    return negate ? -result : result;
-  }
 
   template <typename... Args> static auto printProtocolError(std::string_view cmd, std::format_string<Args...> fmt, Args &&...args) -> void {
     std::print("error ({}): ", cmd);
@@ -277,6 +252,8 @@ namespace rose {
       uciParseSetOption(engine, game, it);
     } else if (cmd == "perft") {
       uciParsePerft(engine, game, it);
+    } else if (cmd == "check_perft") {
+      check_perft::run(it.rest());
     } else if (cmd == "bench") {
       bench::run(engine, game);
     } else if (cmd == "moves" || cmd == "move") {

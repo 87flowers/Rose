@@ -8,7 +8,7 @@ namespace rose {
 
 namespace rose::perft {
 
-  auto value(const Position &position, usize depth) -> usize;
+  auto value(const Position &position, usize depth) -> u64;
   auto run(const Position &position, usize depth) -> void;
 
 } // namespace rose::perft
