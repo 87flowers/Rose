@@ -101,9 +101,8 @@ namespace rose {
       if (isMainThread()) {
         if (ctrl.checkSoftTermination(stats(), depth))
           break;
+        print_info(depth, score, pv);
       }
-
-      print_info(depth, score, pv);
     }
 
     requestStop();
