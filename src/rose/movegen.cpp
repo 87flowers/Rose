@@ -84,21 +84,15 @@ namespace rose {
     const u64 color = ray_places.msb8();
     const u64 enemy = (color ^ active_color.toBitboard()) & blockers;
 
-    // Closest blockers (color doesn't matter, because we want to use this to detect pinned en passant pawns as well).
-    const u64 potentially_pinned = blockers & geometry::superpieceAttacks(blockers, ray_valid);
-
     // Find all enemy sliders with the correct attacks for the rays they're on
-    const u64 maybe_attacking = enemy & geometry::slidersFromRays(ray_places);
-    // Second closest blockers
-    const u64 not_closest = blockers & ~potentially_pinned;
-    const u64 pin_raymasks = geometry::superpieceAttacks(not_closest, ray_valid) & geometry::non_horse_attack_mask;
-    const u64 potential_attackers = not_closest & pin_raymasks;
-    // Second closest blockers that are of the correct type to be pinning attackers.
-    const u64 attackers = maybe_attacking & potential_attackers;
+    const u64 maybe_attacking = enemy & geometry::slidersFromRays(ray_places) & ray_valid;
+    const u64 pin_raymasks = geometry::superpieceAttacks(maybe_attacking, ray_valid) & geometry::non_horse_attack_mask;
+    const u16 has_attacker_vecmask = v128::from64(maybe_attacking).nonzero8();
 
-    // A closest blocker is pinned if it has a valid pinning attacker.
-    const u16 has_attacker_vecmask = v128::from64(attackers).nonzero8();
-    const u64 pinned = vec::mask8(has_attacker_vecmask, v128::from64(potentially_pinned)).to64() & ~enemy;
+    const v128 maybe_pinned = v128::from64(blockers & pin_raymasks);
+    const v128 count_on_rays = vec::popcount8(maybe_pinned);
+    const u16 one_on_rays = vec::eq8(count_on_rays, v128::broadcast8(2));
+    const u64 pinned = vec::mask8(one_on_rays & has_attacker_vecmask, maybe_pinned).to64();
 
     // Translate to valid move rays
     const v512 pinned_ids = vec::mask8(pin_raymasks, vec::lanebroadcast8to64(vec::mask8(pinned, ray_places)));
