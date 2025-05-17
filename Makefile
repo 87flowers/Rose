@@ -37,6 +37,9 @@ bench: $(EXE)
 $(EXE): $(BUILD_DIR)/rel/src/main.o $(LIB_REL_OBJS)
 > $(CXX) $^ -o $@ $(LDFLAGS) $(RELFLAGS)
 
+rose-debug: $(BUILD_DIR)/deb/src/main.o $(LIB_DEB_OBJS)
+> $(CXX) $^ -o $@ $(LDFLAGS) $(DEBFLAGS)
+
 $(TESTS): $(BUILD_DIR)/test_%: $(BUILD_DIR)/deb/tests/%.o $(LIB_DEB_OBJS)
 > $(CXX) $^ -o $@ $(LDFLAGS) $(DEBFLAGS)
 
