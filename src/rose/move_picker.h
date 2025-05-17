@@ -30,7 +30,7 @@ namespace rose {
     std::span<Move> m_noisy;
     std::span<Move> m_quiet;
 
-    usize m_quiet_marker = 1;
+    usize m_quiet_marker = 0;
 
   public:
     MovePicker(const Search &search, Move tt_move);
@@ -39,9 +39,9 @@ namespace rose {
 
     auto setMarker() -> void {
       if (m_stage == Stage::emit_quiet)
-        m_quiet_marker = std::max<usize>(1, m_current_index);
+        m_quiet_marker = m_current_index;
     }
-    auto getMarkedQuiets() const -> std::span<Move> { return m_quiet.subspan(0, m_quiet_marker - 1); }
+    auto getMarkedQuiets() const -> std::span<Move> { return m_quiet.subspan(0, std::max<usize>(1, m_quiet_marker) - 1); }
 
   private:
     auto generateMoves() -> void;
