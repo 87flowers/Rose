@@ -6,6 +6,7 @@
 #include <random>
 #include <thread>
 
+#include "rose/depth.h"
 #include "rose/eval/eval.h"
 #include "rose/eval/hce.h"
 #include "rose/game.h"
@@ -79,19 +80,19 @@ namespace rose {
   }
 
   template <typename Controls> auto Search::searchRoot(const Controls &ctrl) -> void {
-    const auto print_info = [this, &ctrl](i32 depth, i32 score, const Line &pv) {
+    const auto print_info = [this, &ctrl](Depth depth, i32 score, const Line &pv) {
       const u64 nodes = m_shared.totalNodes();
       const time::Duration elapsed = ctrl.elapsed();
       const time::Milliseconds elapsed_ms = time::cast<time::Milliseconds>(elapsed);
       const u64 nps = time::nps<u64>(nodes, elapsed);
-      std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", depth, score, elapsed_ms.count(), nodes, nps, pv);
+      std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", depth.rtz(), score, elapsed_ms.count(), nodes, nps, pv);
     };
 
     Line last_pv;
     i32 last_score;
-    i32 last_depth;
+    Depth last_depth;
 
-    for (i32 depth = 1; depth < max_search_ply; depth++) {
+    for (Depth depth = Depth::one(); depth < Depth::fromInt(max_search_ply); depth += Depth::one()) {
       Line pv{};
       const i32 score = search<nodetype::Root>(ctrl, pv, eval::min_score, eval::max_score, 0, depth);
 
@@ -136,7 +137,7 @@ namespace rose {
   inline auto Search::ttLoad(int ply) const -> tt::LookupResult { return m_shared.transposition_table.load(m_game.hash(), ply); }
   inline auto Search::ttStore(int ply, tt::LookupResult lr) -> void { m_shared.transposition_table.store(m_game.hash(), ply, lr); }
 
-  template <typename NodeT, typename Controls> auto Search::search(const Controls &ctrl, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32 {
+  template <typename NodeT, typename Controls> auto Search::search(const Controls &ctrl, Line &pv, i32 alpha, i32 beta, i32 ply, Depth depth) -> i32 {
     const bool is_in_check = m_game.position().isInCheck();
 
     if (!NodeT::is_root && isMainThread() && ctrl.checkHardTermination(stats(), depth)) [[unlikely]] {
@@ -147,7 +148,7 @@ namespace rose {
 
     if (const auto score = isDraw(is_in_check, ply))
       return *score;
-    if (depth <= 0)
+    if (depth < Depth::one())
       return eval::hce(m_game.position());
     if (ply >= max_search_ply) [[unlikely]]
       return is_in_check ? 0 : eval::hce(m_game.position());
@@ -187,10 +188,10 @@ namespace rose {
       i32 child_score = eval::no_moves;
 
       if (!NodeT::is_pv || moves_searched > 0)
-        child_score = -search<nodetype::NonPv>(ctrl, child_pv, -(alpha + 1), -alpha, ply + 1, depth - 1);
+        child_score = -search<nodetype::NonPv>(ctrl, child_pv, -(alpha + 1), -alpha, ply + 1, depth - Depth::one());
 
       if (NodeT::is_pv && (moves_searched == 0 || child_score > alpha))
-        child_score = -search<nodetype::Pv>(ctrl, child_pv, -beta, -alpha, ply + 1, depth - 1);
+        child_score = -search<nodetype::Pv>(ctrl, child_pv, -beta, -alpha, ply + 1, depth - Depth::one());
 
       moves_searched++;
 

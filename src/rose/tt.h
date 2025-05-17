@@ -4,6 +4,7 @@
 #include <optional>
 #include <tuple>
 
+#include "rose/depth.h"
 #include "rose/eval/eval.h"
 #include "rose/move.h"
 #include "rose/util/types.h"
@@ -21,7 +22,7 @@ namespace rose::tt {
   };
 
   struct LookupResult {
-    i32 depth = 0;
+    Depth depth = Depth::zero();
     Bound bound = Bound::none;
     i32 score = 0;
     Move move = Move::none();
@@ -45,7 +46,7 @@ namespace rose::tt {
 
     constexpr Entry(u64 fragment, i32 ply, LookupResult lr) {
       const i32 tt_score = eval::adjustPlysToMate(lr.score, -ply);
-      const i32 tt_depth = std::clamp(lr.depth, 0, 255);
+      const i32 tt_depth = std::clamp(lr.depth.rtz(), 0, 255);
       const u64 tt_bound = std::to_underlying(lr.bound);
 
       rose_assert((fragment & fragment_mask) == fragment);
@@ -60,7 +61,7 @@ namespace rose::tt {
 
     constexpr inline auto fragment() const -> u64 { return raw & fragment_mask; }
     constexpr inline auto bound() const -> Bound { return static_cast<Bound>((raw >> bounds_shift) & 3); }
-    constexpr inline auto depth() const -> u8 { return static_cast<u8>(raw >> depth_shift); }
+    constexpr inline auto depth() const -> Depth { return Depth::fromInt(static_cast<u8>(raw >> depth_shift)); }
     constexpr inline auto move() const -> Move { return Move{static_cast<u16>(raw >> move_shift)}; }
     constexpr inline auto score(i32 ply) const -> i32 {
       const i32 tt_score = static_cast<i32>(static_cast<i64>(raw) >> score_shift);
