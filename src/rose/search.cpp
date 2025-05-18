@@ -182,6 +182,14 @@ namespace rose {
         pv.write(tte.move);
         return tte.score;
       }
+
+      if (!is_in_check) {
+        const i32 static_eval = eval::hce(position);
+
+        // Reverse futility pruning
+        if (depth <= tunable::rfp_max_depth && static_eval - tunable::rfp_margin * depth >= beta)
+          return static_eval;
+      }
     }
 
     MovePicker moves{*this, position, tte.move};
