@@ -44,13 +44,18 @@ namespace rose {
   Search::Search(usize id, SearchShared &shared) : m_id(id), m_shared(shared) { reset(); }
 
   auto Search::reset() -> void {
-    m_game.reset();
     m_history.clear();
+    setGame(Game{});
   }
 
   auto Search::setGame(const Game &g) -> void {
-    m_game = g;
-    m_game.setHashWaterline();
+    m_root = g.position();
+    m_move_stack = g.moveStack();
+    m_hash_stack = g.hashStack();
+    m_hash_waterline = std::max<usize>(1, m_hash_stack.size()) - 1;
+
+    m_move_stack.reserve(m_move_stack.size() + max_search_ply + 1);
+    m_hash_stack.reserve(m_hash_stack.size() + max_search_ply + 1);
   }
 
   auto Search::requestStart() -> void {
@@ -93,7 +98,7 @@ namespace rose {
 
     for (i32 depth = 1; depth < max_search_ply; depth++) {
       Line pv{};
-      const i32 score = search<nodetype::Root>(ctrl, pv, eval::min_score, eval::max_score, 0, depth);
+      const i32 score = search<nodetype::Root>(ctrl, m_root, pv, eval::min_score, eval::max_score, 0, depth);
 
       if (hasStopped())
         break;
@@ -118,26 +123,31 @@ namespace rose {
     }
   }
 
-  inline auto Search::isDraw(bool is_in_check, i32 ply) -> std::optional<i32> {
-    if (m_game.isRepetition())
+  inline auto Search::isDraw(const Position &position, bool is_in_check, i32 ply) -> std::optional<i32> {
+    if (position.isRepetition(m_hash_stack, m_hash_waterline))
       return 0;
-    if (m_game.position().fiftyMoveClock() >= 100) {
+    if (position.fiftyMoveClock() >= 100) {
       if (!is_in_check)
         return 0;
       [[unlikely]];
       MoveList moves;
-      MoveGen movegen{m_game.position(), m_shared.movegen_precomp};
+      MoveGen movegen{position, m_shared.movegen_precomp};
       movegen.generateMoves(moves);
       return moves.size() == 0 ? eval::mated(ply) : 0;
     }
     return std::nullopt;
   }
 
-  inline auto Search::ttLoad(int ply) const -> tt::LookupResult { return m_shared.transposition_table.load(m_game.hash(), ply); }
-  inline auto Search::ttStore(int ply, tt::LookupResult lr) -> void { m_shared.transposition_table.store(m_game.hash(), ply, lr); }
+  inline auto Search::ttLoad(const Position &position, int ply) const -> tt::LookupResult {
+    return m_shared.transposition_table.load(position.hash(), ply);
+  }
+  inline auto Search::ttStore(const Position &position, int ply, tt::LookupResult lr) -> void {
+    m_shared.transposition_table.store(position.hash(), ply, lr);
+  }
 
-  template <typename NodeT, typename Controls> auto Search::search(const Controls &ctrl, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32 {
-    const bool is_in_check = m_game.position().isInCheck();
+  template <typename NodeT, typename Controls>
+  auto Search::search(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32 {
+    const bool is_in_check = position.isInCheck();
 
     if (!NodeT::is_root && isMainThread() && ctrl.checkHardTermination(stats(), depth)) [[unlikely]] {
       requestStop();
@@ -145,14 +155,14 @@ namespace rose {
     }
     stats().nodes.fetch_add(1, std::memory_order::relaxed);
 
-    if (const auto score = isDraw(is_in_check, ply))
+    if (const auto score = isDraw(position, is_in_check, ply))
       return *score;
     if (depth <= 0)
-      return eval::hce(m_game.position());
+      return eval::hce(position);
     if (ply >= max_search_ply) [[unlikely]]
-      return is_in_check ? 0 : eval::hce(m_game.position());
+      return is_in_check ? 0 : eval::hce(position);
 
-    const auto tte = ttLoad(ply);
+    const auto tte = ttLoad(position, ply);
 
     if constexpr (!NodeT::is_pv) {
       if (tte.depth >= depth && [&] {
@@ -172,7 +182,7 @@ namespace rose {
       }
     }
 
-    MovePicker moves{*this, tte.move};
+    MovePicker moves{*this, position, tte.move};
 
     i32 best_score = eval::no_moves;
     Move best_move = tte.move;
@@ -180,17 +190,22 @@ namespace rose {
     usize moves_searched = 0;
 
     for (Move m = moves.next(); m != Move::none(); m = moves.next()) {
-      m_game.move(m);
-      rose_defer { m_game.unmove(); };
+      const Position child_position = position.move(m);
+      m_hash_stack.push_back(child_position.hash());
+      m_move_stack.push_back(m);
+      rose_defer {
+        m_hash_stack.pop_back();
+        m_move_stack.pop_back();
+      };
 
       Line child_pv{};
       i32 child_score = eval::no_moves;
 
       if (!NodeT::is_pv || moves_searched > 0)
-        child_score = -search<nodetype::NonPv>(ctrl, child_pv, -(alpha + 1), -alpha, ply + 1, depth - 1);
+        child_score = -search<nodetype::NonPv>(ctrl, child_position, child_pv, -(alpha + 1), -alpha, ply + 1, depth - 1);
 
       if (NodeT::is_pv && (moves_searched == 0 || child_score > alpha))
-        child_score = -search<nodetype::Pv>(ctrl, child_pv, -beta, -alpha, ply + 1, depth - 1);
+        child_score = -search<nodetype::Pv>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, depth - 1);
 
       moves_searched++;
 
@@ -228,12 +243,13 @@ namespace rose {
         m_history.updateQuietHistory(-1, badm, depth);
     }
 
-    ttStore(ply, {
-                     .depth = depth,
-                     .bound = tt_bound,
-                     .score = best_score,
-                     .move = best_move,
-                 });
+    ttStore(position, ply,
+            {
+                .depth = depth,
+                .bound = tt_bound,
+                .score = best_score,
+                .move = best_move,
+            });
 
     return best_score;
   }

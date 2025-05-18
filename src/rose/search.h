@@ -10,6 +10,7 @@
 #include "rose/game.h"
 #include "rose/history.h"
 #include "rose/line.h"
+#include "rose/move.h"
 #include "rose/movegen.h"
 #include "rose/search_control.h"
 #include "rose/search_stats.h"
@@ -47,8 +48,13 @@ namespace rose {
     SearchShared &m_shared;
 
     std::jthread m_thread;
-    Game m_game;
+
     History m_history;
+
+    Position m_root;
+    std::vector<Move> m_move_stack;
+    std::vector<u64> m_hash_stack;
+    usize m_hash_waterline;
 
   public:
     Search(usize id, SearchShared &shared);
@@ -71,11 +77,12 @@ namespace rose {
 
     template <typename Controls> auto searchRoot(const Controls &ctrl) -> void;
 
-    inline auto isDraw(bool is_in_check, i32 ply) -> std::optional<i32>;
-    inline auto ttLoad(int ply) const -> tt::LookupResult;
-    inline auto ttStore(int ply, tt::LookupResult lr) -> void;
+    inline auto isDraw(const Position &position, bool is_in_check, i32 ply) -> std::optional<i32>;
+    inline auto ttLoad(const Position &position, int ply) const -> tt::LookupResult;
+    inline auto ttStore(const Position &position, int ply, tt::LookupResult lr) -> void;
 
-    template <typename NodeT, typename Controls> auto search(const Controls &ctrl, Line &pv, i32 alpha, i32 beta, i32 depth, i32 ply) -> i32;
+    template <typename NodeT, typename Controls>
+    auto search(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32;
   };
 
 } // namespace rose

@@ -4,6 +4,7 @@
 #include <bit>
 #include <format>
 #include <utility>
+#include <vector>
 
 #include "rose/byteboard.h"
 #include "rose/common.h"
@@ -80,6 +81,8 @@ namespace rose {
 
     auto isValid() const -> bool { return attackTable(m_active_color).r[kingSq(m_active_color.invert()).raw] == 0; }
     auto isInCheck() const -> bool { return attackTable(m_active_color.invert()).r[kingSq(m_active_color).raw] != 0; }
+
+    auto isRepetition(const std::vector<u64> &hash_stack, usize hash_waterline) const -> bool;
 
     auto move(Move m) const -> Position;
 

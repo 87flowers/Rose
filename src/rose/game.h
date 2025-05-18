@@ -14,13 +14,16 @@ namespace rose {
     std::vector<Position> m_position_stack;
     std::vector<Move> m_move_stack;
     std::vector<u64> m_hash_stack;
-    size_t m_hash_waterline = 0;
 
   public:
+    Game() { reset(); }
     auto reset() -> void { setPositionStartpos(); }
 
     auto position() const -> const Position & { return m_position_stack.back(); }
     auto hash() const -> u64 { return m_hash_stack.back(); }
+
+    auto moveStack() const -> std::vector<Move> { return m_move_stack; }
+    auto hashStack() const -> std::vector<u64> { return m_hash_stack; }
 
     auto setPositionStartpos() -> void { setPosition(Position::startpos()); }
     auto setPosition(const Position &new_pos) -> void {
@@ -30,8 +33,6 @@ namespace rose {
 
       m_position_stack.push_back(new_pos);
       m_hash_stack.push_back(new_pos.hash());
-
-      setHashWaterline();
     }
 
     auto move(Move m) -> void {
@@ -45,9 +46,6 @@ namespace rose {
       m_move_stack.pop_back();
       m_hash_stack.pop_back();
     }
-
-    auto setHashWaterline() -> void { m_hash_waterline = m_hash_stack.size() - 1; }
-    auto isRepetition() const -> bool;
 
     auto printGameRecord() const -> void;
   };

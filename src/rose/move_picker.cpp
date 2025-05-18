@@ -11,7 +11,7 @@
 
 namespace rose {
 
-  MovePicker::MovePicker(const Search &search, Move tt_move) : m_search(search), m_tt_move(tt_move) {}
+  MovePicker::MovePicker(const Search &search, const Position &position, Move tt_move) : m_search(search), m_position(position), m_tt_move(tt_move) {}
 
   auto MovePicker::next() -> Move {
     switch (m_stage) {
@@ -58,7 +58,7 @@ namespace rose {
   auto MovePicker::generateMoves() -> void {
     m_moves.clear();
 
-    MoveGen movegen(m_search.m_game.position(), m_search.m_shared.movegen_precomp);
+    MoveGen movegen(m_position, m_search.m_shared.movegen_precomp);
     movegen.generateMoves(m_moves);
 
     const auto first_quiet = std::stable_partition(m_moves.begin(), m_moves.end(), [](Move m) { return m.capture(); });
@@ -67,7 +67,7 @@ namespace rose {
   }
 
   auto MovePicker::sortNoisy() -> void {
-    const std::array<Place, 64> &board = m_search.m_game.position().board().m;
+    const std::array<Place, 64> &board = m_position.board().m;
 
     StaticVector<i32, max_legal_moves> noisy_scores;
     noisy_scores.resize(m_noisy.size());

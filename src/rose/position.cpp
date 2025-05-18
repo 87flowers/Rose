@@ -32,6 +32,24 @@ namespace rose {
     return startpos;
   }
 
+  auto Position::isRepetition(const std::vector<u64> &hash_stack, usize hash_waterline) const -> bool {
+    const int height = static_cast<int>(hash_stack.size()) - 1;
+
+    const u64 h = m_hash;
+    usize clones = 0;
+
+    for (int i = height - 4; i >= 0; i -= 2) {
+      if (hash_stack[i] == h) {
+        const usize clone_limit = (i < hash_waterline) ? 2 : 1;
+        clones++;
+        if (clones >= clone_limit)
+          return true;
+      }
+    }
+
+    return false;
+  }
+
   auto Position::move(Move m) const -> Position {
     Position new_pos = *this;
 

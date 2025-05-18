@@ -23,6 +23,7 @@ namespace rose {
     Stage m_stage = Stage::tt_move;
 
     const Search &m_search;
+    const Position &m_position;
     Move m_tt_move;
 
     usize m_current_index = 0;
@@ -33,7 +34,7 @@ namespace rose {
     usize m_quiet_marker = 0;
 
   public:
-    MovePicker(const Search &search, Move tt_move);
+    MovePicker(const Search &search, const Position &position, Move tt_move);
 
     auto next() -> Move;
 
