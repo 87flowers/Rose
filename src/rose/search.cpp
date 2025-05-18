@@ -30,16 +30,19 @@ namespace rose {
     struct Root {
       inline static constexpr bool is_root = true;
       inline static constexpr bool is_pv = true;
+      using Next = Pv;
     };
 
     struct Pv {
       inline static constexpr bool is_root = false;
       inline static constexpr bool is_pv = true;
+      using Next = Pv;
     };
 
     struct NonPv {
       inline static constexpr bool is_root = false;
       inline static constexpr bool is_pv = false;
+      using Next = NonPv;
     };
   } // namespace nodetype
 
@@ -228,7 +231,7 @@ namespace rose {
             return scout_score;
         }
 
-        return -search<NodeT>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, depth - 1);
+        return -search<typename NodeT::Next>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, depth - 1);
       }();
 
       moves_searched++;
