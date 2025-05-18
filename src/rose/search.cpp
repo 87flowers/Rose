@@ -1,5 +1,6 @@
 #include "rose/search.h"
 
+#include <bit>
 #include <cstdio>
 #include <mutex>
 #include <print>
@@ -14,6 +15,7 @@
 #include "rose/move_picker.h"
 #include "rose/movegen.h"
 #include "rose/search_control.h"
+#include "rose/tunable.h"
 #include "rose/util/assert.h"
 #include "rose/util/defer.h"
 #include "rose/util/types.h"
@@ -199,13 +201,28 @@ namespace rose {
       };
 
       Line child_pv{};
-      i32 child_score = eval::no_moves;
+      const i32 child_score = [&] {
+        if (moves_searched > tunable::lmr_move_threshold && depth > tunable::lmr_depth_threshold) {
+          const int l2m = std::bit_width(moves_searched);
+          const int l2d = std::bit_width(static_cast<u32>(depth));
+          i32 reduction = (tunable::lmr_base_const + l2m * l2d) / tunable::lmr_base_scale;
 
-      if (!NodeT::is_pv || moves_searched > 0)
-        child_score = -search<nodetype::NonPv>(ctrl, child_position, child_pv, -(alpha + 1), -alpha, ply + 1, depth - 1);
+          reduction = std::clamp(reduction, 1, depth - 1);
+          if (reduction > 1) {
+            const i32 lmr_score = -search<nodetype::NonPv>(ctrl, child_position, child_pv, -(alpha + 1), -alpha, ply + 1, depth - reduction);
+            if (lmr_score <= alpha)
+              return lmr_score;
+          }
+        }
 
-      if (NodeT::is_pv && (moves_searched == 0 || child_score > alpha))
-        child_score = -search<nodetype::Pv>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, depth - 1);
+        if (NodeT::is_pv && moves_searched > 0) {
+          const i32 scout_score = -search<nodetype::NonPv>(ctrl, child_position, child_pv, -(alpha + 1), -alpha, ply + 1, depth - 1);
+          if (scout_score <= alpha)
+            return scout_score;
+        }
+
+        return -search<NodeT>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, depth - 1);
+      }();
 
       moves_searched++;
 
