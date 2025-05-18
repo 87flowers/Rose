@@ -152,10 +152,10 @@ namespace rose::eval {
     return std::min(phase, 24);
   }
 
-  auto hce(const Position &position) -> i32 {
+  auto hce(const Position &position) -> Score {
     const i32 mg_phase = phase(position);
     const i32 eg_phase = 24 - mg_phase;
-    i32 score = 0;
+    Score score = 0;
     for (int i = 0; i < 16; i++) {
       const PieceType ptype = position.pieceListType(Color::white).m[i];
       const Square where = position.pieceListSq(Color::white).m[i];

@@ -23,7 +23,7 @@ namespace rose::tt {
   struct LookupResult {
     i32 depth = 0;
     Bound bound = Bound::none;
-    i32 score = 0;
+    Score score = 0;
     Move move = Move::none();
   };
 
@@ -62,8 +62,8 @@ namespace rose::tt {
     constexpr inline auto bound() const -> Bound { return static_cast<Bound>((raw >> bounds_shift) & 3); }
     constexpr inline auto depth() const -> u8 { return static_cast<u8>(raw >> depth_shift); }
     constexpr inline auto move() const -> Move { return Move{static_cast<u16>(raw >> move_shift)}; }
-    constexpr inline auto score(i32 ply) const -> i32 {
-      const i32 tt_score = static_cast<i32>(static_cast<i64>(raw) >> score_shift);
+    constexpr inline auto score(i32 ply) const -> Score {
+      const Score tt_score = static_cast<Score>(static_cast<i64>(raw) >> score_shift);
       return eval::adjustPlysToMate(tt_score, +ply);
     }
 

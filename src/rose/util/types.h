@@ -51,4 +51,6 @@ namespace rose {
     }
   } // namespace time
 
+  using Score = i32;
+
 } // namespace rose

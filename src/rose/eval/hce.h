@@ -8,6 +8,6 @@ namespace rose {
 
 namespace rose::eval {
 
-  auto hce(const Position &position) -> i32;
+  auto hce(const Position &position) -> Score;
 
 } // namespace rose::eval
