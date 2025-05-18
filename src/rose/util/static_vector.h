@@ -34,8 +34,7 @@ namespace rose {
     }
 
     constexpr auto push_back(const T &value) -> iterator {
-      if (len >= cap)
-        return end();
+      rose_assert(len < cap);
       data[len] = value;
       return &data[len++];
     }
