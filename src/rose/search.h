@@ -82,7 +82,7 @@ namespace rose {
     inline auto ttStore(const Position &position, int ply, tt::LookupResult lr) -> void;
 
     template <typename ResultT, typename NodeT, typename Controls>
-    auto search(const Controls &ctrl, const Position &position, Line &pv, Score alpha, Score beta, i32 ply, i32 depth) -> ResultT;
+    auto search(const Controls &ctrl, const Position &position, Line &pv, Score alpha, Score beta, i32 ply, i32 depth) -> Score;
   };
 
 } // namespace rose

@@ -151,7 +151,7 @@ namespace rose {
   }
 
   template <typename ResultT, typename NodeT, typename Controls>
-  auto Search::search(const Controls &ctrl, const Position &position, Line &pv, Score alpha, Score beta, i32 ply, i32 depth) -> ResultT {
+  auto Search::search(const Controls &ctrl, const Position &position, Line &pv, Score alpha, Score beta, i32 ply, i32 depth) -> Score {
     const bool is_in_check = position.isInCheck();
 
     if (!NodeT::is_root && isMainThread() && ctrl.checkHardTermination(stats(), depth)) [[unlikely]] {
@@ -199,6 +199,13 @@ namespace rose {
     Move best_move = tte.move;
     tt::Bound tt_bound = tt::Bound::upper_bound;
     usize moves_searched = 0;
+
+    // Internal iterative deepening
+    if (tte.bound == tt::Bound::none && depth >= tunable::iid_min_depth) {
+      pv.pv[0] = Move::none();
+      search<Move, NodeT>(ctrl, position, pv, alpha, beta, ply, tunable::iid_shallow_depth);
+      best_move = pv.pv[0];
+    }
 
     MovePicker moves{*this, position, best_move};
 
@@ -248,7 +255,7 @@ namespace rose {
           tt_bound = tt::Bound::exact;
           moves.setMarker();
 
-          if constexpr (NodeT::is_pv)
+          if constexpr (NodeT::is_pv || std::is_same_v<ResultT, Move>)
             pv.write(m, std::move(child_pv));
 
           if (child_score >= beta) {
