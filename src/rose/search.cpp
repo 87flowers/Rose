@@ -204,9 +204,8 @@ namespace rose {
       const i32 child_score = [&] {
         if (moves_searched > tunable::lmr_move_threshold && depth > tunable::lmr_depth_threshold) {
           const int l2m = std::bit_width(moves_searched);
-          const int l2d = std::bit_width(static_cast<u32>(depth));
+          const int l2d = std::bit_width(static_cast<u32>(depth)) + !NodeT::is_pv;
           i32 reduction = (tunable::lmr_base_const + l2m * l2d) / tunable::lmr_base_scale;
-
           reduction = std::clamp(reduction, 1, depth - 1);
           if (reduction > 1) {
             const i32 lmr_score = -search<nodetype::NonPv>(ctrl, child_position, child_pv, -(alpha + 1), -alpha, ply + 1, depth - reduction);
