@@ -81,14 +81,14 @@ namespace rose {
       stats().reset();
 
       if (isMainThread()) {
-        std::visit([this](const auto &ctrl) { this->searchRoot(ctrl); }, m_shared.ctrl);
+        std::visit([this](const auto &ctrl) { this->go(ctrl); }, m_shared.ctrl);
       } else {
-        searchRoot<controls::None>({});
+        go<controls::None>({});
       }
     }
   }
 
-  template <typename Controls> auto Search::searchRoot(const Controls &ctrl) -> void {
+  template <typename Controls> auto Search::go(const Controls &ctrl) -> void {
     const auto print_info = [this, &ctrl](i32 depth, i32 score, const Line &pv) {
       const u64 nodes = m_shared.totalNodes();
       const time::Duration elapsed = ctrl.elapsed();
@@ -103,7 +103,7 @@ namespace rose {
 
     for (i32 depth = 1; depth < max_search_ply; depth++) {
       Line pv{};
-      const i32 score = search<nodetype::Root>(ctrl, m_root, pv, eval::min_score, eval::max_score, 0, depth);
+      const i32 score = searchRoot(ctrl, m_root, pv, 0, depth);
 
       if (hasStopped())
         break;
@@ -126,6 +126,67 @@ namespace rose {
       std::print("bestmove {}\n", last_pv.pv[0]);
       std::fflush(stdout);
     }
+  }
+
+  static auto nextGuess(i32 alpha, i32 beta, usize subtree_count) -> i32 { return alpha + (beta - alpha) * (subtree_count - 1) / subtree_count; }
+
+  template <typename Controls> auto Search::searchRoot(const Controls &ctrl, const Position &position, Line &pv, i32 ply, i32 depth) -> i32 {
+    const bool is_in_check = position.isInCheck();
+
+    if (const auto score = isDraw(position, is_in_check, ply))
+      return *score;
+
+    MoveList moves;
+    {
+      MoveGen movegen{position, m_shared.movegen_precomp};
+      movegen.generateMoves(moves);
+    }
+
+    if (moves.size() == 0)
+      return is_in_check ? eval::mated(ply) : 0;
+
+    i32 alpha = eval::min_score;
+    i32 beta = eval::max_score;
+    usize subtree_count = moves.size();
+    usize better_count;
+    i32 test;
+
+    do {
+      better_count = 0;
+      test = nextGuess(alpha, beta, moves.size());
+
+      MoveList new_candidates;
+
+      for (const auto m : moves) {
+        const Position child_position = position.move(m);
+        m_hash_stack.push_back(child_position.hash());
+        m_move_stack.push_back(m);
+        rose_defer {
+          m_hash_stack.pop_back();
+          m_move_stack.pop_back();
+        };
+
+        Line child_pv{};
+        const i32 child_score = -search<nodetype::Pv>(ctrl, position, child_pv, -test, -test + 1, ply + 1, depth - 1);
+        if (child_score >= test) {
+          pv.clear();
+          pv.write(m, std::move(child_pv));
+          new_candidates.push_back(m);
+        }
+      }
+
+      if (hasStopped())
+        return 0;
+
+      if (new_candidates.size() > 0) {
+        alpha = test;
+        moves = new_candidates;
+      } else {
+        beta = test;
+      }
+    } while (beta - alpha > 1 && moves.size() > 1);
+
+    return test;
   }
 
   inline auto Search::isDraw(const Position &position, bool is_in_check, i32 ply) -> std::optional<i32> {
