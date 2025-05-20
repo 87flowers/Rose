@@ -1,5 +1,6 @@
 #include "rose/cmd/check_perft.h"
 
+#include <cctype>
 #include <fstream>
 #include <print>
 #include <string_view>
@@ -22,6 +23,10 @@ namespace rose::check_perft {
     while (std::getline(file, line)) {
       // Some EPD files have trailing null bytes on lines...
       line.erase(line.find_last_not_of('\0') + 1);
+
+      // Ignore empty lines
+      if (std::all_of(line.begin(), line.end(), [](unsigned char c) { return std::isspace(c); }))
+        continue;
 
       const auto split = stringSplit(line, ';');
       if (split.size() <= 1) {
