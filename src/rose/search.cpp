@@ -294,6 +294,25 @@ namespace rose {
     if (ply >= max_search_ply) [[unlikely]]
       return is_in_check ? 0 : eval::hce(position);
 
+    const auto tte = ttLoad(position, ply);
+
+    if constexpr (!NodeT::is_pv) {
+      if ([&] {
+            switch (tte.bound) {
+            case tt::Bound::none:
+              return false;
+            case tt::Bound::lower_bound:
+              return tte.score >= beta;
+            case tt::Bound::exact:
+              return true;
+            case tt::Bound::upper_bound:
+              return tte.score <= alpha;
+            }
+          }()) {
+        return tte.score;
+      }
+    }
+
     const i32 static_eval = is_in_check ? eval::no_moves : eval::hce(position);
 
     if (static_eval >= beta)
