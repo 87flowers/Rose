@@ -15,9 +15,14 @@
 #include "rose/search_control.h"
 #include "rose/search_stats.h"
 #include "rose/tt.h"
+#include "rose/util/static_vector.h"
 #include "rose/util/types.h"
 
 namespace rose {
+
+  struct SearchStackEntry {
+    Move killer;
+  };
 
   struct SearchShared {
     explicit SearchShared(int thread_count) : idle_barrier(1 + thread_count), started_barrier(1 + thread_count), stats(thread_count) {}
@@ -56,6 +61,8 @@ namespace rose {
     std::vector<u64> m_hash_stack;
     usize m_hash_waterline;
 
+    StaticVector<SearchStackEntry, max_search_ply + 1> m_search_stack;
+
   public:
     Search(usize id, SearchShared &shared);
 
@@ -82,10 +89,10 @@ namespace rose {
     inline auto ttStore(const Position &position, int ply, tt::LookupResult lr) -> void;
 
     template <typename NodeT, typename Controls>
-    auto search(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32;
+    auto search(const Controls &ctrl, const Position &position, Line &pv, SearchStackEntry *ss, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32;
 
     template <typename NodeT, typename Controls>
-    auto quiesce(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, i32 ply) -> i32;
+    auto quiesce(const Controls &ctrl, const Position &position, Line &pv, SearchStackEntry *ss, i32 alpha, i32 beta, i32 ply) -> i32;
   };
 
 } // namespace rose

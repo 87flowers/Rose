@@ -11,10 +11,11 @@
 
 namespace rose {
 
-  MovePicker::MovePicker(const Search &search, const Position &position, Move tt_move) : m_search(search), m_position(position), m_tt_move(tt_move) {}
+  MovePicker::MovePicker(const Search &search, const Position &position, Move tt_move, Move killer)
+      : m_search(search), m_position(position), m_tt_move(tt_move), m_killer(killer) {}
 
   auto MovePicker::skipQuiets() -> void {
-    if (m_stage == Stage::emit_quiet)
+    if (m_stage >= Stage::emit_quiet)
       m_stage = Stage::end;
     m_skip_quiets = true;
   }
@@ -26,6 +27,7 @@ namespace rose {
       if (m_tt_move != Move::none()) {
         return m_tt_move;
       }
+
       [[fallthrough]];
     case Stage::generate_moves:
       generateMoves();
@@ -49,6 +51,12 @@ namespace rose {
       sortQuiet();
       m_stage = Stage::emit_quiet;
       m_current_index = 0;
+
+      if (m_killer != Move::none() && m_killer != m_tt_move) {
+        const auto it = std::find(m_quiet.begin(), m_quiet.end(), m_killer);
+        if (it != m_quiet.end())
+          std::rotate(m_quiet.begin(), it, it + 1);
+      }
 
       [[fallthrough]];
     case Stage::emit_quiet:
