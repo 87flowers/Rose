@@ -9,7 +9,7 @@ namespace rose {
   private:
     std::string_view str;
 
-    inline static constexpr std::string_view whitespace{" \t\r\n"};
+    inline static constexpr std::string_view whitespace{" \t\r\n\f\v"};
 
     constexpr auto trimStart() -> void {
       const usize index = str.find_first_not_of(whitespace);
