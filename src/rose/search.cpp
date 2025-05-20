@@ -299,7 +299,8 @@ namespace rose {
     alpha = std::max(alpha, static_eval);
 
     MovePicker moves{*this, position, Move::none()};
-    moves.skipQuiets();
+    if (!is_in_check)
+      moves.skipQuiets();
 
     i32 best_score = static_eval;
     Move best_move = Move::none();
