@@ -83,6 +83,9 @@ namespace rose {
 
     template <typename NodeT, typename Controls>
     auto search(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32;
+
+    template <typename NodeT, typename Controls>
+    auto quiesce(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, i32 ply) -> i32;
   };
 
 } // namespace rose
