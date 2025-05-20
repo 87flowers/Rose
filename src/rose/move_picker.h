@@ -31,10 +31,13 @@ namespace rose {
     std::span<Move> m_noisy;
     std::span<Move> m_quiet;
 
+    bool m_skip_quiets = false;
     usize m_quiet_marker = 0;
 
   public:
     MovePicker(const Search &search, const Position &position, Move tt_move);
+
+    auto skipQuiets() -> void;
 
     auto next() -> Move;
 
