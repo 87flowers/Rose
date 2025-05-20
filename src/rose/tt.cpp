@@ -62,4 +62,11 @@ namespace rose::tt {
     bucket.entries[entry_index] = Entry{fragment, ply, lr};
   }
 
+  auto TT::prefetch(u64 hash) -> void {
+    const auto [bucket_index, _, _] = splitHash(bucket_count, hash);
+    const char *const ptr = reinterpret_cast<char *>(&buckets.get()[bucket_index]);
+    __builtin_prefetch(ptr);
+    __builtin_prefetch(ptr + 64);
+  }
+
 } // namespace rose::tt

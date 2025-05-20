@@ -106,6 +106,8 @@ namespace rose::tt {
 
     auto load(u64 hash, int ply) const -> LookupResult;
     auto store(u64 hash, int ply, LookupResult lr) -> void;
+
+    auto prefetch(u64 hash) -> void;
   };
 
 } // namespace rose::tt

@@ -84,6 +84,7 @@ namespace rose {
 
     auto isRepetition(const std::vector<u64> &hash_stack, usize hash_waterline) const -> bool;
 
+    auto predictHashAfter(Move m) const -> u64;
     auto move(Move m) const -> Position;
 
     auto calcAttacksSlow() const -> std::array<Wordboard, 2>;

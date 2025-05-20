@@ -50,6 +50,101 @@ namespace rose {
     return false;
   }
 
+  auto Position::predictHashAfter(Move m) const -> u64 {
+    u64 new_hash = m_hash;
+
+    const Square from = m.from();
+    const Square to = m.to();
+    const Place src_place = m_board.m[from.raw];
+    const Place dest_place = m_board.m[to.raw];
+
+    const auto normal = [&] { new_hash ^= hash::movePiece(from, to, src_place); };
+
+    const auto cap_normal = [&] {
+      new_hash ^= hash::removePiece(to, dest_place);
+      new_hash ^= hash::movePiece(from, to, src_place);
+    };
+
+    const auto promo = [&](auto ptype) { new_hash ^= hash::promo(from, to, m_active_color, decltype(ptype)::value); };
+
+    const auto cap_promo = [&](auto ptype) {
+      new_hash ^= hash::removePiece(to, dest_place);
+      new_hash ^= hash::promo(from, to, m_active_color, decltype(ptype)::value);
+    };
+
+    const auto double_push = [&] {
+      new_hash ^= hash::movePiece(from, to, src_place);
+      const Square enpassant = Square{narrow_cast<u8>((from.raw + to.raw) >> 1)};
+      new_hash ^= hash::enpassant_table[enpassant.file()];
+    };
+
+    const auto enpassant = [&] {
+      const Square victim{narrow_cast<u8>((from.raw & 0x38) | (to.raw & 7))};
+      new_hash ^= hash::movePiece(from, to, src_place);
+      new_hash ^= hash::removePiece(victim, m_active_color.invert(), PieceType::p);
+      new_hash ^= hash::enpassant_table[m_enpassant.file()];
+    };
+
+    const auto castle = [&](u8 king_dest_file, u8 rook_dest_file) {
+      const Square king_dest{narrow_cast<u8>((from.raw & 0x38) | king_dest_file)};
+      const Square rook_dest{narrow_cast<u8>((from.raw & 0x38) | rook_dest_file)};
+      const Square king_src = m.from();
+      const Square rook_src = m.to();
+
+      new_hash ^= hash::movePiece(king_src, king_dest, m_active_color, PieceType::k);
+      new_hash ^= hash::movePiece(rook_src, rook_dest, m_active_color, PieceType::r);
+    };
+
+#define MF(x) (static_cast<int>(MoveFlags::x) >> 12)
+    switch (static_cast<int>(m.flags()) >> 12) {
+    case MF(normal):
+      normal();
+      break;
+    case MF(double_push):
+      double_push();
+      break;
+    case MF(castle_aside):
+      castle(2, 3);
+      break;
+    case MF(castle_hside):
+      castle(6, 5);
+      break;
+    case MF(promo_q):
+      promo(std::integral_constant<PieceType, PieceType::q>{});
+      break;
+    case MF(promo_n):
+      promo(std::integral_constant<PieceType, PieceType::n>{});
+      break;
+    case MF(promo_r):
+      promo(std::integral_constant<PieceType, PieceType::r>{});
+      break;
+    case MF(promo_b):
+      promo(std::integral_constant<PieceType, PieceType::b>{});
+      break;
+    case MF(cap_normal):
+      cap_normal();
+      break;
+    case MF(enpassant):
+      enpassant();
+      break;
+    case MF(cap_promo_q):
+      cap_promo(std::integral_constant<PieceType, PieceType::q>{});
+      break;
+    case MF(cap_promo_n):
+      cap_promo(std::integral_constant<PieceType, PieceType::n>{});
+      break;
+    case MF(cap_promo_r):
+      cap_promo(std::integral_constant<PieceType, PieceType::r>{});
+      break;
+    case MF(cap_promo_b):
+      cap_promo(std::integral_constant<PieceType, PieceType::b>{});
+      break;
+    }
+#undef MF
+
+    return new_hash;
+  }
+
   auto Position::move(Move m) const -> Position {
     Position new_pos = *this;
 

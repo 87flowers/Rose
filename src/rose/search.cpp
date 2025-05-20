@@ -310,6 +310,8 @@ namespace rose {
     usize moves_searched = 0;
 
     for (Move m = moves.next(); m != Move::none(); m = moves.next()) {
+      m_shared.transposition_table.prefetch(position.predictHashAfter(m));
+
       const Position child_position = position.move(m);
       m_hash_stack.push_back(child_position.hash());
       m_move_stack.push_back(m);
