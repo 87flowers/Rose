@@ -13,6 +13,12 @@ namespace rose {
 
   MovePicker::MovePicker(const Search &search, const Position &position, Move tt_move) : m_search(search), m_position(position), m_tt_move(tt_move) {}
 
+  auto MovePicker::skipQuiets() -> void {
+    if (m_stage == Stage::emit_quiet)
+      m_stage = Stage::end;
+    m_skip_quiets = true;
+  }
+
   auto MovePicker::next() -> Move {
     switch (m_stage) {
     case Stage::tt_move:
@@ -34,6 +40,11 @@ namespace rose {
         m_current_index++;
       if (m_current_index < m_noisy.size())
         return m_noisy[m_current_index++];
+
+      if (m_skip_quiets) {
+        m_stage = Stage::end;
+        return Move::none();
+      }
 
       sortQuiet();
       m_stage = Stage::emit_quiet;

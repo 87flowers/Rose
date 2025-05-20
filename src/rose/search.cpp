@@ -163,7 +163,7 @@ namespace rose {
     if (const auto score = isDraw(position, is_in_check, ply))
       return *score;
     if (depth <= 0)
-      return eval::hce(position);
+      return quiesce<NodeT>(ctrl, position, pv, alpha, beta, ply);
     if (ply >= max_search_ply) [[unlikely]]
       return is_in_check ? 0 : eval::hce(position);
 
@@ -277,6 +277,71 @@ namespace rose {
                 .score = best_score,
                 .move = best_move,
             });
+
+    return best_score;
+  }
+
+  template <typename NodeT, typename Controls>
+  auto Search::quiesce(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, i32 ply) -> i32 {
+    const bool is_in_check = position.isInCheck();
+
+    stats().nodes.fetch_add(1, std::memory_order::relaxed);
+
+    if (const auto score = isDraw(position, is_in_check, ply))
+      return *score;
+    if (ply >= max_search_ply) [[unlikely]]
+      return is_in_check ? 0 : eval::hce(position);
+
+    const i32 static_eval = is_in_check ? eval::no_moves : eval::hce(position);
+
+    if (static_eval >= beta)
+      return static_eval;
+    alpha = std::max(alpha, static_eval);
+
+    MovePicker moves{*this, position, Move::none()};
+    moves.skipQuiets();
+
+    i32 best_score = static_eval;
+    Move best_move = Move::none();
+    tt::Bound tt_bound = tt::Bound::upper_bound;
+    usize moves_searched = 0;
+
+    for (Move m = moves.next(); m != Move::none(); m = moves.next()) {
+      const Position child_position = position.move(m);
+      m_hash_stack.push_back(child_position.hash());
+      m_move_stack.push_back(m);
+      rose_defer {
+        m_hash_stack.pop_back();
+        m_move_stack.pop_back();
+      };
+
+      Line child_pv{};
+      const i32 child_score = -quiesce<typename NodeT::Next>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1);
+
+      moves_searched++;
+
+      if (hasStopped())
+        return 0;
+
+      if (child_score > best_score) {
+        best_score = child_score;
+
+        if (child_score > alpha) {
+          alpha = child_score;
+          best_move = m;
+          tt_bound = tt::Bound::exact;
+          moves.setMarker();
+
+          if constexpr (NodeT::is_pv)
+            pv.write(m, std::move(child_pv));
+
+          if (child_score >= beta) {
+            tt_bound = tt::Bound::lower_bound;
+            break;
+          }
+        }
+      }
+    }
 
     return best_score;
   }
