@@ -184,7 +184,6 @@ namespace rose {
               return tte.score <= alpha;
             }
           }()) {
-        pv.write(tte.move);
         return tte.score;
       }
 
@@ -300,7 +299,9 @@ namespace rose {
       return static_eval;
     alpha = std::max(alpha, static_eval);
 
-    MovePicker moves{*this, position, Move::none()};
+    const auto tte = ttLoad(position, ply);
+
+    MovePicker moves{*this, position, tte.move};
     if (!is_in_check)
       moves.skipQuiets();
 
