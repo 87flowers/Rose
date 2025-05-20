@@ -154,6 +154,9 @@ namespace rose {
   auto Search::search(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32 {
     const bool is_in_check = position.isInCheck();
 
+    if (depth <= 0)
+      return quiesce<NodeT>(ctrl, position, pv, alpha, beta, ply);
+
     if (!NodeT::is_root && isMainThread() && ctrl.checkHardTermination(stats(), depth)) [[unlikely]] {
       requestStop();
       return 0;
@@ -162,8 +165,6 @@ namespace rose {
 
     if (const auto score = isDraw(position, is_in_check, ply))
       return *score;
-    if (depth <= 0)
-      return quiesce<NodeT>(ctrl, position, pv, alpha, beta, ply);
     if (ply >= max_search_ply) [[unlikely]]
       return is_in_check ? 0 : eval::hce(position);
 
