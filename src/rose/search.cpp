@@ -300,14 +300,18 @@ namespace rose {
       return static_eval;
     alpha = std::max(alpha, static_eval);
 
-    MovePicker moves{*this, position, Move::none()};
-    if (!is_in_check)
-      moves.skipQuiets();
-
     i32 best_score = static_eval;
     Move best_move = Move::none();
     tt::Bound tt_bound = tt::Bound::upper_bound;
     usize moves_searched = 0;
+
+    const auto tte = ttLoad(position, ply);
+    if (is_in_check || tte.move.capture())
+      best_move = tte.move;
+
+    MovePicker moves{*this, position, best_move};
+    if (!is_in_check)
+      moves.skipQuiets();
 
     for (Move m = moves.next(); m != Move::none(); m = moves.next()) {
       const Position child_position = position.move(m);
