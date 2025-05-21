@@ -155,7 +155,7 @@ namespace rose {
       better_count = 0;
       test = nextGuess(alpha, beta, moves.size());
 
-      MoveList new_candidates;
+      MoveList new_candidates{};
 
       for (const auto m : moves) {
         const Position child_position = position.move(m);
@@ -167,9 +167,8 @@ namespace rose {
         };
 
         Line child_pv{};
-        const i32 child_score = -search<nodetype::Pv>(ctrl, position, child_pv, -test, -test + 1, ply + 1, depth - 1);
+        const i32 child_score = -search<nodetype::Pv>(ctrl, child_position, child_pv, -test, -(test - 1), ply + 1, depth - 1);
         if (child_score >= test) {
-          pv.clear();
           pv.write(m, std::move(child_pv));
           new_candidates.push_back(m);
         }
