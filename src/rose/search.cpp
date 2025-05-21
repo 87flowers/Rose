@@ -184,7 +184,6 @@ namespace rose {
               return tte.score <= alpha;
             }
           }()) {
-        pv.write(tte.move);
         return tte.score;
       }
 
