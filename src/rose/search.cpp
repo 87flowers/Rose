@@ -192,7 +192,7 @@ namespace rose {
         const i32 static_eval = eval::hce(position);
 
         // Reverse futility pruning
-        if (depth <= tunable::rfp_max_depth && static_eval - tunable::rfp_margin * depth >= beta)
+        if (depth <= tunable::rfp_max_depth && static_eval - tunable::rfp_margin * depth >= beta && beta >= eval::min_normal_score)
           return static_eval;
       }
     }
