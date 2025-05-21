@@ -169,6 +169,14 @@ namespace rose {
     if (ply >= max_search_ply) [[unlikely]]
       return is_in_check ? 0 : eval::hce(position);
 
+    // Mate distance pruning
+    if constexpr (!NodeT::is_root) {
+      alpha = std::max(alpha, eval::mated(ply));
+      beta = std::min(beta, eval::mating(ply + 1));
+      if (alpha >= beta)
+        return alpha;
+    }
+
     const auto tte = ttLoad(position, ply);
 
     if constexpr (!NodeT::is_pv) {
