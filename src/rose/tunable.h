@@ -17,4 +17,7 @@ namespace rose::tunable {
   inline constexpr i32 rfp_max_depth = 6;
   inline constexpr i32 rfp_margin = 100;
 
+  inline constexpr i32 lmp_base = 3;
+  inline constexpr i32 lmp_scale = 1;
+
 } // namespace rose::tunable

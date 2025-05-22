@@ -266,6 +266,12 @@ namespace rose {
           }
         }
       }
+
+      if (!NodeT::is_pv && !is_in_check && best_score >= eval::min_normal_score) {
+        // Late move pruning
+        if (moves_searched >= tunable::lmp_base + depth * depth / tunable::lmp_scale)
+          moves.skipQuiets();
+      }
     }
 
     if (moves_searched == 0)
