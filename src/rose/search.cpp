@@ -30,19 +30,29 @@ namespace rose {
     struct Root {
       inline static constexpr bool is_root = true;
       inline static constexpr bool is_pv = true;
+      inline static constexpr bool is_nmr = false;
       using Next = Pv;
     };
 
     struct Pv {
       inline static constexpr bool is_root = false;
       inline static constexpr bool is_pv = true;
+      inline static constexpr bool is_nmr = false;
       using Next = Pv;
     };
 
     struct NonPv {
       inline static constexpr bool is_root = false;
       inline static constexpr bool is_pv = false;
+      inline static constexpr bool is_nmr = false;
       using Next = NonPv;
+    };
+
+    struct Nmred {
+      inline static constexpr bool is_root = false;
+      inline static constexpr bool is_pv = false;
+      inline static constexpr bool is_nmr = true;
+      using Next = Nmred;
     };
   } // namespace nodetype
 
@@ -201,6 +211,29 @@ namespace rose {
         // Reverse futility pruning
         if (depth <= tunable::rfp_max_depth && static_eval - tunable::rfp_margin * depth >= beta)
           return static_eval;
+
+        if (depth >= tunable::nmr_min_depth && static_eval >= beta) {
+          const i32 null_score = [&] {
+            const Position child_position = position.moveNull();
+            m_hash_stack.push_back(child_position.hash());
+            m_move_stack.push_back(Move::none());
+            rose_defer {
+              m_hash_stack.pop_back();
+              m_move_stack.pop_back();
+            };
+            const i32 reduction = tunable::nmr_zws_base;
+            Line child_pv{};
+            return -search<nodetype::NonPv>(ctrl, child_position, child_pv, -beta, -(beta - 1), ply, depth - reduction);
+          }();
+
+          if (null_score >= beta) {
+            if constexpr (NodeT::is_nmr)
+              return eval::isTheoretical(null_score) ? beta : null_score;
+
+            depth -= tunable::nmr_reduction_base;
+            return search<nodetype::Nmred>(ctrl, position, pv, alpha, beta, ply, depth);
+          }
+        }
       }
     }
 
