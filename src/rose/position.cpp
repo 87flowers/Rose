@@ -50,6 +50,17 @@ namespace rose {
     return false;
   }
 
+  auto Position::moveNull() const -> Position {
+    Position new_pos = *this;
+
+    new_pos.m_hash ^= hash::move;
+    new_pos.m_ply++;
+    new_pos.m_enpassant = Square::invalid();
+    new_pos.m_active_color = m_active_color.invert();
+
+    return new_pos;
+  }
+
   auto Position::move(Move m) const -> Position {
     Position new_pos = *this;
 
