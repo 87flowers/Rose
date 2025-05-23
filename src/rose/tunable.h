@@ -20,4 +20,7 @@ namespace rose::tunable {
   inline constexpr i32 lmp_base = 3;
   inline constexpr i32 lmp_scale = 1;
 
+  inline constexpr i32 nmp_min_depth = 4;
+  inline constexpr i32 nmp_zws_base = 3;
+
 } // namespace rose::tunable
