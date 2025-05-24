@@ -271,6 +271,8 @@ namespace rose {
       std::print("score cp {}\n", eval::hce(game.position()));
     } else if (cmd == "compiler") {
       uciParseCompiler(engine, game, it);
+    } else if (cmd == "wait") {
+      engine.isReady();
     } else if (cmd == "quit") {
       std::exit(0);
     } else {
