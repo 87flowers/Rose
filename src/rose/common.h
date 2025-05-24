@@ -108,6 +108,14 @@ namespace rose {
   };
   static_assert(sizeof(PieceType) == sizeof(u8));
 
+  struct PieceId {
+    u8 raw;
+
+    constexpr PieceId(u8 raw) : raw(raw) { rose_assert(raw < 0x10); }
+
+    constexpr auto toPieceMask() const -> u16 { return narrow_cast<u16>(1 << raw); }
+  };
+
   struct Place {
     enum Inner : u8 {
       empty = 0,
@@ -124,15 +132,14 @@ namespace rose {
     constexpr Place() = default;
     /* implicit */ constexpr Place(Inner raw) : raw(raw) {}
 
-    static constexpr auto fromColorAndPtypeAndId(Color color, PieceType pt, u8 id) -> Place {
-      rose_assert(id < 0x10);
-      return static_cast<Inner>(color.toMsb8() | (pt.raw << 4) | id);
+    static constexpr auto fromColorAndPtypeAndId(Color color, PieceType pt, PieceId id) -> Place {
+      return static_cast<Inner>(color.toMsb8() | (pt.raw << 4) | id.raw);
     }
 
     constexpr auto isEmpty() const -> bool { return raw == empty; }
     constexpr auto color() const -> Color { return static_cast<Color::Inner>((raw & black) != 0); }
     constexpr auto ptype() const -> PieceType { return static_cast<PieceType::Inner>((raw >> 4) & 0x7); }
-    constexpr auto id() const -> u8 { return raw & 0xF; }
+    constexpr auto id() const -> PieceId { return PieceId{narrow_cast<u8>(raw & 0xF)}; }
 
     constexpr auto toColorIndex() const -> usize { return color().toIndex(); }
     constexpr auto toPtypeIndex() const -> usize { return ptype().toIndex(); }
