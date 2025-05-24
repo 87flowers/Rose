@@ -25,6 +25,9 @@ namespace rose {
 
     auto dump() const -> void;
 
+    constexpr forceinline auto operator[](PieceId id) -> T & { return m[id.raw]; }
+    constexpr forceinline auto operator[](PieceId id) const -> T { return m[id.raw]; }
+
     constexpr auto operator==(const PieceList &other) const -> bool { return m == other.m; }
   };
 
@@ -114,10 +117,10 @@ namespace rose {
 
   private:
     template <bool update_to_silders = true, PieceType dest_ptype = PieceType::none>
-    forceinline auto movePiece(bool color, Square from, Square to, u8 id, PieceType ptype) -> void;
+    forceinline auto movePiece(bool color, Square from, Square to, PieceId id, PieceType ptype) -> void;
     forceinline auto incrementalSliderUpdate(Square sq) -> void;
-    forceinline auto removeAttacks(bool color, u8 id) -> void;
-    forceinline auto addAttacks(bool color, Square sq, u8 id, PieceType ptype) -> void;
+    forceinline auto removeAttacks(bool color, PieceId id) -> void;
+    forceinline auto addAttacks(bool color, Square sq, PieceId id, PieceType ptype) -> void;
   };
 
 } // namespace rose
