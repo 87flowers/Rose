@@ -190,6 +190,7 @@ namespace rose {
     const auto tte = ttLoad(position, ply);
 
     if constexpr (!NodeT::is_pv) {
+      // Transposition table pruning
       if (tte.depth >= depth && [&] {
             switch (tte.bound) {
             case tt::Bound::none:
@@ -212,6 +213,7 @@ namespace rose {
         if (depth <= tunable::rfp_max_depth && static_eval - tunable::rfp_margin * depth >= beta)
           return static_eval;
 
+        // Null move reductions
         if (depth >= tunable::nmr_min_depth && static_eval >= beta) {
           const i32 null_score = [&] {
             const Position child_position = position.moveNull();
@@ -255,6 +257,7 @@ namespace rose {
 
       Line child_pv{};
       const i32 child_score = [&] {
+        // Late move reductions
         if (moves_searched > tunable::lmr_move_threshold && depth > tunable::lmr_depth_threshold) {
           const int l2m = std::bit_width(moves_searched);
           const int l2d = std::bit_width(static_cast<u32>(depth)) + !NodeT::is_pv;
@@ -267,12 +270,14 @@ namespace rose {
           }
         }
 
+        // PVS scout search
         if (NodeT::is_pv && moves_searched > 0) {
           const i32 scout_score = -search<nodetype::NonPv>(ctrl, child_position, child_pv, -(alpha + 1), -alpha, ply + 1, depth - 1);
           if (scout_score <= alpha)
             return scout_score;
         }
 
+        // PVS full-window search
         return -search<typename NodeT::Next>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, depth - 1);
       }();
 
@@ -310,6 +315,7 @@ namespace rose {
     if (moves_searched == 0)
       return is_in_check ? eval::mated(ply) : 0;
 
+    // Update histories
     if (best_score >= beta && !best_move.capture()) {
       m_history.updateQuietHistory(+1, best_move, depth);
 
@@ -342,6 +348,7 @@ namespace rose {
 
     const i32 static_eval = is_in_check ? eval::no_moves : eval::hce(position);
 
+    // Stand pat
     if (static_eval >= beta)
       return static_eval;
     alpha = std::max(alpha, static_eval);
