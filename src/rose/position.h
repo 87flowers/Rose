@@ -9,6 +9,7 @@
 #include "rose/byteboard.h"
 #include "rose/common.h"
 #include "rose/config.h"
+#include "rose/line.h"
 #include "rose/move.h"
 #include "rose/square.h"
 #include "rose/util/tokenizer.h"
@@ -213,5 +214,27 @@ template <> struct std::formatter<rose::PrintWithPosition<rose::Move>, char> {
       return std::format_to(ctx.out(), "{}{}{}", from, m.to(), m.ptype());
     else
       return std::format_to(ctx.out(), "{}{}", from, m.to());
+  }
+};
+
+template <> struct std::formatter<rose::PrintWithPosition<rose::Line>, char> {
+  template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
+
+  template <class FmtContext> auto format(rose::PrintWithPosition<rose::Line> pwp, FmtContext &ctx) const -> FmtContext::iterator {
+    using namespace rose;
+
+    const Line &line = pwp.value;
+    Position position = pwp.position;
+    auto iter = line.pv.begin();
+    if (iter != line.pv.end()) {
+      ctx.advance_to(std::format_to(ctx.out(), "{}", PrintWithPosition{position, *iter}));
+      position = position.move(*iter);
+      ++iter;
+      for (; iter != line.pv.end(); ++iter) {
+        ctx.advance_to(std::format_to(ctx.out(), " {}", PrintWithPosition{position, *iter}));
+        position = position.move(*iter);
+      }
+    }
+    return ctx.out();
   }
 };

@@ -105,7 +105,7 @@ namespace rose {
       const time::Milliseconds elapsed_ms = time::cast<time::Milliseconds>(elapsed);
       const u64 nps = time::nps<u64>(nodes, elapsed);
       std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", depth, score, elapsed_ms.count(), nodes, nps,
-                 PrintWithPosition{m_root, pv.pv[0]});
+                 PrintWithPosition{m_root, pv});
     };
 
     Line last_pv;

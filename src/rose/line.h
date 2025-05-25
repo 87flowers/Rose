@@ -3,6 +3,7 @@
 #include <format>
 
 #include "rose/common.h"
+#include "rose/move.h"
 #include "rose/util/static_vector.h"
 
 namespace rose {
@@ -25,19 +26,3 @@ namespace rose {
   };
 
 } // namespace rose
-
-template <> struct std::formatter<rose::Line, char> {
-  template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
-
-  template <class FmtContext> auto format(const rose::Line &line, FmtContext &ctx) const -> FmtContext::iterator {
-    auto iter = line.pv.begin();
-    if (iter != line.pv.end()) {
-      ctx.advance_to(std::format_to(ctx.out(), "{}", *iter));
-      ++iter;
-      for (; iter != line.pv.end(); ++iter) {
-        ctx.advance_to(std::format_to(ctx.out(), " {}", *iter));
-      }
-    }
-    return ctx.out();
-  }
-};
