@@ -34,12 +34,12 @@ namespace rose {
   };
 
   struct Move {
-    u16 raw = 0;
+    u16 raw = 0xA << move_flags_shift;
 
     constexpr Move() = default;
     explicit constexpr Move(u16 raw) : raw(raw) {}
 
-    static constexpr Move none() { return Move{0}; };
+    static constexpr Move none() { return Move{0xA << move_flags_shift}; };
 
     static constexpr auto make(PieceId id, Square to, MoveFlags flags) -> Move {
       rose_assert(to.isValid());

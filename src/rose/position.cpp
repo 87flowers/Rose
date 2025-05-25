@@ -51,6 +51,9 @@ namespace rose {
   }
 
   auto Position::isPseudoLegal(Move m) const -> bool {
+    if (m == Move::none())
+      return false;
+
     const PieceType ptype = m_piece_list_ptype[m_active_color.toIndex()][m.id()];
     const Square from = m_piece_list_sq[m_active_color.toIndex()][m.id()];
 
@@ -58,21 +61,22 @@ namespace rose {
       return false;
 
     const u16 pmask = 1 << m.id().raw;
-    const bool valid_attack = (m_attack_table[m_active_color.toIndex()].r[from.raw] & pmask) != 0;
+    const bool valid_attack = (m_attack_table[m_active_color.toIndex()].r[m.to().raw] & pmask) != 0;
+    const bool to_is_empty = m_board.m[m.to().raw].isEmpty();
 
     switch (m.flags()) {
     case MoveFlags::normal:
       if (ptype == PieceType::p) {
         switch (m_active_color.raw) {
         case Color::white:
-          return from.file() == m.to().file() && m.to().rank() - from.rank() == 8;
+          return to_is_empty && from.file() == m.to().file() && m.to().raw - from.raw == 8;
         case Color::black:
-          return from.file() == m.to().file() && from.rank() - m.to().rank() == 8;
+          return to_is_empty && from.file() == m.to().file() && from.raw - m.to().raw == 8;
         }
       }
-      return valid_attack;
+      return to_is_empty && valid_attack;
     case MoveFlags::double_push:
-      return ptype == PieceType::p && from.rank() == m_active_color.toRelativeRank(1) && from.file() == m.to().file();
+      return to_is_empty && ptype == PieceType::p && from.rank() == m_active_color.toRelativeRank(1) && from.file() == m.to().file();
     case MoveFlags::castle_aside:
       return m_rook_info[m_active_color.toIndex()].aside == m.to();
     case MoveFlags::castle_hside:
@@ -81,15 +85,18 @@ namespace rose {
     case MoveFlags::promo_n:
     case MoveFlags::promo_r:
     case MoveFlags::promo_b:
-      return ptype == PieceType::p && from.rank() == m_active_color.toRelativeRank(6) && from.file() == m.to().file();
+      return to_is_empty && ptype == PieceType::p && from.rank() == m_active_color.toRelativeRank(6) && from.file() == m.to().file();
     case MoveFlags::cap_normal:
+      return !to_is_empty && valid_attack;
     case MoveFlags::enpassant:
-      return ptype == PieceType::p && from.rank() == m_active_color.toRelativeRank(4) && m.to() == m_enpassant && valid_attack;
+      return to_is_empty && ptype == PieceType::p && m.to() == m_enpassant && valid_attack;
     case MoveFlags::cap_promo_q:
     case MoveFlags::cap_promo_n:
     case MoveFlags::cap_promo_r:
     case MoveFlags::cap_promo_b:
-      return ptype == PieceType::p && from.rank() == m_active_color.toRelativeRank(6) && valid_attack;
+      return !to_is_empty && ptype == PieceType::p && from.rank() == m_active_color.toRelativeRank(6) && valid_attack;
+    default:
+      return false;
     }
   }
 
@@ -98,6 +105,8 @@ namespace rose {
 
     new_pos.m_hash ^= hash::move;
     new_pos.m_ply++;
+    if (m_enpassant.isValid())
+      new_pos.m_hash ^= hash::enpassant_table[m_enpassant.file()];
     new_pos.m_enpassant = Square::invalid();
     new_pos.m_active_color = m_active_color.invert();
 
@@ -295,8 +304,10 @@ namespace rose {
     new_pos.m_active_color = m_active_color.invert();
     new_pos.m_hash ^= hash::move;
 
-    rose_assert(new_pos.m_hash == new_pos.calcHashSlow(), "{} [{:016x}] : {} : {} [{:016x} {:016x}]", *this, m_hash, PrintWithPosition{*this, m},
-                new_pos, new_pos.m_hash, new_pos.calcHashSlow());
+    rose_assert(m_hash == calcHashSlow(), "{} [{:016x} {:016x} {:016x}] {:02x}", *this, m_hash, calcHashSlow(), m_hash ^ calcHashSlow(),
+                m_enpassant.raw);
+    rose_assert(new_pos.m_hash == new_pos.calcHashSlow(), "{} [{:016x}] : {} : {} [{:016x} {:016x} {:016x}]", *this, m_hash,
+                PrintWithPosition{*this, m}, new_pos, new_pos.m_hash, new_pos.calcHashSlow(), new_pos.m_hash ^ new_pos.calcHashSlow());
     rose_assert(new_pos.m_attack_table == new_pos.calcAttacksSlow());
 
     return new_pos;

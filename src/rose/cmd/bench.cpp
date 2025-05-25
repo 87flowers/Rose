@@ -10,7 +10,7 @@
 
 namespace rose::bench {
 
-  static constexpr int bench_depth = 12;
+  static constexpr int bench_depth = 15;
   static constexpr std::array<std::string_view, 40> bench_fens{{
       "1k1r2r1/pp3p2/3p4/1b2q3/3QP1pp/8/PB3PPP/2R1R1K1 w - - 0 1",
       "1R6/5pk1/4r3/5pPp/1p6/8/1PK5/8 b - - 0 1",
