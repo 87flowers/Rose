@@ -104,7 +104,8 @@ namespace rose {
       const time::Duration elapsed = ctrl.elapsed();
       const time::Milliseconds elapsed_ms = time::cast<time::Milliseconds>(elapsed);
       const u64 nps = time::nps<u64>(nodes, elapsed);
-      std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", depth, score, elapsed_ms.count(), nodes, nps, pv);
+      std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", depth, score, elapsed_ms.count(), nodes, nps,
+                 PrintWithPosition{m_root, pv.pv[0]});
     };
 
     Line last_pv;
@@ -133,7 +134,7 @@ namespace rose {
 
     if (isMainThread()) {
       print_info(last_depth, last_score, last_pv);
-      std::print("bestmove {}\n", last_pv.pv[0]);
+      std::print("bestmove {}\n", PrintWithPosition{m_root, last_pv.pv[0]});
       std::fflush(stdout);
     }
   }

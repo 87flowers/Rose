@@ -123,6 +123,11 @@ namespace rose {
     forceinline auto addAttacks(bool color, Square sq, PieceId id, PieceType ptype) -> void;
   };
 
+  template <typename T> struct PrintWithPosition {
+    const Position &position;
+    const T &value;
+  };
+
 } // namespace rose
 
 template <> struct std::formatter<rose::Position, char> {
@@ -189,5 +194,23 @@ template <> struct std::formatter<rose::Position, char> {
     }
 
     return std::format_to(ctx.out(), "{} {}", position.m_50mr, position.m_ply / 2 + 1);
+  }
+};
+
+template <> struct std::formatter<rose::PrintWithPosition<rose::Move>, char> {
+  template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
+
+  template <class FmtContext> auto format(rose::PrintWithPosition<rose::Move> pwp, FmtContext &ctx) const -> FmtContext::iterator {
+    using namespace rose;
+
+    const Move m = pwp.value;
+    if (!config::frc && m.flags() == MoveFlags::castle_aside && m.from().file() == 4 && m.to().file() == 0)
+      return std::format_to(ctx.out(), "{}c{}", m.from(), static_cast<char>(m.to().rank() + '1'));
+    if (!config::frc && m.flags() == MoveFlags::castle_hside && m.from().file() == 4 && m.to().file() == 7)
+      return std::format_to(ctx.out(), "{}g{}", m.from(), static_cast<char>(m.to().rank() + '1'));
+    if (m.promo())
+      return std::format_to(ctx.out(), "{}{}{}", m.from(), m.to(), m.ptype());
+    else
+      return std::format_to(ctx.out(), "{}{}", m.from(), m.to());
   }
 };

@@ -27,7 +27,7 @@ namespace rose::perft {
       const Position new_position = position.move(m);
       const u64 child = core<false>(movegen_precomp, new_position, depth - 1);
       if constexpr (print) {
-        std::print("{}: {}\n", m, child);
+        std::print("{}: {}\n", PrintWithPosition{position, m}, child);
       }
       result += child;
     }

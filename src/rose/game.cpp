@@ -14,8 +14,8 @@ namespace rose {
     }
     if (m_move_stack.size() > 0) {
       std::print(" moves");
-      for (const Move m : m_move_stack) {
-        std::print(" {}", m);
+      for (int i = 0; i < m_move_stack.size(); i++) {
+        std::print(" {}", PrintWithPosition{m_position_stack[i], m_move_stack[i]});
       }
     }
     std::print("\n");
