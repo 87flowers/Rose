@@ -88,6 +88,7 @@ namespace rose::bench {
     std::print("nodes: {} nodes\n", nodes_total);
     std::print("time:  {} milliseconds\n", time::cast<time::Milliseconds>(elapsed).count());
     std::print("nps:   {} nps\n", time::nps<u64>(nodes_total, elapsed));
+    std::fflush(stdout);
   }
 
 } // namespace rose::bench
