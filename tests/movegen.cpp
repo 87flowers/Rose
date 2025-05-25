@@ -36,7 +36,7 @@ auto doubleCheck() -> void {
     std::unordered_set<Move> got_moves;
     for (const auto m : got_movelist) {
       got_moves.insert(m);
-      std::print("{}\n", m);
+      std::print("{}\n", PrintWithPosition{position, m});
     }
 
     rose_assert(got_moves == should_moves);

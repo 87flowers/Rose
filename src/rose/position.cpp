@@ -295,8 +295,8 @@ namespace rose {
     new_pos.m_active_color = m_active_color.invert();
     new_pos.m_hash ^= hash::move;
 
-    rose_assert(new_pos.m_hash == new_pos.calcHashSlow(), "{} [{:016x}] : {} : {} [{:016x} {:016x}]", *this, m_hash, m, new_pos, new_pos.m_hash,
-                new_pos.calcHashSlow());
+    rose_assert(new_pos.m_hash == new_pos.calcHashSlow(), "{} [{:016x}] : {} : {} [{:016x} {:016x}]", *this, m_hash, PrintWithPosition{*this, m},
+                new_pos, new_pos.m_hash, new_pos.calcHashSlow());
     rose_assert(new_pos.m_attack_table == new_pos.calcAttacksSlow());
 
     return new_pos;
