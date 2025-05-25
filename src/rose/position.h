@@ -64,7 +64,7 @@ namespace rose {
     u16 m_ply{};
     Color m_active_color{};
     Square m_enpassant = Square::invalid();
-    std::array<RookInfo, 2> m_rook_info;
+    std::array<RookInfo, 2> m_rook_info{};
 
   public:
     static auto startpos() -> Position;
@@ -87,6 +87,8 @@ namespace rose {
     auto isInCheck() const -> bool { return attackTable(m_active_color.invert()).r[kingSq(m_active_color).raw] != 0; }
 
     auto isRepetition(const std::vector<u64> &hash_stack, usize hash_waterline) const -> bool;
+
+    auto isPseudoLegal(Move m) const -> bool;
 
     auto moveNull() const -> Position;
     auto move(Move m) const -> Position;

@@ -50,6 +50,49 @@ namespace rose {
     return false;
   }
 
+  auto Position::isPseudoLegal(Move m) const -> bool {
+    const PieceType ptype = m_piece_list_ptype[m_active_color.toIndex()][m.id()];
+    const Square from = m_piece_list_sq[m_active_color.toIndex()][m.id()];
+
+    if (ptype == PieceType::none || !from.isValid())
+      return false;
+
+    const u16 pmask = 1 << m.id().raw;
+    const bool valid_attack = (m_attack_table[m_active_color.toIndex()].r[from.raw] & pmask) != 0;
+
+    switch (m.flags()) {
+    case MoveFlags::normal:
+      if (ptype == PieceType::p) {
+        switch (m_active_color.raw) {
+        case Color::white:
+          return from.file() == m.to().file() && m.to().rank() - from.rank() == 8;
+        case Color::black:
+          return from.file() == m.to().file() && from.rank() - m.to().rank() == 8;
+        }
+      }
+      return valid_attack;
+    case MoveFlags::double_push:
+      return ptype == PieceType::p && from.rank() == m_active_color.toRelativeRank(1) && from.file() == m.to().file();
+    case MoveFlags::castle_aside:
+      return m_rook_info[m_active_color.toIndex()].aside == m.to();
+    case MoveFlags::castle_hside:
+      return m_rook_info[m_active_color.toIndex()].hside == m.to();
+    case MoveFlags::promo_q:
+    case MoveFlags::promo_n:
+    case MoveFlags::promo_r:
+    case MoveFlags::promo_b:
+      return ptype == PieceType::p && from.rank() == m_active_color.toRelativeRank(6) && from.file() == m.to().file();
+    case MoveFlags::cap_normal:
+    case MoveFlags::enpassant:
+      return ptype == PieceType::p && from.rank() == m_active_color.toRelativeRank(4) && m.to() == m_enpassant && valid_attack;
+    case MoveFlags::cap_promo_q:
+    case MoveFlags::cap_promo_n:
+    case MoveFlags::cap_promo_r:
+    case MoveFlags::cap_promo_b:
+      return ptype == PieceType::p && from.rank() == m_active_color.toRelativeRank(6) && valid_attack;
+    }
+  }
+
   auto Position::moveNull() const -> Position {
     Position new_pos = *this;
 

@@ -39,6 +39,7 @@ namespace rose {
 
     constexpr auto invert() const -> Color { return static_cast<Inner>(!raw); }
     constexpr auto toBackRank() const -> u8 { return raw == white ? 0 : 7; }
+    constexpr auto toRelativeRank(usize rank) const -> u8 { return raw == white ? rank : 7 - rank; }
     constexpr auto toIndex() const -> usize { return static_cast<usize>(raw); }
     constexpr auto toMsb8() const -> u8 { return raw == white ? 0 : 0x80; }
     constexpr auto toBitboard() const -> u64 { return static_cast<u64>(-static_cast<i64>(raw)); }

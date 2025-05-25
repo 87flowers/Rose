@@ -240,12 +240,12 @@ namespace rose {
       }
     }
 
-    MovePicker moves{*this, position, tte.move};
-
     i32 best_score = eval::no_moves;
-    Move best_move = tte.move;
+    Move best_move = position.isPseudoLegal(tte.move) ? tte.move : Move::none();
     tt::Bound tt_bound = tt::Bound::upper_bound;
     usize moves_searched = 0;
+
+    MovePicker moves{*this, position, best_move};
 
     for (Move m = moves.next(); m != Move::none(); m = moves.next()) {
       const Position child_position = position.move(m);
