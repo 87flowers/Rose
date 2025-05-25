@@ -58,6 +58,9 @@ namespace rose {
     new_pos.m_enpassant = Square::invalid();
     new_pos.m_active_color = m_active_color.invert();
 
+    if (m_enpassant.isValid())
+      new_pos.m_hash ^= hash::enpassant_table[m_enpassant.file()];
+
     return new_pos;
   }
 
