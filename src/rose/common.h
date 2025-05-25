@@ -113,6 +113,8 @@ namespace rose {
 
     constexpr PieceId(u8 raw) : raw(raw) { rose_assert(raw < 0x10); }
 
+    static constexpr auto king() -> PieceId { return {0}; }
+
     constexpr auto toPieceMask() const -> u16 { return narrow_cast<u16>(1 << raw); }
   };
 

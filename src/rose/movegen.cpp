@@ -16,6 +16,14 @@
 
 namespace rose {
 
+  inline constexpr auto allPieceIds(MoveFlags mf_) -> v256 {
+    const u16 mf = static_cast<u16>(mf_);
+    return v256{std::array<u16, 16>{static_cast<u16>(0 | mf), static_cast<u16>(1 | mf), static_cast<u16>(2 | mf), static_cast<u16>(3 | mf),
+                                    static_cast<u16>(4 | mf), static_cast<u16>(5 | mf), static_cast<u16>(6 | mf), static_cast<u16>(7 | mf),
+                                    static_cast<u16>(8 | mf), static_cast<u16>(9 | mf), static_cast<u16>(10 | mf), static_cast<u16>(11 | mf),
+                                    static_cast<u16>(12 | mf), static_cast<u16>(13 | mf), static_cast<u16>(14 | mf), static_cast<u16>(15 | mf)}};
+  }
+
   template <typename T> auto MoveList::write(typename T::Mask16 mask, T v) -> void {
     const usize count = std::popcount(mask);
     rose_assert(len + count < capacity());
@@ -123,26 +131,26 @@ namespace rose {
     return {{at_mask0, at_mask1}, pinned_bb};
   }
 
-  auto MoveGen::generateSubsetNorm(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void {
+  auto MoveGen::generateSubsetNorm(MoveList &moves, const Wordboard &attack_table, u64 bitboard, u16 piecemask) -> void {
     const Color active_color = m_position.activeColor();
     for (; bitboard != 0; bitboard &= bitboard - 1) {
       const Square sq{narrow_cast<u8>(std::countr_zero(bitboard))};
       const u16 mask = piecemask & attack_table.r[sq.raw];
       if (mask) {
-        const v256 dest = v256::broadcast16(static_cast<u16>(sq.raw) << 6);
-        moves.write(mask, srcs | dest);
+        const v256 dest = v256::broadcast16(static_cast<u64>(sq.raw) << 4);
+        moves.write(mask, allPieceIds(MoveFlags::normal) | dest);
       }
     }
   }
 
-  auto MoveGen::generateSubsetCaps(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void {
+  auto MoveGen::generateSubsetCaps(MoveList &moves, const Wordboard &attack_table, u64 bitboard, u16 piecemask) -> void {
     const Color active_color = m_position.activeColor();
     for (; bitboard != 0; bitboard &= bitboard - 1) {
       const Square sq{narrow_cast<u8>(std::countr_zero(bitboard))};
       const u16 mask = piecemask & attack_table.r[sq.raw];
       if (mask) {
-        const v256 dest = v256::broadcast16(static_cast<u16>(MoveFlags::cap_normal) | (static_cast<u16>(sq.raw) << 6));
-        moves.write(mask, srcs | dest);
+        const v256 dest = v256::broadcast16(static_cast<u64>(sq.raw) << 4);
+        moves.write(mask, allPieceIds(MoveFlags::cap_normal) | dest);
       }
     }
   }
@@ -153,9 +161,8 @@ namespace rose {
       const Square sq{narrow_cast<u8>(std::countr_zero(bitboard))};
       u16 mask = piecemask & attack_table.r[sq.raw];
       for (; mask != 0; mask &= mask - 1) {
-        const int pindex = std::countr_zero(mask);
-        const Square src = m_position.pieceListSq(active_color).m[pindex];
-        const u16 base_move = (static_cast<u16>(sq.raw) << 6) | src.raw;
+        const int id = std::countr_zero(mask);
+        const u16 base_move = static_cast<u16>(sq.raw << 4) | id;
         constexpr u64 promos = static_cast<u64>(MoveFlags::cap_promo_q) | (static_cast<u64>(MoveFlags::cap_promo_n) << 16) |
                                (static_cast<u64>(MoveFlags::cap_promo_r) << 32) | (static_cast<u64>(MoveFlags::cap_promo_b) << 48);
         moves.write4(promos + 0x0001000100010001 * base_move);
@@ -184,10 +191,8 @@ namespace rose {
 
     const auto pawn_info = pawns::pawnShifts(active_color);
 
-    const v256 srcs = vec::zext8to16(position.pieceListSq(active_color).x);
-
     // Unprotected captures
-    generateSubsetCaps(moves, attack_table, srcs, active & enemy & ~danger, valid_plist & ~pawn_mask);
+    generateSubsetCaps(moves, attack_table, active & enemy & ~danger, valid_plist & ~pawn_mask);
     // Capture-with-promotion
     generateSubsetPCap(moves, attack_table, active & enemy & pawn_info.promo_zone, pawn_mask);
     // Enpassant
@@ -211,15 +216,15 @@ namespace rose {
               }
               return true;
             }()) {
-          const v256 dest = v256::broadcast16(static_cast<u16>(MoveFlags::enpassant) | (static_cast<u16>(sq.raw) << 6));
-          moves.write(mask, srcs | dest);
+          const v256 dest = v256::broadcast16(static_cast<u16>(sq.raw) << 4);
+          moves.write(mask, allPieceIds(MoveFlags::enpassant) | dest);
         }
       }
     }
     // Pawn captures
-    generateSubsetCaps(moves, attack_table, srcs, active & enemy & pawn_info.non_promo_dest, pawn_mask);
+    generateSubsetCaps(moves, attack_table, active & enemy & pawn_info.non_promo_dest, pawn_mask);
     // Protected captures
-    generateSubsetCaps(moves, attack_table, srcs, active & enemy & danger, valid_plist & ~pawn_mask & ~king_mask);
+    generateSubsetCaps(moves, attack_table, active & enemy & danger, valid_plist & ~pawn_mask & ~king_mask);
     // Castling
     if constexpr (king_moves) {
 #define IS_CLEAR(bb, x) ((~(bb) & m_precomp_info.x[active_color.toIndex()]) == 0)
@@ -230,7 +235,7 @@ namespace rose {
         const u64 rook_bb = static_cast<u64>(1) << rook_info.aside.raw;
         const u64 clear = empty | king_bb | rook_bb;
         if (IS_CLEAR(clear, aside_rook) && IS_CLEAR(~danger & clear, aside_king) && !(rook_bb & pinned_bb)) {
-          moves.push_back(Move::make(king_sq, rook_info.aside, MoveFlags::castle_aside));
+          moves.push_back(Move::make(PieceId::king(), rook_info.aside, MoveFlags::castle_aside));
         }
       }
       if (rook_info.hside.isValid()) {
@@ -238,43 +243,47 @@ namespace rose {
         const u64 rook_bb = static_cast<u64>(1) << rook_info.hside.raw;
         const u64 clear = empty | king_bb | rook_bb;
         if (IS_CLEAR(clear, hside_rook) && IS_CLEAR(~danger & clear, hside_king) && !(rook_bb & pinned_bb)) {
-          moves.push_back(Move::make(king_sq, rook_info.hside, MoveFlags::castle_hside));
+          moves.push_back(Move::make(PieceId::king(), rook_info.hside, MoveFlags::castle_hside));
         }
       }
 #undef IS_CLEAR
     }
     // Unprotected non-pawn quiets
-    generateSubsetNorm(moves, attack_table, srcs, active & empty & ~danger, valid_plist & ~pawn_mask);
+    generateSubsetNorm(moves, attack_table, active & empty & ~danger, valid_plist & ~pawn_mask);
     // Protected non-pawn quiets
-    generateSubsetNorm(moves, attack_table, srcs, active & empty & danger, valid_plist & ~pawn_mask & ~king_mask);
+    generateSubsetNorm(moves, attack_table, active & empty & danger, valid_plist & ~pawn_mask & ~king_mask);
     // Do pawns
     {
       const u64 pinned_pawns = pinned_bb & ~(0x0101010101010101 << king_sq.file());
 
       const u64 bb = position.board().bitboardFor<PieceType::p>(active_color) & ~pinned_pawns;
       const auto pawn_empty = pawns::pawnDestinationEmpty(active_color, empty, valid_destinations);
-      const auto pawn_moves = pawns::pawnMoves(active_color);
 
       const u64 pawn_normal = bb & pawn_empty.normal_move;
       const u64 pawn_double = bb & pawn_empty.double_move;
 
+      const v512 ids = position.board().z & v512::broadcast8(0xF);
+
       // Promotions
       {
         const u8 mask = static_cast<u8>(pawn_normal >> pawn_info.promotable_shift);
-        moves.write4(mask, pawn_moves.promotions);
+        if (mask)
+          moves.write4(mask, pawns::promotions(active_color, ids));
       }
       // Relative rank 3-6
       {
         constexpr int normal_shift = 16;
         const u32 mask = static_cast<u32>(pawn_normal >> normal_shift);
-        moves.write(mask, pawn_moves.normal_moves);
+        if (mask)
+          moves.write(mask, pawns::normalMoves(active_color, ids));
       }
       // Relative rank 2
       {
         const u8 normal_mask = static_cast<u8>(pawn_normal >> pawn_info.second_rank_shift);
         const u8 double_mask = static_cast<u8>(pawn_double >> pawn_info.second_rank_shift);
         const u16 mask = (static_cast<u16>(double_mask) << 8) | normal_mask;
-        moves.write(mask, pawn_moves.double_moves);
+        if (mask)
+          moves.write(mask, pawns::doubleMoves(active_color, ids));
       }
     }
   }
@@ -352,8 +361,7 @@ namespace rose {
 
     destinations &= ~additional_checks;
 
-    const v128 write_vector = vec::shl16(king_leaps16, 6) | v128::broadcast16(king_sq.raw) |
-                              vec::mask16(occupied, v128::broadcast16(static_cast<u16>(MoveFlags::cap_normal)));
+    const v128 write_vector = vec::shl16(king_leaps16, 4) | vec::mask16(occupied, v128::broadcast16(static_cast<u16>(MoveFlags::cap_normal)));
     moves.write(destinations, write_vector);
   }
 

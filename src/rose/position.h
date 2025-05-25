@@ -204,13 +204,14 @@ template <> struct std::formatter<rose::PrintWithPosition<rose::Move>, char> {
     using namespace rose;
 
     const Move m = pwp.value;
-    if (!config::frc && m.flags() == MoveFlags::castle_aside && m.from().file() == 4 && m.to().file() == 0)
-      return std::format_to(ctx.out(), "{}c{}", m.from(), static_cast<char>(m.to().rank() + '1'));
-    if (!config::frc && m.flags() == MoveFlags::castle_hside && m.from().file() == 4 && m.to().file() == 7)
-      return std::format_to(ctx.out(), "{}g{}", m.from(), static_cast<char>(m.to().rank() + '1'));
+    const Square from = m.from(pwp.position);
+    if (!config::frc && m.flags() == MoveFlags::castle_aside && from.file() == 4 && m.to().file() == 0)
+      return std::format_to(ctx.out(), "{}c{}", from, static_cast<char>(m.to().rank() + '1'));
+    if (!config::frc && m.flags() == MoveFlags::castle_hside && from.file() == 4 && m.to().file() == 7)
+      return std::format_to(ctx.out(), "{}g{}", from, static_cast<char>(m.to().rank() + '1'));
     if (m.promo())
-      return std::format_to(ctx.out(), "{}{}{}", m.from(), m.to(), m.ptype());
+      return std::format_to(ctx.out(), "{}{}{}", from, m.to(), m.ptype());
     else
-      return std::format_to(ctx.out(), "{}{}", m.from(), m.to());
+      return std::format_to(ctx.out(), "{}{}", from, m.to());
   }
 };

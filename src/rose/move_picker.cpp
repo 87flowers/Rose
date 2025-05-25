@@ -79,13 +79,14 @@ namespace rose {
 
   auto MovePicker::sortNoisy() -> void {
     const std::array<Place, 64> &board = m_position.board().m;
+    const PieceList<PieceType> &piece_list = m_position.pieceListType(m_position.activeColor());
 
     StaticVector<i32, max_legal_moves> noisy_scores;
     noisy_scores.resize(m_noisy.size());
 
     for (isize i = 0; i < m_noisy.size(); i++) {
       const Move m = m_noisy[i];
-      const PieceType src_ptype = board[m.from().raw].ptype();
+      const PieceType src_ptype = piece_list[m.id()];
       const PieceType dst_ptype = board[m.to().raw].ptype();
       noisy_scores[i] = (dst_ptype.toSortValue() * 16 - src_ptype.toSortValue()) * 1024 - i;
     }
@@ -99,7 +100,7 @@ namespace rose {
 
     for (isize i = 0; i < m_quiet.size(); i++) {
       const Move m = m_quiet[i];
-      quiet_scores[i] = m_search.m_history.getHistory(m) * 1024 - i;
+      quiet_scores[i] = m_search.m_history.getHistory(m_position, m) * 1024 - i;
     }
 
     std::ranges::sort(std::ranges::zip_view(m_quiet, quiet_scores), [](auto &&a, auto &&b) { return std::get<1>(a) > std::get<1>(b); });

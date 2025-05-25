@@ -14,21 +14,23 @@ namespace rose {
   // forward declaration
   struct Position;
 
+  inline constexpr int move_flags_shift = 10;
+
   enum class MoveFlags : u16 {
-    normal = 0x0000,
-    double_push = 0x1000,
-    castle_aside = 0x2000, // classical: queen-side
-    castle_hside = 0x3000, // classical: king-side
-    promo_q = 0x4000,
-    promo_n = 0x5000,
-    promo_r = 0x6000,
-    promo_b = 0x7000,
-    cap_normal = 0x8000,
-    enpassant = 0x9000,
-    cap_promo_q = 0xC000,
-    cap_promo_n = 0xD000,
-    cap_promo_r = 0xE000,
-    cap_promo_b = 0xF000,
+    normal = 0x0 << move_flags_shift,
+    double_push = 0x1 << move_flags_shift,
+    castle_aside = 0x2 << move_flags_shift, // classical: queen-side
+    castle_hside = 0x3 << move_flags_shift, // classical: king-side
+    promo_q = 0x4 << move_flags_shift,
+    promo_n = 0x5 << move_flags_shift,
+    promo_r = 0x6 << move_flags_shift,
+    promo_b = 0x7 << move_flags_shift,
+    cap_normal = 0x8 << move_flags_shift,
+    enpassant = 0x9 << move_flags_shift,
+    cap_promo_q = 0xC << move_flags_shift,
+    cap_promo_n = 0xD << move_flags_shift,
+    cap_promo_r = 0xE << move_flags_shift,
+    cap_promo_b = 0xF << move_flags_shift,
   };
 
   struct Move {
@@ -39,26 +41,28 @@ namespace rose {
 
     static constexpr Move none() { return Move{0}; };
 
-    static constexpr auto make(Square from, Square to, MoveFlags flags) -> Move {
-      rose_assert(from.isValid() && to.isValid());
+    static constexpr auto make(PieceId id, Square to, MoveFlags flags) -> Move {
+      rose_assert(to.isValid());
 
       u16 result = 0;
-      result |= from.raw;
-      result |= static_cast<u16>(to.raw) << 6;
+      result |= static_cast<u16>(to.raw) << 4;
+      result |= id.raw;
       result |= static_cast<u16>(flags);
       return Move{result};
     }
 
-    constexpr auto from() const -> Square { return Square{static_cast<u8>(raw & 0x3F)}; }
-    constexpr auto to() const -> Square { return Square{static_cast<u8>((raw >> 6) & 0x3F)}; }
-    constexpr auto promo() const -> bool { return raw & 0x4000; }
-    constexpr auto capture() const -> bool { return raw & 0x8000; }
+    constexpr auto to() const -> Square { return {static_cast<u8>((raw >> 4) & 0x3F)}; }
+    constexpr auto id() const -> PieceId { return {static_cast<u8>(raw & 0xF)}; }
+    constexpr auto promo() const -> bool { return raw & (0x4 << move_flags_shift); }
+    constexpr auto capture() const -> bool { return raw & (0x8 << move_flags_shift); }
     constexpr auto ptype() const -> PieceType {
       rose_assert(promo());
       constexpr std::array<PieceType, 4> lut{PieceType::q, PieceType::n, PieceType::r, PieceType::b};
-      return lut[(raw & 0x3000) >> 12];
+      return lut[(raw >> move_flags_shift) & 0x3];
     }
-    constexpr auto flags() const -> MoveFlags { return static_cast<MoveFlags>(raw & 0xF000); }
+    constexpr auto flags() const -> MoveFlags { return static_cast<MoveFlags>(raw & (0xF << move_flags_shift)); }
+
+    auto from(const Position &context) const -> Square;
 
     static auto parse(std::string_view str, const Position &context) -> std::expected<Move, ParseError>;
 

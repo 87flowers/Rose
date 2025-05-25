@@ -64,11 +64,11 @@ namespace rose {
   auto Position::move(Move m) const -> Position {
     Position new_pos = *this;
 
-    const Square from = m.from();
+    const Square from = m.from(*this);
     const Square to = m.to();
     const Place src_place = m_board.m[from.raw];
     const Place dest_place = m_board.m[to.raw];
-    const PieceId src_id = src_place.id();
+    const PieceId src_id = m.id();
     const PieceId dest_id = dest_place.id();
     const bool color = m_active_color.toIndex();
 
@@ -162,7 +162,7 @@ namespace rose {
     const auto castle = [&](u8 king_dest_file, u8 rook_dest_file) {
       const Square king_dest{narrow_cast<u8>((from.raw & 0x38) | king_dest_file)};
       const Square rook_dest{narrow_cast<u8>((from.raw & 0x38) | rook_dest_file)};
-      const Square king_src = m.from();
+      const Square king_src = from;
       const Square rook_src = m.to();
       const PieceId king_id = m_board.m[king_src.raw].id();
       const PieceId rook_id = m_board.m[rook_src.raw].id();
@@ -190,8 +190,8 @@ namespace rose {
       new_pos.m_rook_info[color].clear();
     };
 
-#define MF(x) (static_cast<int>(MoveFlags::x) >> 12)
-    switch (static_cast<int>(m.flags()) >> 12) {
+#define MF(x) (static_cast<int>(MoveFlags::x) >> move_flags_shift)
+    switch (static_cast<int>(m.flags()) >> move_flags_shift) {
     case MF(normal):
       normal();
       break;

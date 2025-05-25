@@ -36,8 +36,8 @@ namespace rose {
 
     auto calculatePinInfo() -> std::tuple<std::array<v512, 2>, u64>;
 
-    auto generateSubsetNorm(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void;
-    auto generateSubsetCaps(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void;
+    auto generateSubsetNorm(MoveList &moves, const Wordboard &attack_table, u64 bitboard, u16 piecemask) -> void;
+    auto generateSubsetCaps(MoveList &moves, const Wordboard &attack_table, u64 bitboard, u16 piecemask) -> void;
     auto generateSubsetPCap(MoveList &moves, const Wordboard &attack_table, u64 bitboard, u16 piecemask) -> void;
 
     template <bool king_moves>

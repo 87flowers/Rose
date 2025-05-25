@@ -318,11 +318,11 @@ namespace rose {
 
     // Update histories
     if (best_score >= beta && !best_move.capture()) {
-      m_history.updateQuietHistory(+1, best_move, depth);
+      m_history.updateQuietHistory(position, +1, best_move, depth);
 
       const std::span<Move> bad_moves = moves.getMarkedQuiets();
       for (Move badm : bad_moves)
-        m_history.updateQuietHistory(-1, badm, depth);
+        m_history.updateQuietHistory(position, -1, badm, depth);
     }
 
     ttStore(position, ply,

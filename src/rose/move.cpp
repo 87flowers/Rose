@@ -11,6 +11,8 @@
 
 namespace rose {
 
+  auto Move::from(const Position &context) const -> Square { return context.pieceListSq(context.activeColor())[id()]; }
+
   auto Move::parse(std::string_view str, const Position &context) -> std::expected<Move, ParseError> {
     if (str.size() != 4 && str.size() != 5)
       return std::unexpected(ParseError::invalid_length);
@@ -26,6 +28,7 @@ namespace rose {
     const Place src_place = context.board().m[from.value().raw];
     const Place dest_place = context.board().m[to.value().raw];
 
+    const PieceId id = src_place.id();
     const PieceType ptype = src_place.ptype();
     const bool capture = !dest_place.isEmpty();
 
@@ -35,21 +38,21 @@ namespace rose {
     if (str.size() == 4) {
       if (ptype == PieceType::p) {
         if (context.enpassant() == to.value())
-          return make(from.value(), to.value(), MoveFlags::enpassant);
+          return make(id, to.value(), MoveFlags::enpassant);
         if (std::abs(from.value().raw - to.value().raw) == 16)
-          return make(from.value(), to.value(), MoveFlags::double_push);
+          return make(id, to.value(), MoveFlags::double_push);
       }
       if (ptype == PieceType::k) {
         if (to.value() == context.rookInfo(context.activeColor()).aside)
-          return make(from.value(), to.value(), MoveFlags::castle_aside);
+          return make(id, to.value(), MoveFlags::castle_aside);
         if (to.value() == context.rookInfo(context.activeColor()).hside)
-          return make(from.value(), to.value(), MoveFlags::castle_hside);
+          return make(id, to.value(), MoveFlags::castle_hside);
         if (!config::frc && from.value().file() == 4 && to.value().file() == 2)
-          return make(from.value(), context.rookInfo(context.activeColor()).aside, MoveFlags::castle_aside);
+          return make(id, context.rookInfo(context.activeColor()).aside, MoveFlags::castle_aside);
         if (!config::frc && from.value().file() == 4 && to.value().file() == 6)
-          return make(from.value(), context.rookInfo(context.activeColor()).hside, MoveFlags::castle_hside);
+          return make(id, context.rookInfo(context.activeColor()).hside, MoveFlags::castle_hside);
       }
-      return make(from.value(), to.value(), capture ? MoveFlags::cap_normal : MoveFlags::normal);
+      return make(id, to.value(), capture ? MoveFlags::cap_normal : MoveFlags::normal);
     }
 
     // This check needs to be here because castling = king captures rook.
@@ -72,7 +75,7 @@ namespace rose {
     }();
     if (!mf)
       return std::unexpected(mf.error());
-    return make(from.value(), to.value(), mf.value());
+    return make(id, to.value(), mf.value());
   }
 
 } // namespace rose
