@@ -12,6 +12,7 @@
 #include "rose/engine.h"
 #include "rose/eval/hce.h"
 #include "rose/game.h"
+#include "rose/hash.h"
 #include "rose/tt.h"
 #include "rose/util/defer.h"
 #include "rose/util/string.h"
@@ -230,6 +231,33 @@ namespace rose {
     // clang-format on
   }
 
+  static auto uciParseDumpHashes() -> void {
+    for (int ptype = 0; ptype < hash::piece_table.size(); ptype++) {
+      std::print("piece_table[{}]:", ptype);
+      for (u64 h : hash::piece_table[ptype])
+        std::print(" {:016x}", h);
+      std::print("\n");
+    }
+
+    {
+      std::print("enpassant_table:");
+      for (u64 h : hash::enpassant_table)
+        std::print(" {:016x}", h);
+      std::print("\n");
+    }
+
+    for (int color = 0; color < hash::castle_table.size(); color++) {
+      std::print("castle_table[{}]:", color);
+      for (u64 h : hash::castle_table[color])
+        std::print(" {:016x}", h);
+      std::print("\n");
+    }
+
+    {
+      std::print("move: {:016x}\n", hash::move);
+    }
+  }
+
   auto uciParseCommand(Engine &engine, Game &game, std::string_view line) -> void {
     const time::TimePoint start_time = time::Clock::now();
 
@@ -271,6 +299,8 @@ namespace rose {
       std::print("score cp {}\n", eval::hce(game.position()));
     } else if (cmd == "compiler") {
       uciParseCompiler(engine, game, it);
+    } else if (cmd == "dumphashes") {
+      uciParseDumpHashes();
     } else if (cmd == "wait") {
       engine.isReady();
     } else if (cmd == "quit") {
