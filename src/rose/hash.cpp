@@ -12,7 +12,7 @@ namespace rose::hash {
     std::mt19937_64 rand{0x8588A96CAD5E3985};
     std::array<std::array<u64, 64>, 16> piece_table{};
     usize i = 0;
-    for (usize ptype = 0; ptype < 16; ptype++) {
+    for (usize ptype = 1; ptype < 16; ptype++) {
       for (usize sq = 0; sq < 64; sq++) {
         piece_table[ptype][sq] = rand();
       }
