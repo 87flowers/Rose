@@ -205,6 +205,7 @@ namespace rose {
     game.position().prettyPrint();
 
     std::print("fen: {}\n", game.position());
+    std::print("hash: 0x{:016x}\n", game.hash());
   }
 
   static auto uciParseCompiler(Engine &engine, Game &game, Tokenizer &it) -> void {
@@ -297,6 +298,8 @@ namespace rose {
       game.printGameRecord();
     } else if (cmd == "eval") {
       std::print("score cp {}\n", eval::hce(game.position()));
+    } else if (cmd == "ttlookup") {
+      engine.printTTEntry(game.hash());
     } else if (cmd == "compiler") {
       uciParseCompiler(engine, game, it);
     } else if (cmd == "dumphashes") {

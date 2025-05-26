@@ -95,6 +95,11 @@ namespace rose {
     return m_shared->totalNodes();
   }
 
+  auto Engine::printTTEntry(u64 hash) const -> void {
+    const std::unique_lock _{m_shared->mutex};
+    m_shared->transposition_table.print(hash);
+  }
+
   auto Engine::calcTime(const SearchLimit &limits) const -> std::tuple<time::Duration, time::Duration> {
     constexpr time::Milliseconds margin_ms{100};
     constexpr time::Milliseconds zero_ms{0};

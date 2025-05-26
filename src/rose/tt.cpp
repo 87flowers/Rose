@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <optional>
+#include <print>
 
 #include "rose/common.h"
 #include "rose/util/types.h"
@@ -38,7 +39,7 @@ namespace rose::tt {
     const Bucket &bucket = buckets.get()[bucket_index];
 
     if (const auto entry_index = getEntryIndex(bucket, ctrl)) {
-      const Entry &entry = bucket.entries[*entry_index];
+      const Entry entry = bucket.entries[*entry_index];
       if (entry.fragment() == fragment) {
         return entry.toResult(ply);
       }
@@ -60,6 +61,47 @@ namespace rose::tt {
 
     bucket.ctrls.b[entry_index] = ctrl;
     bucket.entries[entry_index] = Entry{fragment, ply, lr};
+  }
+
+  auto TT::print(u64 hash) const -> void {
+    const auto [bucket_index, ctrl, fragment] = splitHash(bucket_count, hash);
+    std::print("hash:   {:016x}\n", hash);
+    std::print("ctrl:   {:02x}\n", ctrl);
+    std::print("frag:   {:06x}\n", fragment);
+    std::print("bucket index: 0x{:x}/0x{:x}\n", bucket_index, bucket_count);
+
+    const Bucket &bucket = buckets.get()[bucket_index];
+    std::print("bucket ctrls:");
+    for (usize i = 0; i < Bucket::entry_count; i++)
+      std::print(" {:02x}", bucket.ctrls.b[i]);
+    std::print("\n");
+
+    if (const auto entry_index = getEntryIndex(bucket, ctrl)) {
+      std::print("entry index: {}\n", *entry_index);
+      const Entry entry = bucket.entries[*entry_index];
+      std::print("entry raw:   {:016x}\n", entry.raw);
+      if (entry.fragment() != fragment)
+        std::print("entry frag:  {:06x} [mismatch!]\n", entry.fragment());
+      std::print("entry depth: {}\n", entry.depth());
+      std::print("entry score: {}\n", entry.score(0));
+      std::print("entry bound: {}\n", [&]() -> const char * {
+        switch (entry.bound()) {
+        case Bound::none:
+          return "none";
+        case Bound::lower_bound:
+          return "lower_bound";
+        case Bound::exact:
+          return "exact";
+        case Bound::upper_bound:
+          return "upper_bound";
+        default:
+          return "unknown";
+        }
+      }());
+      std::print("entry move:  {}\n", entry.move());
+    } else {
+      std::print("no matching ctrl found.\n");
+    }
   }
 
 } // namespace rose::tt
