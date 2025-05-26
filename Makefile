@@ -4,9 +4,12 @@ SUFFIX :=
 VERSION := $(file < src/rose_version.txt)
 EXE ?= rose-$(VERSION)
 
+GIT_COMMIT_DESC := $(shell git describe --always --dirty)
+GIT_COMMIT_HASH := $(shell git show -s --format=%H)
+
 CXX := clang++
 CPPFLAGS := -Isrc -MMD -MP
-CXXFLAGS := -std=c++26 -march=native -flto=thin -DROSE_VERSION=\"$(VERSION)\"
+CXXFLAGS := -std=c++26 -march=native -flto=thin -DROSE_VERSION=\"$(VERSION)\" -DROSE_GIT_COMMIT_HASH=\"$(GIT_COMMIT_HASH)\"  -DROSE_GIT_COMMIT_DESC=\"$(GIT_COMMIT_DESC)\"
 LDFLAGS  := -flto=thin -pthread
 RELFLAGS := -DNDEBUG -O3 -DROSE_NO_ASSERTS
 DEBFLAGS := -DNDEBUG -O2 -g

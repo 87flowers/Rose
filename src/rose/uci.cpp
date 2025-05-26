@@ -144,7 +144,7 @@ namespace rose {
   static auto uciParseUci(Engine &engine, Game &game, Tokenizer &it) -> void {
     static constexpr auto max_threads = std::min<std::ptrdiff_t>(std::barrier<>::max(), std::numeric_limits<int>::max());
 
-    std::print("id name Rose " ROSE_VERSION "\n"
+    std::print("id name Rose " ROSE_VERSION "-" ROSE_GIT_COMMIT_DESC "\n"
                "id author 87 (87flowers.com)\n"
                "option name Hash type spin default {} min 1 max 1048576\n"
                "option name Threads type spin default 1 min 1 max {}\n"
@@ -211,6 +211,8 @@ namespace rose {
   static auto uciParseCompiler(Engine &engine, Game &game, Tokenizer &it) -> void {
     // clang-format off
     std::print("compiler build-datetime " __DATE__ " " __TIME__ "\n"
+               "compiler build-commit-hash " ROSE_GIT_COMMIT_HASH "\n"
+               "compiler build-commit-desc " ROSE_GIT_COMMIT_DESC "\n"
 #if defined(__VERSION__)
                "compiler version " __VERSION__ "\n"
 #endif

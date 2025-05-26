@@ -11,7 +11,7 @@
 
 auto main(int argc, char *argv[]) -> int {
   if (isatty(STDOUT_FILENO)) {
-    std::print("# 🌹 Rose {}\n", ROSE_VERSION);
+    std::print("# 🌹 Rose {}-{}\n", ROSE_VERSION, ROSE_GIT_COMMIT_DESC);
     std::fflush(stdout);
   }
 
