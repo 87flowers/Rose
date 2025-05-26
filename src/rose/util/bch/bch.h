@@ -45,6 +45,7 @@ namespace rose::bch {
           result[k] ^= result[j] & ~mask;
       }
     }
+    std::reverse(result.begin(), result.end());
     return result;
   }
 } // namespace rose::bch
