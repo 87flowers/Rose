@@ -3,10 +3,12 @@
 #include <array>
 #include <string_view>
 
+#include "rose/config.h"
 #include "rose/engine.h"
 #include "rose/game.h"
 #include "rose/position.h"
 #include "rose/uci.h"
+#include "rose/util/defer.h"
 
 namespace rose::bench {
 
@@ -55,6 +57,10 @@ namespace rose::bench {
   }};
 
   auto run(Engine &engine, Game &game) -> void {
+    const bool prev_config_search_output = config::search_output.load();
+    config::search_output.store(false);
+    rose_defer { config::search_output.store(prev_config_search_output); };
+
     const time::TimePoint start_time = time::Clock::now();
     const SearchLimit limit = [] {
       SearchLimit limit;
@@ -65,6 +71,7 @@ namespace rose::bench {
 
     engine.isReady();
 
+    int positions_benched = 0;
     u64 nodes_total = 0;
     for (const auto fen : bench_fens) {
       game.reset();
@@ -74,13 +81,13 @@ namespace rose::bench {
       game.setPosition(position);
       engine.setGame(game);
 
-      std::print("benching {} ...\n", position);
+      positions_benched++;
+      std::print("{}/{} ...\r", positions_benched, bench_fens.size());
+      std::fflush(stdout);
 
       engine.runSearch(time::Clock::now(), limit);
       engine.isReady();
       nodes_total += engine.lastSearchTotalNodes();
-
-      std::print("\n");
     }
 
     const time::FloatSeconds elapsed = time::Clock::now() - start_time;
@@ -88,6 +95,7 @@ namespace rose::bench {
     std::print("nodes: {} nodes\n", nodes_total);
     std::print("time:  {} milliseconds\n", time::cast<time::Milliseconds>(elapsed).count());
     std::print("nps:   {} nps\n", time::nps<u64>(nodes_total, elapsed));
+    std::fflush(stdout);
   }
 
 } // namespace rose::bench

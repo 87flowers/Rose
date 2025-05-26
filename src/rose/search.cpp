@@ -125,13 +125,14 @@ namespace rose {
       if (isMainThread()) {
         if (ctrl.checkSoftTermination(stats(), depth))
           break;
-        print_info(depth, score, pv);
+        if (config::search_output.load())
+          print_info(depth, score, pv);
       }
     }
 
     requestStop();
 
-    if (isMainThread()) {
+    if (isMainThread() && config::search_output.load()) {
       print_info(last_depth, last_score, last_pv);
       std::print("bestmove {}\n", last_pv.pv[0]);
       std::fflush(stdout);
