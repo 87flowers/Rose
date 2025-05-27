@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <span>
 
 #include "rose/move.h"
 #include "rose/movegen.h"
