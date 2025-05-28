@@ -298,6 +298,8 @@ namespace rose {
       game.position().printAttackTable();
     } else if (cmd == "getposition") {
       game.printGameRecord();
+    } else if (cmd == "hashstack") {
+      game.printHashStack();
     } else if (cmd == "eval") {
       std::print("score cp {}\n", eval::hce(game.position()));
     } else if (cmd == "ttlookup") {

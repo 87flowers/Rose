@@ -21,4 +21,9 @@ namespace rose {
     std::print("\n");
   }
 
+  auto Game::printHashStack() const -> void {
+    for (const u64 h : m_hash_stack)
+      std::print("{:016x}\n", h);
+  }
+
 } // namespace rose

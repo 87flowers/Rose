@@ -48,6 +48,7 @@ namespace rose {
     }
 
     auto printGameRecord() const -> void;
+    auto printHashStack() const -> void;
   };
 
 } // namespace rose
