@@ -56,10 +56,9 @@ namespace rose::bench {
       "rnbqkb1r/pp2pp2/2p2np1/6Pp/3P4/5B2/PPP2P1P/RNBQK1NR b KQkq - 0 1",
   }};
 
-  auto run(Engine &engine, Game &game) -> void {
-    const bool prev_config_search_output = config::search_output.load();
-    config::search_output.store(false);
-    rose_defer { config::search_output.store(prev_config_search_output); };
+  auto run() -> void {
+    Engine engine;
+    Game game;
 
     const time::TimePoint start_time = time::Clock::now();
     const SearchLimit limit = [] {

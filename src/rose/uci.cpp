@@ -286,7 +286,7 @@ namespace rose {
     } else if (cmd == "check_perft") {
       check_perft::run(it.rest());
     } else if (cmd == "bench") {
-      bench::run(engine, game);
+      bench::run();
     } else if (cmd == "moves" || cmd == "move") {
       uciParseMoves(engine, game, it);
     } else if (cmd == "undo") {

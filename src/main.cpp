@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "rose/engine.h"
+#include "rose/engine_output_uci.h"
 #include "rose/game.h"
 #include "rose/uci.h"
 #include "rose/util/types.h"
@@ -17,6 +18,8 @@ auto main(int argc, char *argv[]) -> int {
 
   rose::Engine engine;
   rose::Game game;
+
+  engine.setOutput(std::make_shared<rose::EngineOutputUci>());
 
   engine.reset();
   game.reset();

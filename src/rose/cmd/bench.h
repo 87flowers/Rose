@@ -7,6 +7,6 @@ namespace rose {
 
 namespace rose::bench {
 
-  auto run(Engine &engine, Game &game) -> void;
+  auto run() -> void;
 
 } // namespace rose::bench

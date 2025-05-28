@@ -3,13 +3,14 @@
 #include <mutex>
 #include <tuple>
 
+#include "rose/engine_output_null.h"
 #include "rose/game.h"
 #include "rose/util/assert.h"
 #include "rose/util/types.h"
 
 namespace rose {
 
-  Engine::Engine() { setThreadCount(1); }
+  Engine::Engine() : m_output(std::make_shared<EngineOutputNull>()) { setThreadCount(1); }
 
   Engine::~Engine() { quitAllThreads(); }
 
@@ -35,12 +36,18 @@ namespace rose {
       quitAllThreads();
     }
 
-    m_shared = std::make_unique<SearchShared>(thread_count);
+    m_shared = std::make_unique<SearchShared>(thread_count, m_output);
 
     for (usize i = 0; i < thread_count; i++)
       m_searches.emplace_back(std::make_unique<Search>(i, *m_shared));
     for (const auto &search : m_searches)
       search->requestStart();
+  }
+
+  auto Engine::setOutput(std::shared_ptr<EngineOutput> output) -> void {
+    const std::unique_lock _{m_shared->mutex};
+    m_output = output;
+    m_shared->output = output;
   }
 
   auto Engine::setGame(const Game &g) -> void {

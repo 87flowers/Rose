@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "rose/common.h"
+#include "rose/engine_output.h"
 #include "rose/game.h"
 #include "rose/search.h"
 #include "rose/util/types.h"
@@ -31,6 +32,7 @@ namespace rose {
   private:
     std::vector<std::unique_ptr<Search>> m_searches;
     std::unique_ptr<SearchShared> m_shared;
+    std::shared_ptr<EngineOutput> m_output;
     Color m_active_color = Color::white;
 
   public:
@@ -41,6 +43,7 @@ namespace rose {
 
     auto setHashSize(int mb) -> void;
     auto setThreadCount(int thread_count) -> void;
+    auto setOutput(std::shared_ptr<EngineOutput> output) -> void;
 
     auto setGame(const Game &g) -> void;
 

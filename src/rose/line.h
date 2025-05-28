@@ -3,6 +3,7 @@
 #include <format>
 
 #include "rose/common.h"
+#include "rose/move.h"
 #include "rose/util/static_vector.h"
 
 namespace rose {

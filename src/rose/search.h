@@ -2,11 +2,13 @@
 
 #include <atomic>
 #include <barrier>
+#include <memory>
 #include <optional>
 #include <shared_mutex>
 #include <thread>
 #include <vector>
 
+#include "rose/engine_output.h"
 #include "rose/game.h"
 #include "rose/history.h"
 #include "rose/line.h"
@@ -20,12 +22,16 @@
 namespace rose {
 
   struct SearchShared {
-    explicit SearchShared(int thread_count) : idle_barrier(1 + thread_count), started_barrier(1 + thread_count), stats(thread_count) {}
+    explicit SearchShared(int thread_count, std::shared_ptr<EngineOutput> output)
+        : idle_barrier(1 + thread_count), started_barrier(1 + thread_count), stats(thread_count), output(output) {}
+
     std::shared_mutex mutex{};
     std::atomic_bool stop;
     std::barrier<> idle_barrier;
     std::barrier<> started_barrier;
     controls::Any ctrl;
+
+    std::shared_ptr<EngineOutput> output;
 
     std::vector<SearchStats> stats;
     PrecompMoveGenInfo movegen_precomp;

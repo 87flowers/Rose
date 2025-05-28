@@ -102,9 +102,7 @@ namespace rose {
     const auto print_info = [this, &ctrl](i32 depth, i32 score, const Line &pv) {
       const u64 nodes = m_shared.totalNodes();
       const time::Duration elapsed = ctrl.elapsed();
-      const time::Milliseconds elapsed_ms = time::cast<time::Milliseconds>(elapsed);
-      const u64 nps = time::nps<u64>(nodes, elapsed);
-      std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", depth, score, elapsed_ms.count(), nodes, nps, pv);
+      m_shared.output->info({.depth = depth, .score = score, .time = elapsed, .nodes = nodes, .pv = pv});
     };
 
     Line last_pv;
@@ -125,17 +123,15 @@ namespace rose {
       if (isMainThread()) {
         if (ctrl.checkSoftTermination(stats(), depth))
           break;
-        if (config::search_output.load())
-          print_info(depth, score, pv);
+        print_info(depth, score, pv);
       }
     }
 
     requestStop();
 
-    if (isMainThread() && config::search_output.load()) {
+    if (isMainThread()) {
       print_info(last_depth, last_score, last_pv);
-      std::print("bestmove {}\n", last_pv.pv[0]);
-      std::fflush(stdout);
+      m_shared.output->bestmove(last_pv.pv[0]);
     }
   }
 
