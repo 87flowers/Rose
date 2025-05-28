@@ -25,6 +25,8 @@ namespace rose {
     auto moveStack() const -> std::vector<Move> { return m_move_stack; }
     auto hashStack() const -> std::vector<u64> { return m_hash_stack; }
 
+    auto isDraw() const -> std::optional<i32> { return position().isDraw(m_hash_stack); }
+
     auto setPositionStartpos() -> void { setPosition(Position::startpos()); }
     auto setPosition(const Position &new_pos) -> void {
       m_position_stack.clear();

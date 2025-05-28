@@ -131,7 +131,7 @@ namespace rose {
 
     if (isMainThread()) {
       print_info(last_depth, last_score, last_pv);
-      m_shared.output->bestmove(last_pv.pv[0]);
+      m_shared.output->bestmove(last_pv.pv.size() > 0 ? last_pv.pv[0] : Move::none());
     }
   }
 

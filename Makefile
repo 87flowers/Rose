@@ -9,14 +9,15 @@ GIT_COMMIT_HASH := $(shell git show -s --format=%H)
 
 CXX := clang++
 CPPFLAGS := -Isrc -MMD -MP
-CXXFLAGS := -std=c++26 -march=native -flto=thin -DROSE_VERSION=\"$(VERSION)\" -DROSE_GIT_COMMIT_HASH=\"$(GIT_COMMIT_HASH)\"  -DROSE_GIT_COMMIT_DESC=\"$(GIT_COMMIT_DESC)\"
-LDFLAGS  := -flto=thin -pthread
-RELFLAGS := -DNDEBUG -O3 -DROSE_NO_ASSERTS
+CXXFLAGS := -std=c++26 -march=native -DROSE_VERSION=\"$(VERSION)\" -DROSE_GIT_COMMIT_HASH=\"$(GIT_COMMIT_HASH)\"  -DROSE_GIT_COMMIT_DESC=\"$(GIT_COMMIT_DESC)\"
+LDFLAGS  := -pthread
+RELFLAGS := -DNDEBUG -O3 -DROSE_NO_ASSERTS -flto=thin
 DEBFLAGS := -DNDEBUG -O2 -g
 
 BUILD_DIR := ./build
 
 LIB_SRCS := $(wildcard src/rose/*.cpp) $(wildcard src/rose/**/*.cpp)
+TOOL_SRCS := $(wildcard tools/*.cpp)
 TEST_SRCS := $(wildcard tests/*.cpp)
 
 LIB_REL_OBJS := $(patsubst %.cpp,$(BUILD_DIR)/rel/%.o,$(LIB_SRCS))
@@ -24,9 +25,10 @@ LIB_DEB_OBJS := $(patsubst %.cpp,$(BUILD_DIR)/deb/%.o,$(LIB_SRCS))
 
 DEPS := $(LIB_REL_OBJS:.o=.d) $(LIB_DEB_OBJS:.o=.d)
 
+TOOLS := $(patsubst tools/%.cpp,%,$(TOOL_SRCS))
 TESTS := $(patsubst tests/%.cpp,$(BUILD_DIR)/test_%,$(TEST_SRCS))
 
-all: $(EXE)
+all: $(EXE) $(TOOLS)
 
 clean:
 > rm -r $(BUILD_DIR)
@@ -42,6 +44,9 @@ $(EXE): $(BUILD_DIR)/rel/src/main.o $(LIB_REL_OBJS)
 
 rose-debug: $(BUILD_DIR)/deb/src/main.o $(LIB_DEB_OBJS)
 > $(CXX) $^ -o $@ $(LDFLAGS) $(DEBFLAGS)
+
+$(TOOLS): %: $(BUILD_DIR)/rel/tools/%.o $(LIB_REL_OBJS)
+> $(CXX) $^ -o $@ $(LDFLAGS) $(RELFLAGS)
 
 $(TESTS): $(BUILD_DIR)/test_%: $(BUILD_DIR)/deb/tests/%.o $(LIB_DEB_OBJS)
 > $(CXX) $^ -o $@ $(LDFLAGS) $(DEBFLAGS)
