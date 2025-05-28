@@ -6,8 +6,6 @@
 using namespace rose;
 
 auto main() -> int {
-  Engine engine;
-  Game game;
-  bench::run(engine, game);
+  bench::run();
   return 0;
 }
