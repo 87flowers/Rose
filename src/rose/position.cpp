@@ -35,7 +35,7 @@ namespace rose {
     return startpos;
   }
 
-  auto Position::isDraw(const std::vector<u64> &hash_stack) const -> std::optional<i32> { return isDraw(hash_stack, 0, 0); }
+  auto Position::isDraw(const std::vector<u64> &hash_stack) const -> std::optional<i32> { return isDraw(hash_stack, hash_stack.size(), 0); }
 
   auto Position::isDraw(const std::vector<u64> &hash_stack, usize hash_waterline, i32 ply) const -> std::optional<i32> {
     if (isRepetition(hash_stack, hash_waterline))
