@@ -1,11 +1,14 @@
 #include "rose/position.h"
 
 #include <bit>
+#include <optional>
 #include <print>
 #include <type_traits>
 #include <utility>
 
+#include "rose/eval/eval.h"
 #include "rose/hash.h"
+#include "rose/movegen.h"
 
 namespace rose {
 
@@ -30,6 +33,24 @@ namespace rose {
   auto Position::startpos() -> Position {
     static const Position startpos = Position::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").value();
     return startpos;
+  }
+
+  auto Position::isDraw(const std::vector<u64> &hash_stack) const -> std::optional<i32> { return isDraw(hash_stack, 0, 0); }
+
+  auto Position::isDraw(const std::vector<u64> &hash_stack, usize hash_waterline, i32 ply) const -> std::optional<i32> {
+    if (isRepetition(hash_stack, hash_waterline))
+      return 0;
+    if (fiftyMoveClock() >= 100) {
+      if (!isInCheck())
+        return 0;
+      [[unlikely]];
+      MoveList moves;
+      PrecompMoveGenInfo movegen_precomp{*this};
+      MoveGen movegen{*this, movegen_precomp};
+      movegen.generateMoves(moves);
+      return moves.size() == 0 ? eval::mated(ply) : 0;
+    }
+    return std::nullopt;
   }
 
   auto Position::isRepetition(const std::vector<u64> &hash_stack, usize hash_waterline) const -> bool {

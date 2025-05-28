@@ -83,7 +83,7 @@ namespace rose {
 
     template <typename Controls> auto searchRoot(const Controls &ctrl) -> void;
 
-    inline auto isDraw(const Position &position, bool is_in_check, i32 ply) -> std::optional<i32>;
+    inline auto isDraw(const Position &position, i32 ply) -> std::optional<i32>;
     inline auto ttLoad(const Position &position, int ply) const -> tt::LookupResult;
     inline auto ttStore(const Position &position, int ply, tt::LookupResult lr) -> void;
 

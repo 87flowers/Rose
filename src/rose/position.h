@@ -3,6 +3,7 @@
 #include <array>
 #include <bit>
 #include <format>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -85,6 +86,8 @@ namespace rose {
     auto isValid() const -> bool { return attackTable(m_active_color).r[kingSq(m_active_color.invert()).raw] == 0; }
     auto isInCheck() const -> bool { return attackTable(m_active_color.invert()).r[kingSq(m_active_color).raw] != 0; }
 
+    auto isDraw(const std::vector<u64> &hash_stack) const -> std::optional<i32>;
+    auto isDraw(const std::vector<u64> &hash_stack, usize hash_waterline, i32 ply) const -> std::optional<i32>;
     auto isRepetition(const std::vector<u64> &hash_stack, usize hash_waterline) const -> bool;
 
     auto moveNull() const -> Position;

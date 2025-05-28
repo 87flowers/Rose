@@ -135,20 +135,7 @@ namespace rose {
     }
   }
 
-  inline auto Search::isDraw(const Position &position, bool is_in_check, i32 ply) -> std::optional<i32> {
-    if (position.isRepetition(m_hash_stack, m_hash_waterline))
-      return 0;
-    if (position.fiftyMoveClock() >= 100) {
-      if (!is_in_check)
-        return 0;
-      [[unlikely]];
-      MoveList moves;
-      MoveGen movegen{position, m_shared.movegen_precomp};
-      movegen.generateMoves(moves);
-      return moves.size() == 0 ? eval::mated(ply) : 0;
-    }
-    return std::nullopt;
-  }
+  inline auto Search::isDraw(const Position &position, i32 ply) -> std::optional<i32> { return position.isDraw(m_hash_stack, m_hash_waterline, ply); }
 
   inline auto Search::ttLoad(const Position &position, int ply) const -> tt::LookupResult {
     return m_shared.transposition_table.load(position.hash(), ply);
@@ -159,7 +146,6 @@ namespace rose {
 
   template <typename NodeT, typename Controls>
   auto Search::search(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32 {
-    const bool is_in_check = position.isInCheck();
 
     if (depth <= 0)
       return quiesce<NodeT>(ctrl, position, pv, alpha, beta, ply);
@@ -170,8 +156,10 @@ namespace rose {
     }
     stats().nodes.fetch_add(1, std::memory_order::relaxed);
 
+    const bool is_in_check = position.isInCheck();
+
     if constexpr (!NodeT::is_root)
-      if (const auto score = isDraw(position, is_in_check, ply))
+      if (const auto score = isDraw(position, ply))
         return *score;
     if (ply >= max_search_ply) [[unlikely]]
       return is_in_check ? 0 : eval::hce(position);
@@ -338,7 +326,7 @@ namespace rose {
 
     stats().nodes.fetch_add(1, std::memory_order::relaxed);
 
-    if (const auto score = isDraw(position, is_in_check, ply))
+    if (const auto score = isDraw(position, ply))
       return *score;
     if (ply >= max_search_ply) [[unlikely]]
       return is_in_check ? 0 : eval::hce(position);
