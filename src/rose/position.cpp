@@ -312,8 +312,8 @@ namespace rose {
     const v128 white_attackers_coord = vec::compress8(white_attackers, ray_coords).to128();
     const v128 black_attackers_coord = vec::compress8(black_attackers, ray_coords).to128();
     return {
-        vec::findset8(white_attackers_coord, white_attackers_count, m_piece_list_sq[0].x),
-        vec::findset8(black_attackers_coord, black_attackers_count, m_piece_list_sq[1].x),
+        vec::findset8(white_attackers_coord, white_attackers_count, m_piece_list_sq[0].x()),
+        vec::findset8(black_attackers_coord, black_attackers_count, m_piece_list_sq[1].x()),
     };
   }
 

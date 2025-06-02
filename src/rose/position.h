@@ -18,11 +18,14 @@
 
 namespace rose {
 
-  template <typename T> union alignas(16) PieceList {
-    v128 x;
+  template <typename T> struct alignas(16) PieceList {
     std::array<T, 16> m{};
 
-    auto maskEq(T value) const -> u16 { return vec::eq8(x, v128::broadcast8(value.raw)); }
+    static_assert(sizeof(T) == sizeof(u8));
+    forceinline auto x() const -> v128 { return v128::load(m.data()); }
+
+    auto valid() const -> u16 { return x().nonzero8(); }
+    auto maskEq(T value) const -> u16 { return vec::eq8(x(), v128::broadcast8(value.raw)); }
 
     auto dump() const -> void;
 

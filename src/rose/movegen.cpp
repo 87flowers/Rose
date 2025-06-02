@@ -107,7 +107,7 @@ namespace rose {
     // Convert from list of squares to piecemask
     const int pinned_count = std::popcount(pinned);
     const v128 pinned_coord = vec::compress8(pinned, ray_coords).to128();
-    const u16 piece_mask = vec::findset8(pinned_coord, pinned_count, m_position.pieceListSq(active_color).x);
+    const u16 piece_mask = vec::findset8(pinned_coord, pinned_count, m_position.pieceListSq(active_color).x());
 
     // Generate attack table mask
     const v512 ones = v512::broadcast16(1);
@@ -178,13 +178,13 @@ namespace rose {
     const u64 active = position.attackTable(active_color).getAttackedBitboard() & valid_destinations;
     const u64 danger = position.attackTable(active_color.invert()).getAttackedBitboard();
 
-    const u16 valid_plist = position.pieceListType(active_color).x.nonzero8() & ~(king_moves ? 0 : 1);
+    const u16 valid_plist = position.pieceListType(active_color).valid() & ~(king_moves ? 0 : 1);
     const u16 king_mask = 1;
     const u16 pawn_mask = position.pieceListType(active_color).maskEq(PieceType::p);
 
     const auto pawn_info = pawns::pawnShifts(active_color);
 
-    const v256 srcs = vec::zext8to16(position.pieceListSq(active_color).x);
+    const v256 srcs = vec::zext8to16(position.pieceListSq(active_color).x());
 
     // Unprotected captures
     generateSubsetCaps(moves, attack_table, srcs, active & enemy & ~danger, valid_plist & ~pawn_mask);
