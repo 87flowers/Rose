@@ -39,6 +39,7 @@ namespace rose {
   }
 
   auto Wordboard::dumpRaw(u64 mask) const -> void {
+    const auto r = toMailbox();
     for (int flipped_rank = 0; flipped_rank < 8; flipped_rank++) {
       for (int file = 0; file < 8; file++) {
         const int rank = 7 - flipped_rank;

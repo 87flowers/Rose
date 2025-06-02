@@ -34,11 +34,11 @@ namespace rose {
     const Position &m_position;
     const PrecompMoveGenInfo &m_precomp_info;
 
-    auto calculatePinInfo() -> std::tuple<std::array<v512, 2>, u64>;
+    auto calculatePinInfo() -> std::tuple<Wordboard, u64>;
 
-    auto generateSubsetNorm(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void;
-    auto generateSubsetCaps(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void;
-    auto generateSubsetPCap(MoveList &moves, const Wordboard &attack_table, u64 bitboard, u16 piecemask) -> void;
+    auto generateSubsetNorm(MoveList &moves, const std::array<u16, 64> &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void;
+    auto generateSubsetCaps(MoveList &moves, const std::array<u16, 64> &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void;
+    auto generateSubsetPCap(MoveList &moves, const std::array<u16, 64> &attack_table, u64 bitboard, u16 piecemask) -> void;
 
     template <bool king_moves>
     forceinline auto generateMovesTo(MoveList &moves, Square king_sq, u64 valid_destinations, PieceType checker_ptype) -> void;

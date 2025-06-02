@@ -71,7 +71,7 @@ namespace rose {
     hside_king[1] = between(position.kingSq(Color::black), Square::parse("g8").value());
   }
 
-  auto MoveGen::calculatePinInfo() -> std::tuple<std::array<v512, 2>, u64> {
+  auto MoveGen::calculatePinInfo() -> std::tuple<Wordboard, u64> {
     const Color active_color = m_position.activeColor();
     const Square sq = m_position.kingSq(active_color);
 
@@ -123,11 +123,11 @@ namespace rose {
     return {{at_mask0, at_mask1}, pinned_bb};
   }
 
-  auto MoveGen::generateSubsetNorm(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void {
+  auto MoveGen::generateSubsetNorm(MoveList &moves, const std::array<u16, 64> &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void {
     const Color active_color = m_position.activeColor();
     for (; bitboard != 0; bitboard &= bitboard - 1) {
       const Square sq{narrow_cast<u8>(std::countr_zero(bitboard))};
-      const u16 mask = piecemask & attack_table.r[sq.raw];
+      const u16 mask = piecemask & attack_table[sq.raw];
       if (mask) {
         const v256 dest = v256::broadcast16(static_cast<u16>(sq.raw) << 6);
         moves.write(mask, srcs | dest);
@@ -135,11 +135,11 @@ namespace rose {
     }
   }
 
-  auto MoveGen::generateSubsetCaps(MoveList &moves, const Wordboard &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void {
+  auto MoveGen::generateSubsetCaps(MoveList &moves, const std::array<u16, 64> &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void {
     const Color active_color = m_position.activeColor();
     for (; bitboard != 0; bitboard &= bitboard - 1) {
       const Square sq{narrow_cast<u8>(std::countr_zero(bitboard))};
-      const u16 mask = piecemask & attack_table.r[sq.raw];
+      const u16 mask = piecemask & attack_table[sq.raw];
       if (mask) {
         const v256 dest = v256::broadcast16(static_cast<u16>(MoveFlags::cap_normal) | (static_cast<u16>(sq.raw) << 6));
         moves.write(mask, srcs | dest);
@@ -147,11 +147,11 @@ namespace rose {
     }
   }
 
-  auto MoveGen::generateSubsetPCap(MoveList &moves, const Wordboard &attack_table, u64 bitboard, u16 piecemask) -> void {
+  auto MoveGen::generateSubsetPCap(MoveList &moves, const std::array<u16, 64> &attack_table, u64 bitboard, u16 piecemask) -> void {
     const Color active_color = m_position.activeColor();
     for (; bitboard != 0; bitboard &= bitboard - 1) {
       const Square sq{narrow_cast<u8>(std::countr_zero(bitboard))};
-      u16 mask = piecemask & attack_table.r[sq.raw];
+      u16 mask = piecemask & attack_table[sq.raw];
       for (; mask != 0; mask &= mask - 1) {
         const int pindex = std::countr_zero(mask);
         const Square src = m_position.pieceListSq(active_color).m[pindex];
@@ -171,9 +171,7 @@ namespace rose {
     const u64 enemy = position.board().getColorBitboard(active_color.invert());
 
     const auto [pin_atmask, pinned_bb] = calculatePinInfo();
-    Wordboard attack_table = position.attackTable(active_color);
-    attack_table.z[0] &= pin_atmask[0];
-    attack_table.z[1] &= pin_atmask[1];
+    const auto attack_table = (position.attackTable(active_color) & pin_atmask).toMailbox();
 
     const u64 active = position.attackTable(active_color).getAttackedBitboard() & valid_destinations;
     const u64 danger = position.attackTable(active_color.invert()).getAttackedBitboard();
@@ -193,7 +191,7 @@ namespace rose {
     // Enpassant
     if (position.enpassant().isValid() && (king_moves || checker_ptype == PieceType::p)) {
       const Square sq = position.enpassant();
-      const u16 mask = attack_table.r[sq.raw] & pawn_mask;
+      const u16 mask = attack_table[sq.raw] & pawn_mask;
       if (mask != 0) {
         const Square victim{static_cast<u8>(sq.raw + (active_color.raw ? 8 : -8))};
         if (std::popcount(mask) > 1 || victim.rank() != king_sq.rank() || [&] {
@@ -303,7 +301,7 @@ namespace rose {
     const Color active_color = m_position.activeColor();
     const Square king_sq = m_position.kingSq(active_color);
 
-    const u16 checkers = m_position.attackTable(active_color.invert()).r[king_sq.raw];
+    const u16 checkers = m_position.attackTable(active_color.invert()).read(king_sq);
     const int checkers_count = std::popcount(checkers);
     switch (checkers_count) {
     case 0:

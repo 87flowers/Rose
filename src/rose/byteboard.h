@@ -1,6 +1,8 @@
 #pragma once
 
 #include <array>
+#include <bit>
+#include <cstring>
 #include <print>
 #include <tuple>
 
@@ -42,17 +44,26 @@ namespace rose {
     constexpr auto operator==(const Byteboard &other) const -> bool { return r == other.r; };
   };
 
-  union alignas(64) Wordboard {
+  struct alignas(64) Wordboard {
     std::array<v512, 2> z;
-    std::array<u16, 64> r{};
 
     constexpr Wordboard() = default;
+    constexpr Wordboard(v512 a, v512 b) : z({a, b}) {}
+
+    auto toMailbox() const -> std::array<u16, 64> { return std::bit_cast<std::array<u16, 64>>(z); }
+    auto read(Square sq) const -> u16 {
+      u16 value;
+      std::memcpy(&value, reinterpret_cast<const char *>(z.data()) + sq.raw * sizeof(u16), sizeof(u16));
+      return value;
+    }
 
     auto dumpRaw(u64 mask = ~u64{0}) const -> void;
 
     auto getAttackedBitboard() const -> u64 { return vec::concatlo64(z[0].nonzero16(), z[1].nonzero16()); }
 
-    constexpr auto operator==(const Wordboard &other) const -> bool { return r == other.r; };
+    constexpr auto operator==(const Wordboard &other) const -> bool { return z == other.z; };
+
+    friend auto operator&(const Wordboard &a, const Wordboard &b) -> Wordboard { return {a.z[0] & b.z[0], a.z[1] & b.z[1]}; }
   };
 
   auto dumpRaysSq(v512 z, u64 mask = ~u64{0}) -> void;

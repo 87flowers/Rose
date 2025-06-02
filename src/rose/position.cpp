@@ -284,14 +284,14 @@ namespace rose {
   }
 
   auto Position::calcAttacksSlow() const -> std::array<Wordboard, 2> {
-    std::array<Wordboard, 2> result{};
+    std::array<std::array<u16, 64>, 2> result{};
     for (int i = 0; i < 64; i++) {
       const Square sq{static_cast<u8>(i)};
       const auto [white, black] = calcAttacksSlow(sq);
-      result[0].r[i] = white;
-      result[1].r[i] = black;
+      result[0][i] = white;
+      result[1][i] = black;
     }
-    return result;
+    return std::bit_cast<std::array<Wordboard, 2>>(result);
   }
 
   auto Position::calcAttacksSlow(Square sq) const -> std::array<u16, 2> {
@@ -406,7 +406,7 @@ namespace rose {
     for (int sq_raw = 0; sq_raw < 64; sq_raw++) {
       const Square sq{static_cast<u8>(sq_raw)};
       for (int color : {0, 1}) {
-        const u16 attackers = m_attack_table[color].r[sq.raw];
+        const u16 attackers = m_attack_table[color].read(sq);
         for (int id = 0; id < 16; id++) {
           if ((attackers >> id) & 1) {
             const Square attacker = m_piece_list_sq[color][id];
