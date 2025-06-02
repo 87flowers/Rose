@@ -20,7 +20,7 @@ namespace rose {
     const usize count = std::popcount(mask);
     rose_assert(len + count < capacity());
     for (int i = 0; i < count; i++, mask &= mask - 1)
-      data[len + i] = Move{v.w[std::countr_zero(mask)]};
+      std::memcpy(data.data() + len + i, reinterpret_cast<char *>(&v.raw) + std::countr_zero(mask) * sizeof(u16), sizeof(u16));
     len += count;
   }
 
@@ -28,7 +28,7 @@ namespace rose {
     const usize count = std::popcount(mask);
     rose_assert(len + count * 2 < capacity());
     for (int i = 0; i < count; i++, mask &= mask - 1)
-      std::memcpy(data.data() + len + i * 2, &v.d[std::countr_zero(mask)], sizeof(u16) * 2);
+      std::memcpy(data.data() + len + i * 2, reinterpret_cast<char *>(&v.raw) + std::countr_zero(mask) * sizeof(u16) * 2, sizeof(u16) * 2);
     len += count * 2;
   }
 
@@ -36,7 +36,7 @@ namespace rose {
     const usize count = std::popcount(mask);
     rose_assert(len + count * 4 < capacity());
     for (int i = 0; i < count; i++, mask &= mask - 1)
-      std::memcpy(data.data() + len + i * 4, &v.q[std::countr_zero(mask)], sizeof(u16) * 4);
+      std::memcpy(data.data() + len + i * 4, reinterpret_cast<char *>(&v.raw) + std::countr_zero(mask) * sizeof(u16) * 4, sizeof(u16) * 4);
     len += count * 4;
   }
 

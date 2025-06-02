@@ -21,7 +21,7 @@ namespace rose::tt {
   }
 
   static auto getEntryIndex(const Bucket &bucket, u8 ctrl) -> std::optional<usize> {
-    const u16 matches = vec::eq8(bucket.ctrls, v128::broadcast8(ctrl));
+    const u16 matches = vec::eq8(v128::load(bucket.ctrls.data()), v128::broadcast8(ctrl));
     const usize index = std::countr_zero(matches);
     return index < Bucket::entry_count ? std::optional<usize>{index} : std::nullopt;
   }
@@ -53,13 +53,13 @@ namespace rose::tt {
 
     const usize entry_index = getEntryIndex(bucket, ctrl)
                                   .or_else([&] {
-                                    const usize res = bucket.ctrls.b.back();
-                                    bucket.ctrls.b.back() = (res + 1) % Bucket::entry_count;
+                                    const usize res = bucket.ctrls.back();
+                                    bucket.ctrls.back() = (res + 1) % Bucket::entry_count;
                                     return std::optional<usize>{res};
                                   })
                                   .value();
 
-    bucket.ctrls.b[entry_index] = ctrl;
+    bucket.ctrls[entry_index] = ctrl;
     bucket.entries[entry_index] = Entry{fragment, ply, lr};
   }
 
@@ -73,7 +73,7 @@ namespace rose::tt {
     const Bucket &bucket = buckets.get()[bucket_index];
     std::print("bucket ctrls:");
     for (usize i = 0; i < Bucket::entry_count; i++)
-      std::print(" {:02x}", bucket.ctrls.b[i]);
+      std::print(" {:02x}", bucket.ctrls[i]);
     std::print("\n");
 
     if (const auto entry_index = getEntryIndex(bucket, ctrl)) {

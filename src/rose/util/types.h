@@ -8,9 +8,9 @@
 #define forceinline inline __attribute__((always_inline))
 
 namespace rose::vec {
-  union v128;
-  union v256;
-  union v512;
+  struct v128;
+  struct v256;
+  struct v512;
 }; // namespace rose::vec
 
 namespace rose {

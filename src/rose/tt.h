@@ -80,7 +80,7 @@ namespace rose::tt {
 
   struct Bucket {
     static inline constexpr usize entry_count = 14;
-    v128 ctrls;
+    std::array<u8, 16> ctrls;
     std::array<Entry, entry_count> entries;
   };
   static_assert(sizeof(Bucket) == sizeof(u64) * 16);
