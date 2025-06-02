@@ -691,7 +691,7 @@ namespace rose {
     const v512 swapped_perm = geometry::superpieceInverseRaysSwapped(sq);
 
     const u64 blockers = ray_places.nonzero8();
-    const u64 sliders = (ray_places & v512::broadcast8(Place::slider_bit)).nonzero8() & (ray_places & geometry::sliderMask).nonzero8();
+    const u64 sliders = geometry::slidersFromRays(ray_places);
 
     const u64 raymask = geometry::superpieceAttacks(blockers, ray_valid) & geometry::non_horse_attack_mask;
     const u64 visible_sliders = raymask & sliders;
