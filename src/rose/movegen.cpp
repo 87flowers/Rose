@@ -202,7 +202,7 @@ namespace rose {
               const auto advance = [&] { test_sq.raw += direction; };
               advance();
               for (; test_sq.rank() == king_sq.rank(); advance()) {
-                const Place p = position.board().m[test_sq.raw];
+                const Place p = position.board().read(test_sq);
                 if (p.isEmpty() || test_sq == victim || test_sq == my_piece)
                   continue;
                 return p.color() == active_color || (p.ptype() != PieceType::r && p.ptype() != PieceType::q);

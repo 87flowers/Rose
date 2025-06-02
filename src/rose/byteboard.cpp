@@ -1,5 +1,6 @@
 #include "rose/byteboard.h"
 
+#include <bit>
 #include <print>
 
 #include "rose/common.h"
@@ -9,6 +10,7 @@
 namespace rose {
 
   auto Byteboard::dumpRaw(u64 mask) const -> void {
+    const auto r = std::bit_cast<std::array<u8, 64>>(z);
     for (int flipped_rank = 0; flipped_rank < 8; flipped_rank++) {
       for (int file = 0; file < 8; file++) {
         const int rank = 7 - flipped_rank;
@@ -24,12 +26,13 @@ namespace rose {
   }
 
   auto Byteboard::dumpSq(u64 mask) const -> void {
+    const auto r = std::bit_cast<std::array<Square, 64>>(z);
     for (int flipped_rank = 0; flipped_rank < 8; flipped_rank++) {
       for (int file = 0; file < 8; file++) {
         const int rank = 7 - flipped_rank;
         const Square sq = Square::fromFileAndRank(file, rank);
         if ((mask >> sq.raw) & 1) {
-          std::print("{} ", Square{r[sq.raw]});
+          std::print("{} ", r[sq.raw]);
         } else {
           std::print("-- ");
         }
@@ -55,13 +58,12 @@ namespace rose {
   }
 
   auto dumpRaysSq(v512 z, u64 mask) -> void {
-    Byteboard bb;
-    bb.z = z;
+    const auto r = std::bit_cast<std::array<Square, 64>>(z);
     for (int ray = 0; ray < 8; ray++) {
       for (int i = 1; i < 8; i++) {
         const int index = ray * 8 + i;
         if ((mask >> index) & 1) {
-          std::print("{} ", Square{bb.r[index]});
+          std::print("{} ", r[index]);
         } else {
           std::print("-- ");
         }
@@ -72,7 +74,7 @@ namespace rose {
     for (int ray = 0; ray < 8; ray++) {
       const int index = ray * 8;
       if ((mask >> index) & 1) {
-        std::print("{} ", Square{bb.r[index]});
+        std::print("{} ", r[index]);
       } else {
         std::print("-- ");
       }
@@ -81,13 +83,12 @@ namespace rose {
   }
 
   auto dumpRaysRaw(v512 z, u64 mask) -> void {
-    Byteboard bb;
-    bb.z = z;
+    const auto r = std::bit_cast<std::array<u8, 64>>(z);
     for (int ray = 0; ray < 8; ray++) {
       for (int i = 1; i < 8; i++) {
         const int index = ray * 8 + i;
         if ((mask >> index) & 1) {
-          std::print("{:02x} ", bb.r[index]);
+          std::print("{:02x} ", r[index]);
         } else {
           std::print("-- ");
         }
@@ -98,7 +99,7 @@ namespace rose {
     for (int ray = 0; ray < 8; ray++) {
       const int index = ray * 8;
       if ((mask >> index) & 1) {
-        std::print("{:02x} ", bb.r[index]);
+        std::print("{:02x} ", r[index]);
       } else {
         std::print("-- ");
       }

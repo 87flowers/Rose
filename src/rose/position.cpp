@@ -90,8 +90,8 @@ namespace rose {
 
     const Square from = m.from();
     const Square to = m.to();
-    const Place src_place = m_board.m[from.raw];
-    const Place dest_place = m_board.m[to.raw];
+    const Place src_place = m_board.read(from);
+    const Place dest_place = m_board.read(to);
     const PieceId src_id = src_place.id();
     const PieceId dest_id = dest_place.id();
     const bool color = m_active_color.toIndex();
@@ -167,14 +167,14 @@ namespace rose {
 
     const auto enpassant = [&] {
       const Square victim{narrow_cast<u8>((from.raw & 0x38) | (to.raw & 7))};
-      const PieceId victim_id = m_board.m[victim.raw].id();
+      const PieceId victim_id = m_board.read(victim).id();
       new_pos.movePiece(color, from, to, src_id, src_place.ptype());
       new_pos.m_hash ^= hash::movePiece(from, to, src_place);
 
       new_pos.incrementalSliderUpdate(victim);
       new_pos.m_piece_list_sq[!color][victim_id] = Square::invalid();
       new_pos.m_piece_list_ptype[!color][victim_id] = PieceType::none;
-      new_pos.m_board.m[victim.raw] = Place::empty;
+      new_pos.m_board.write(victim, Place::empty);
       new_pos.removeAttacks(!color, victim_id);
       new_pos.m_hash ^= hash::removePiece(victim, m_active_color.invert(), PieceType::p);
 
@@ -188,19 +188,19 @@ namespace rose {
       const Square rook_dest{narrow_cast<u8>((from.raw & 0x38) | rook_dest_file)};
       const Square king_src = m.from();
       const Square rook_src = m.to();
-      const PieceId king_id = m_board.m[king_src.raw].id();
-      const PieceId rook_id = m_board.m[rook_src.raw].id();
+      const PieceId king_id = m_board.read(king_src).id();
+      const PieceId rook_id = m_board.read(rook_src).id();
 
       new_pos.incrementalSliderUpdate(king_src);
-      new_pos.m_board.m[king_src.raw] = Place::empty;
+      new_pos.m_board.write(king_src, Place::empty);
       new_pos.removeAttacks(color, king_id);
       new_pos.incrementalSliderUpdate(rook_src);
-      new_pos.m_board.m[rook_src.raw] = Place::empty;
+      new_pos.m_board.write(rook_src, Place::empty);
       new_pos.removeAttacks(color, rook_id);
-      new_pos.m_board.m[king_dest.raw] = Place::fromColorAndPtypeAndId(m_active_color, PieceType::k, king_id);
+      new_pos.m_board.write(king_dest, Place::fromColorAndPtypeAndId(m_active_color, PieceType::k, king_id));
       new_pos.incrementalSliderUpdate(king_dest);
       new_pos.addAttacks(color, king_dest, king_id, PieceType::k);
-      new_pos.m_board.m[rook_dest.raw] = Place::fromColorAndPtypeAndId(m_active_color, PieceType::r, rook_id);
+      new_pos.m_board.write(rook_dest, Place::fromColorAndPtypeAndId(m_active_color, PieceType::r, rook_id));
       new_pos.incrementalSliderUpdate(rook_dest);
       new_pos.addAttacks(color, rook_dest, rook_id, PieceType::r);
 
@@ -319,10 +319,9 @@ namespace rose {
 
   auto Position::calcHashSlow() const -> u64 {
     u64 result = 0;
-    for (int sq = 0; sq < 64; sq++) {
-      const u8 p = m_board.r[sq];
-      result ^= hash::piece_table[p >> 4][sq];
-    }
+    const auto board = m_board.toMailbox();
+    for (int sq = 0; sq < 64; sq++)
+      result ^= hash::piece_table[board[sq].raw >> 4][sq];
     if (m_enpassant.isValid())
       result ^= hash::enpassant_table[m_enpassant.file()];
     if (m_rook_info[0].aside.isValid())
@@ -344,7 +343,7 @@ namespace rose {
       std::print(" {} |", static_cast<char>('1' + rank));
       for (u8 file = 0; file < 8; file++) {
         const Square sq = Square::fromFileAndRank(file, static_cast<u8>(rank));
-        const Place place = m_board.m[sq.raw];
+        const Place place = m_board.read(sq);
         std::print(" {} ", place);
       }
       std::print("|\n");
@@ -441,7 +440,7 @@ namespace rose {
             std::print("{}       {}|", n(5), n(6));
             break;
           case 2:
-            std::print("{}   {}   {}|", r(7), m_board.m[sq.raw], r(8));
+            std::print("{}   {}   {}|", r(7), m_board.read(sq), r(8));
             break;
           case 3:
             std::print("{}       {}|", n(9), n(10));
@@ -484,7 +483,7 @@ namespace rose {
           const u8 current_id = 0x00;
           if (result.m_piece_list_sq[color].m[current_id].isValid())
             return std::unexpected(ParseError::too_many_kings);
-          result.m_board.m[sq.raw] = Place::fromColorAndPtypeAndId(static_cast<Color::Inner>(color), PieceType::k, current_id);
+          result.m_board.write(sq, Place::fromColorAndPtypeAndId(static_cast<Color::Inner>(color), PieceType::k, current_id));
           result.m_piece_list_sq[color].m[current_id] = sq;
           result.m_piece_list_ptype[color].m[current_id] = PieceType::k;
           place_index++;
@@ -494,7 +493,7 @@ namespace rose {
           u8 &current_id = id[color];
           if (current_id >= result.m_piece_list_sq[color].m.size())
             return std::unexpected(ParseError::too_many_pieces);
-          result.m_board.m[sq.raw] = Place::fromColorAndPtypeAndId(c, pt, current_id);
+          result.m_board.write(sq, Place::fromColorAndPtypeAndId(c, pt, current_id));
           result.m_piece_list_sq[color].m[current_id] = sq;
           result.m_piece_list_ptype[color].m[current_id] = pt;
           place_index++;
@@ -530,7 +529,7 @@ namespace rose {
         const auto castle_rights = [&](Color color, u8 rook_file) -> std::optional<ParseError> {
           const Square rook_sq = Square::fromFileAndRank(rook_file, color.toBackRank());
           const Square king_sq = result.kingSq(color);
-          const Place rook_place = result.m_board.m[rook_sq.raw];
+          const Place rook_place = result.m_board.read(rook_sq);
           if (rook_place.color() != color || rook_place.ptype() != PieceType::r || king_sq.rank() != color.toBackRank())
             return ParseError::invalid_board;
           if (rook_file < king_sq.file())
@@ -544,7 +543,7 @@ namespace rose {
             if (file < 0 || file > 7)
               return ParseError::invalid_board;
             const Square rook_sq = Square::fromFileAndRank(static_cast<u8>(file), color.toBackRank());
-            const Place rook_place = result.m_board.m[rook_sq.raw];
+            const Place rook_place = result.m_board.read(rook_sq);
             if (rook_place.isEmpty()) {
               file += direction;
               continue;

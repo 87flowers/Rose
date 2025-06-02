@@ -78,15 +78,15 @@ namespace rose {
   }
 
   auto MovePicker::sortNoisy() -> void {
-    const std::array<Place, 64> &board = m_position.board().m;
+    const Byteboard &board = m_position.board();
 
     StaticVector<i32, max_legal_moves> noisy_scores;
     noisy_scores.resize(m_noisy.size());
 
     for (isize i = 0; i < m_noisy.size(); i++) {
       const Move m = m_noisy[i];
-      const PieceType src_ptype = board[m.from().raw].ptype();
-      const PieceType dst_ptype = board[m.to().raw].ptype();
+      const PieceType src_ptype = board.read(m.from()).ptype();
+      const PieceType dst_ptype = board.read(m.to()).ptype();
       noisy_scores[i] = (dst_ptype.toSortValue() * 16 - src_ptype.toSortValue()) * 1024 - i;
     }
 

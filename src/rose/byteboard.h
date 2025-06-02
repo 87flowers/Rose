@@ -14,12 +14,18 @@
 
 namespace rose {
 
-  union alignas(64) Byteboard {
+  struct alignas(64) Byteboard {
     v512 z;
-    std::array<Place, 64> m;
-    std::array<u8, 64> r{};
 
     constexpr Byteboard() = default;
+
+    auto toMailbox() const -> std::array<Place, 64> { return std::bit_cast<std::array<Place, 64>>(z); }
+    auto read(Square sq) const -> Place {
+      Place value;
+      std::memcpy(&value, reinterpret_cast<const char *>(&z) + sq.raw * sizeof(u8), sizeof(u8));
+      return value;
+    }
+    auto write(Square sq, Place value) -> void { std::memcpy(reinterpret_cast<char *>(&z) + sq.raw * sizeof(u8), &value, sizeof(u8)); }
 
     template <PieceType ptype> auto bitboardFor(Color color) const -> u64 {
       const u8 expected_place = Place::fromColorAndPtypeAndId(color, ptype, 0).raw;
@@ -41,7 +47,7 @@ namespace rose {
     auto dumpRaw(u64 mask = ~u64{0}) const -> void;
     auto dumpSq(u64 mask = ~u64{0}) const -> void;
 
-    constexpr auto operator==(const Byteboard &other) const -> bool { return r == other.r; };
+    constexpr auto operator==(const Byteboard &other) const -> bool { return z == other.z; };
   };
 
   struct alignas(64) Wordboard {

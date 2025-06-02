@@ -148,7 +148,7 @@ template <> struct std::formatter<rose::Position, char> {
     for (i8 rank = 7; rank >= 0; rank--) {
       for (u8 file = 0; file < 8; file++) {
         const Square sq = Square::fromFileAndRank(file, static_cast<u8>(rank));
-        const Place p = position.m_board.m[sq.raw];
+        const Place p = position.m_board.read(sq);
 
         if (p.isEmpty()) {
           blanks++;

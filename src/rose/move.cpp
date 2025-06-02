@@ -23,8 +23,8 @@ namespace rose {
     if (!to)
       return std::unexpected(to.error());
 
-    const Place src_place = context.board().m[from.value().raw];
-    const Place dest_place = context.board().m[to.value().raw];
+    const Place src_place = context.board().read(from.value());
+    const Place dest_place = context.board().read(to.value());
 
     const PieceType ptype = src_place.ptype();
     const bool capture = !dest_place.isEmpty();
