@@ -142,10 +142,11 @@ namespace rose::tool::datagen {
     // Play game
     while (true) {
       const auto [score, move] = doSearch(dgc, engine, game);
+      const bool is_white = game.position().activeColor() == Color::white;
 
       if (score == eval::mated(0)) {
         rose_assert(move == Move::none());
-        result = game.position().activeColor() == Color::white ? GameResult::black_win : GameResult::white_win;
+        result = is_white ? GameResult::black_win : GameResult::white_win;
         break;
       }
       if (game.isDraw()) {
@@ -156,7 +157,7 @@ namespace rose::tool::datagen {
 
       rose_assert(move != Move::none());
       push<u16>(output, move.raw);
-      push<i16>(output, narrow_cast<i16>(score));
+      push<i16>(output, narrow_cast<i16>(is_white ? score : -score));
       moves_played++;
 
       game.move(move);
