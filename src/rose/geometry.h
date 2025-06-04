@@ -163,8 +163,7 @@ namespace rose::geometry {
         // clang-format on
     }}};
 
-    // TODO: PSHUFB instead
-    const v512 bit_rays = vec::permute8(vec::shr16(rays, 4) & v512::broadcast8(0x0F), v512::from128(ptype_to_bits));
+    const v512 bit_rays = vec::permute8(vec::shr16(rays, 4) & v512::broadcast8(0x0F), ptype_to_bits);
     return (bit_rays & base).nonzero8();
   }
 

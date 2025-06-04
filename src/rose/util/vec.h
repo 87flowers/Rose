@@ -204,6 +204,8 @@ namespace rose::vec {
   forceinline auto permute8(v256 index, v256 a) -> v256 { return {_mm256_permutexvar_epi8(index.raw, a.raw)}; }
   forceinline auto permute8(v512 index, v512 a) -> v512 { return {_mm512_permutexvar_epi8(index.raw, a.raw)}; }
 
+  forceinline auto permute8(v512 index, v128 a) -> v512 { return {_mm512_shuffle_epi8(_mm512_broadcast_i32x4(a.raw), index.raw)}; }
+
   forceinline auto permute8_mz(u16 m, v128 index, v128 a) -> v128 { return {_mm_maskz_permutexvar_epi8(m, index.raw, a.raw)}; }
   forceinline auto permute8_mz(u32 m, v256 index, v256 a) -> v256 { return {_mm256_maskz_permutexvar_epi8(m, index.raw, a.raw)}; }
   forceinline auto permute8_mz(u64 m, v512 index, v512 a) -> v512 { return {_mm512_maskz_permutexvar_epi8(m, index.raw, a.raw)}; }
