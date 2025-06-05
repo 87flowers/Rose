@@ -10,7 +10,7 @@
 
 namespace rose::perft {
 
-  template <bool print> static auto core(const PrecompMoveGenInfo &movegen_precomp, const Position &position, usize depth) -> u64 {
+  template <bool print, bool bulk> static auto core(const PrecompMoveGenInfo &movegen_precomp, const Position &position, usize depth) -> u64 {
     if (depth == 0)
       return 1;
 
@@ -20,12 +20,12 @@ namespace rose::perft {
     MoveGen movegen{position, movegen_precomp};
     movegen.generateMoves(moves);
 
-    if (!print && depth == 1)
+    if (!print && depth == 1 && bulk)
       return moves.size();
 
     for (Move m : moves) {
       const Position new_position = position.move(m);
-      const u64 child = core<false>(movegen_precomp, new_position, depth - 1);
+      const u64 child = core<false, bulk>(movegen_precomp, new_position, depth - 1);
       if constexpr (print) {
         std::print("{}: {}\n", m, child);
       }
@@ -37,13 +37,13 @@ namespace rose::perft {
 
   auto value(const Position &position, usize depth) -> u64 {
     const PrecompMoveGenInfo movegen_precomp{position};
-    return core<false>(movegen_precomp, position, depth);
+    return core<false, true>(movegen_precomp, position, depth);
   }
 
-  auto run(const Position &position, usize depth) -> void {
+  auto run(const Position &position, usize depth, bool bulk) -> void {
     const auto start = time::Clock::now();
     const PrecompMoveGenInfo movegen_precomp{position};
-    const u64 total = core<true>(movegen_precomp, position, depth);
+    const u64 total = bulk ? core<true, true>(movegen_precomp, position, depth) : core<true, false>(movegen_precomp, position, depth);
     const auto end = time::Clock::now();
 
     const time::FloatSeconds elapsed = end - start;

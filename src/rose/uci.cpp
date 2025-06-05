@@ -188,7 +188,17 @@ namespace rose {
     const auto depth = parseInt(depth_str);
     if (!depth || *depth < 0)
       return printUnrecognizedToken("perft", depth_str);
-    perft::run(game.position(), static_cast<usize>(*depth));
+
+    const std::string_view bulk_str = it.rest().empty() ? "bulk" : it.next();
+    bool bulk;
+    if (bulk_str == "bulk")
+      bulk = true;
+    else if (bulk_str == "nonbulk" || bulk_str == "nobulk")
+      bulk = false;
+    else
+      return printUnrecognizedToken("perft", bulk_str);
+
+    perft::run(game.position(), static_cast<usize>(*depth), bulk);
   }
 
   static auto uciParseUndo(Engine &engine, Game &game, Tokenizer &it) -> void {
