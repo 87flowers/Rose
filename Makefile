@@ -1,9 +1,9 @@
 .RECIPEPREFIX = >
 SUFFIX :=
 
-VERSION := $(file < src/rose_version.txt)
-EXE ?= rose-$(VERSION)
+EXE ?= rose
 
+VERSION := $(file < src/rose_version.txt)
 GIT_COMMIT_DESC := $(shell git describe --always --dirty)
 GIT_COMMIT_HASH := $(shell git show -s --format=%H)
 
