@@ -118,7 +118,7 @@ namespace rose {
     const v512 at_mask0 = v512::broadcast16(~piece_mask) | bits0;
     const v512 at_mask1 = v512::broadcast16(~piece_mask) | bits1;
 
-    const u64 pinned_bb = vec::bitshuffle(v512::broadcast64(pinned), perm);
+    const u64 pinned_bb = board_layout.nonzero8();
 
     return {{at_mask0, at_mask1}, pinned_bb};
   }
