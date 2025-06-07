@@ -173,21 +173,22 @@ namespace rose {
     const auto [pin_atmask, pinned_bb] = calculatePinInfo();
     const auto attack_table = (position.attackTable(active_color) & pin_atmask).toMailbox();
 
-    const u64 active = position.attackTable(active_color).getAttackedBitboard() & valid_destinations;
-    const u64 danger = position.attackTable(active_color.invert()).getAttackedBitboard();
-
     const u16 valid_plist = position.pieceListType(active_color).valid() & ~(king_moves ? 0 : 1);
     const u16 king_mask = 1;
     const u16 pawn_mask = position.pieceListType(active_color).maskEq(PieceType::p);
+
+    const u64 pawn_active = position.attackTable(active_color).getBitboardFor(pawn_mask) & valid_destinations;
+    const u64 non_pawn_active = position.attackTable(active_color).getBitboardFor(~pawn_mask) & valid_destinations;
+    const u64 danger = position.attackTable(active_color.invert()).getAttackedBitboard();
 
     const auto pawn_info = pawns::pawnShifts(active_color);
 
     const v256 srcs = vec::zext8to16(position.pieceListSq(active_color).x());
 
     // Unprotected captures
-    generateSubsetCaps(moves, attack_table, srcs, active & enemy & ~danger, valid_plist & ~pawn_mask);
+    generateSubsetCaps(moves, attack_table, srcs, non_pawn_active & enemy & ~danger, valid_plist & ~pawn_mask);
     // Capture-with-promotion
-    generateSubsetPCap(moves, attack_table, active & enemy & pawn_info.promo_zone, pawn_mask);
+    generateSubsetPCap(moves, attack_table, pawn_active & enemy & pawn_info.promo_zone, pawn_mask);
     // Enpassant
     if (position.enpassant().isValid() && (king_moves || checker_ptype == PieceType::p)) {
       const Square sq = position.enpassant();
@@ -215,9 +216,9 @@ namespace rose {
       }
     }
     // Pawn captures
-    generateSubsetCaps(moves, attack_table, srcs, active & enemy & pawn_info.non_promo_dest, pawn_mask);
+    generateSubsetCaps(moves, attack_table, srcs, pawn_active & enemy & pawn_info.non_promo_dest, pawn_mask);
     // Protected captures
-    generateSubsetCaps(moves, attack_table, srcs, active & enemy & danger, valid_plist & ~pawn_mask & ~king_mask);
+    generateSubsetCaps(moves, attack_table, srcs, non_pawn_active & enemy & danger, valid_plist & ~pawn_mask & ~king_mask);
     // Castling
     if constexpr (king_moves) {
 #define IS_CLEAR(bb, x) ((~(bb) & m_precomp_info.x[active_color.toIndex()]) == 0)
@@ -242,9 +243,9 @@ namespace rose {
 #undef IS_CLEAR
     }
     // Unprotected non-pawn quiets
-    generateSubsetNorm(moves, attack_table, srcs, active & empty & ~danger, valid_plist & ~pawn_mask);
+    generateSubsetNorm(moves, attack_table, srcs, non_pawn_active & empty & ~danger, valid_plist & ~pawn_mask);
     // Protected non-pawn quiets
-    generateSubsetNorm(moves, attack_table, srcs, active & empty & danger, valid_plist & ~pawn_mask & ~king_mask);
+    generateSubsetNorm(moves, attack_table, srcs, non_pawn_active & empty & danger, valid_plist & ~pawn_mask & ~king_mask);
     // Do pawns
     {
       const u64 pinned_pawns = pinned_bb & ~(0x0101010101010101 << king_sq.file());

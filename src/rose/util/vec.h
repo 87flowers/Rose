@@ -251,6 +251,9 @@ namespace rose::vec {
   forceinline auto test8(v128 a, v128 b) -> u16 { return _mm_test_epi8_mask(a.raw, b.raw); }
   forceinline auto test8(v256 a, v256 b) -> u32 { return _mm256_test_epi8_mask(a.raw, b.raw); }
   forceinline auto test8(v512 a, v512 b) -> u64 { return _mm512_test_epi8_mask(a.raw, b.raw); }
+  forceinline auto test16(v128 a, v128 b) -> u8 { return _mm_test_epi16_mask(a.raw, b.raw); }
+  forceinline auto test16(v256 a, v256 b) -> u16 { return _mm256_test_epi16_mask(a.raw, b.raw); }
+  forceinline auto test16(v512 a, v512 b) -> u32 { return _mm512_test_epi16_mask(a.raw, b.raw); }
 
   forceinline auto testn8(v128 a, v128 b) -> u16 { return _mm_testn_epi8_mask(a.raw, b.raw); }
   forceinline auto testn8(v256 a, v256 b) -> u32 { return _mm256_testn_epi8_mask(a.raw, b.raw); }
