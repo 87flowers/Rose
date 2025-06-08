@@ -40,8 +40,7 @@ namespace rose {
     auto generateSubsetCaps(MoveList &moves, const std::array<u16, 64> &attack_table, v256 srcs, u64 bitboard, u16 piecemask) -> void;
     auto generateSubsetPCap(MoveList &moves, const std::array<u16, 64> &attack_table, u64 bitboard, u16 piecemask) -> void;
 
-    template <bool king_moves>
-    forceinline auto generateMovesTo(MoveList &moves, Square king_sq, u64 valid_destinations, PieceType checker_ptype) -> void;
+    template <bool king_moves> forceinline auto generateMovesTo(MoveList &moves, Square king_sq, u64 valid_destinations, bool can_ep) -> void;
     auto generateMovesNoCheckers(MoveList &moves, Square king_sq) -> void;
     auto generateMovesOneChecker(MoveList &moves, Square king_sq, u16 checkers) -> void;
     auto generateMovesTwoCheckers(MoveList &moves, Square king_sq, u16 checkers) -> void;
