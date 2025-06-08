@@ -103,9 +103,7 @@ namespace rose {
     const v512 board_layout = vec::permute8_mz(~perm.msb8(), perm, pinned_ids);
 
     // Convert from list of squares to piecemask
-    const int pinned_count = std::popcount(pinned);
-    const v128 pinned_coord = vec::compress8(pinned, ray_coords).to128();
-    const u16 piece_mask = vec::findset8(pinned_coord, pinned_count, m_position.pieceListSq(active_color).x());
+    const u16 piece_mask = vec::findset8(pinned, ray_coords, m_position.pieceListSq(active_color).x());
 
     // Generate attack table mask
     const v512 ones = v512::broadcast16(1);
