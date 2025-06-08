@@ -155,6 +155,15 @@ namespace rose::vec {
   forceinline auto compress8(u16 mask, v128 a) -> v128 { return {_mm_maskz_compress_epi8(mask, a.raw)}; }
   forceinline auto compress8(u32 mask, v256 a) -> v256 { return {_mm256_maskz_compress_epi8(mask, a.raw)}; }
   forceinline auto compress8(u64 mask, v512 a) -> v512 { return {_mm512_maskz_compress_epi8(mask, a.raw)}; }
+  forceinline auto compress16(u8 mask, v128 a) -> v128 { return {_mm_maskz_compress_epi16(mask, a.raw)}; }
+  forceinline auto compress16(u16 mask, v256 a) -> v256 { return {_mm256_maskz_compress_epi16(mask, a.raw)}; }
+  forceinline auto compress16(u32 mask, v512 a) -> v512 { return {_mm512_maskz_compress_epi16(mask, a.raw)}; }
+  forceinline auto compress32(u8 mask, v128 a) -> v128 { return {_mm_maskz_compress_epi32(mask, a.raw)}; }
+  forceinline auto compress32(u8 mask, v256 a) -> v256 { return {_mm256_maskz_compress_epi32(mask, a.raw)}; }
+  forceinline auto compress32(u16 mask, v512 a) -> v512 { return {_mm512_maskz_compress_epi32(mask, a.raw)}; }
+  forceinline auto compress64(u8 mask, v128 a) -> v128 { return {_mm_maskz_compress_epi64(mask, a.raw)}; }
+  forceinline auto compress64(u8 mask, v256 a) -> v256 { return {_mm256_maskz_compress_epi64(mask, a.raw)}; }
+  forceinline auto compress64(u8 mask, v512 a) -> v512 { return {_mm512_maskz_compress_epi64(mask, a.raw)}; }
 
   forceinline auto concatlo16(u16 a, u16 b) -> u16 { return _mm512_kunpackb(b, a); }
   forceinline auto concatlo32(u32 a, u32 b) -> u32 { return _mm512_kunpackw(b, a); }

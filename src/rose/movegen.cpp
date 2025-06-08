@@ -10,6 +10,7 @@
 #include "rose/pawns.h"
 #include "rose/position.h"
 #include "rose/rays.h"
+#include "rose/util/assert.h"
 #include "rose/util/pext.h"
 #include "rose/util/types.h"
 #include "rose/util/vec.h"
@@ -17,27 +18,24 @@
 namespace rose {
 
   template <typename T> auto MoveList::write(typename T::Mask16 mask, T v) -> void {
-    const usize count = std::popcount(mask);
-    rose_assert(len + count < capacity());
-    for (int i = 0; i < count; i++, mask &= mask - 1)
-      std::memcpy(data.data() + len + i, reinterpret_cast<char *>(&v.raw) + std::countr_zero(mask) * sizeof(u16), sizeof(u16));
-    len += count;
+    rose_assert(len + sizeof(T) / sizeof(Move) < cap);
+    const T y = vec::compress16(mask, v);
+    std::memcpy(data.data() + len, &y, sizeof(T));
+    len += std::popcount(mask);
   }
 
   template <typename T> auto MoveList::write2(typename T::Mask32 mask, T v) -> void {
-    const usize count = std::popcount(mask);
-    rose_assert(len + count * 2 < capacity());
-    for (int i = 0; i < count; i++, mask &= mask - 1)
-      std::memcpy(data.data() + len + i * 2, reinterpret_cast<char *>(&v.raw) + std::countr_zero(mask) * sizeof(u16) * 2, sizeof(u16) * 2);
-    len += count * 2;
+    rose_assert(len + sizeof(T) / sizeof(Move) < cap);
+    const T y = vec::compress32(mask, v);
+    std::memcpy(data.data() + len, &y, sizeof(T));
+    len += std::popcount(mask) * 2;
   }
 
   template <typename T> auto MoveList::write4(typename T::Mask64 mask, T v) -> void {
-    const usize count = std::popcount(mask);
-    rose_assert(len + count * 4 < capacity());
-    for (int i = 0; i < count; i++, mask &= mask - 1)
-      std::memcpy(data.data() + len + i * 4, reinterpret_cast<char *>(&v.raw) + std::countr_zero(mask) * sizeof(u16) * 4, sizeof(u16) * 4);
-    len += count * 4;
+    rose_assert(len + sizeof(T) / sizeof(Move) < cap);
+    const T y = vec::compress64(mask, v);
+    std::memcpy(data.data() + len, &y, sizeof(T));
+    len += std::popcount(mask) * 4;
   }
 
   auto MoveList::write4(u64 moves) -> void {
