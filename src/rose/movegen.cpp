@@ -163,7 +163,7 @@ namespace rose {
     }
   }
 
-  template <bool king_moves> auto MoveGen::generateMovesTo(MoveList &moves, Square king_sq, u64 valid_destinations, PieceType checker_ptype) -> void {
+  template <bool king_moves> auto MoveGen::generateMovesTo(MoveList &moves, Square king_sq, u64 valid_destinations, bool can_ep) -> void {
     const Position &position = m_position;
     const Color active_color = position.activeColor();
 
@@ -190,7 +190,7 @@ namespace rose {
     // Capture-with-promotion
     generateSubsetPCap(moves, attack_table, pawn_active & enemy & pawn_info.promo_zone, pawn_mask);
     // Enpassant
-    if (position.enpassant().isValid() && (king_moves || checker_ptype == PieceType::p)) {
+    if (position.enpassant().isValid() && can_ep) {
       const Square sq = position.enpassant();
       const u16 mask = attack_table[sq.raw] & pawn_mask;
       if (mask != 0) {
@@ -279,23 +279,39 @@ namespace rose {
   }
 
   auto MoveGen::generateMovesNoCheckers(MoveList &moves, Square king_sq) -> void {
-    generateMovesTo<true>(moves, king_sq, ~static_cast<u64>(0), PieceType::none);
+    generateMovesTo<true>(moves, king_sq, ~static_cast<u64>(0), true);
   }
 
-  template <usize checkers_count>
-  static auto writeKingMovesWithCheckers(MoveList &moves, const Position &position, Square king_sq, u16 checkers) -> void;
+  static auto generateKingMoves(MoveList &moves, const Position &position, Square king_sq, u64 valid_destinations) -> void;
 
   auto MoveGen::generateMovesOneChecker(MoveList &moves, Square king_sq, u16 checkers) -> void {
-    const int checker_index = std::countr_zero(checkers);
-    const PieceType checker_ptype = m_position.pieceListType(m_position.activeColor().invert()).m[checker_index];
-    const Square checker_sq = m_position.pieceListSq(m_position.activeColor().invert()).m[checker_index];
-    generateMovesTo<false>(moves, king_sq, checker_ptype == PieceType::n ? checker_sq.toBitboard() : rays::calcRayTo(king_sq, checker_sq),
-                           checker_ptype);
-    writeKingMovesWithCheckers<1>(moves, m_position, king_sq, checkers);
+    const Position &position = m_position;
+    const Color active_color = position.activeColor();
+
+    const int checker_id = std::countr_zero(checkers);
+    const PieceType checker_ptype = position.pieceListType(active_color.invert()).m[checker_id];
+    const Square checker_sq = position.pieceListSq(active_color.invert()).m[checker_id];
+
+    const u64 valid_destinations = rays::inclusive(king_sq, checker_sq);
+    const u64 checker_ray = checker_ptype.isSlider() ? rays::infinite_exclusive(king_sq, checker_sq) : 0;
+
+    generateMovesTo<false>(moves, king_sq, valid_destinations, checker_ptype == PieceType::p);
+    generateKingMoves(moves, m_position, king_sq, ~checker_ray);
   }
 
   auto MoveGen::generateMovesTwoCheckers(MoveList &moves, Square king_sq, u16 checkers) -> void {
-    writeKingMovesWithCheckers<2>(moves, m_position, king_sq, checkers);
+    const Position &position = m_position;
+    const Color active_color = position.activeColor();
+
+    u64 checker_rays = 0;
+    for (; checkers != 0; checkers &= checkers - 1) {
+      const int checker_id = std::countr_zero(checkers);
+      const PieceType checker_ptype = position.pieceListType(active_color.invert()).m[checker_id];
+      const Square checker_sq = position.pieceListSq(active_color.invert()).m[checker_id];
+      checker_rays |= checker_ptype.isSlider() ? rays::infinite_exclusive(king_sq, checker_sq) : 0;
+    }
+
+    generateKingMoves(moves, m_position, king_sq, ~checker_rays);
   }
 
   auto MoveGen::generateMoves(MoveList &moves) -> void {
@@ -314,46 +330,27 @@ namespace rose {
     }
   }
 
-  template <usize checker_count>
-  forceinline static auto writeKingMovesWithCheckers(MoveList &moves, const Position &position, Square king_sq, u16 checkers) -> void {
+  forceinline static auto generateKingMoves(MoveList &moves, const Position &position, Square king_sq, u64 valid_destinations) -> void {
     const Color active_color = position.activeColor();
-    const Wordboard &attack_table = position.attackTable(position.activeColor().invert());
 
-    const auto [king_rays, rays_valid] = geometry::superpieceRays(king_sq);
-    const auto [king_leaps, leaps_valid] = geometry::adjacents(king_sq);
-    const auto king_leaps16 = vec::zext8to16_lo(king_leaps);
+    const u64 empty = position.board().getEmptyBitboard();
+    const u64 enemy = position.board().getColorBitboard(active_color.invert());
 
-    const v128 places = vec::permute8(v512::from128(king_leaps), position.board().z).to128();
-    const u16 occupied = places.nonzero8();
-    const u16 color = places.msb8();
-    const u16 friendly = (color ^ ~active_color.toBitboard()) & occupied;
+    const u16 king_mask = 1;
+    const u64 active = position.attackTable(active_color).getBitboardFor(king_mask) & valid_destinations;
+    const u64 danger = position.attackTable(active_color.invert()).getAttackedBitboard();
 
-    const u64 at_empty = vec::concatlo64(attack_table.z[0].zero16(), attack_table.z[1].zero16());
-    const u16 no_attackers = vec::bitshuffle_m(leaps_valid, v128::from64(at_empty), king_leaps);
-
-    u8 destinations = static_cast<u8>(leaps_valid & ~friendly & no_attackers);
-
-    u8 additional_checks = 0;
-    for (usize i = 0; i < checker_count; i++, checkers &= checkers - 1) {
-      const int checker_index = std::countr_zero(checkers);
-      const PieceType checker_ptype = position.pieceListType(active_color.invert()).m[checker_index];
-      const Square checker_sq = position.pieceListSq(active_color.invert()).m[checker_index];
-
-      if (checker_ptype.isSlider()) {
-        // LSB -> MSB : n, ne, e, se, s, sw, w, nw
-        constexpr std::array<u8, 3> valid_mask{{0b10101010, 0b01010101, 0b11111111}};
-        static_assert(PieceType::b == 0b101 && PieceType::r == 0b110 && PieceType::q == 0b111);
-
-        const int direction = std::countr_zero(std::rotl(rays_valid & vec::eq8(king_rays, v512::broadcast8(checker_sq.raw)), 32)) / 8;
-        additional_checks |= (1 << direction) & valid_mask[checker_ptype.raw - PieceType::b];
+    const auto write_king = [&](u64 bitboard, MoveFlags mf) {
+      for (; bitboard != 0; bitboard &= bitboard - 1) {
+        const Square dest{narrow_cast<u8>(std::countr_zero(bitboard))};
+        moves.push_back(Move::make(king_sq, dest, mf));
       }
-    }
+    };
 
-    destinations &= ~additional_checks;
-
-    const v128 write_vector = vec::shl16(king_leaps16, 6) | v128::broadcast16(king_sq.raw) |
-                              vec::mask16(occupied, v128::broadcast16(static_cast<u16>(MoveFlags::cap_normal)));
-    moves.write(destinations, write_vector);
+    // Unprotected captures
+    write_king(active & enemy & ~danger, MoveFlags::cap_normal);
+    // Unprotected quiets
+    write_king(active & empty & ~danger, MoveFlags::normal);
   }
 
 } // namespace rose
