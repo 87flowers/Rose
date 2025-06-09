@@ -189,12 +189,6 @@ namespace rose::vec {
 
   template <int index> forceinline auto extract256(v512 a) -> v256 { return {_mm512_extracti64x4_epi64(a.raw, index)}; }
 
-  template <typename T> forceinline auto findset8(typename T::Mask8 haystack_mask, T haystack, v128 needles) -> u16 {
-    const T h = vec::compress8(haystack_mask, vec::add8(haystack, T::broadcast8(0x01)));
-    const v128 n = vec::add8(needles, v128::broadcast8(0x01));
-    return _mm_extract_epi16(_mm_cmpistrm(h.to128().raw, n.raw, 0), 0);
-  }
-
   forceinline auto gf2p8matmul8(v128 a, v128 b) -> v128 { return {_mm_gf2p8affine_epi64_epi8(a.raw, b.raw, 0)}; }
   forceinline auto gf2p8matmul8(v256 a, v256 b) -> v256 { return {_mm256_gf2p8affine_epi64_epi8(a.raw, b.raw, 0)}; }
   forceinline auto gf2p8matmul8(v512 a, v512 b) -> v512 { return {_mm512_gf2p8affine_epi64_epi8(a.raw, b.raw, 0)}; }
@@ -280,5 +274,11 @@ namespace rose::vec {
   forceinline auto zext8to16_lo(v128 a) -> v128 { return {_mm_cvtepu8_epi16(a.raw)}; }
   forceinline auto zext8to16(v128 a) -> v256 { return {_mm256_cvtepu8_epi16(a.raw)}; }
   forceinline auto zext8to16(v256 a) -> v512 { return {_mm512_cvtepu8_epi16(a.raw)}; }
+
+  template <typename T> forceinline auto findset8(typename T::Mask8 haystack_mask, T haystack, v128 needles) -> u16 {
+    const T h = vec::compress8(haystack_mask, vec::sub8(haystack, T::broadcast8(0xFF)));
+    const v128 n = vec::sub8(needles, v128::broadcast8(0xFF));
+    return _mm_extract_epi16(_mm_cmpistrm(h.to128().raw, n.raw, 0), 0);
+  }
 
 } // namespace rose::vec

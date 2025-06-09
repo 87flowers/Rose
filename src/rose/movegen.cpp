@@ -78,6 +78,8 @@ namespace rose {
 
     const v512 perm = geometry::superpieceInverseRays(sq);
 
+    const v128 piece_list = m_position.pieceListSq(active_color).x();
+
     const u64 blockers = ray_places.nonzero8() & geometry::non_horse_attack_mask;
     const u64 color = ray_places.msb8();
     const u64 enemy = (color ^ active_color.toBitboard()) & blockers;
@@ -103,7 +105,7 @@ namespace rose {
     const v512 board_layout = vec::permute8_mz(~perm.msb8(), perm, pinned_ids);
 
     // Convert from list of squares to piecemask
-    const u16 piece_mask = vec::findset8(pinned, ray_coords, m_position.pieceListSq(active_color).x());
+    const u16 piece_mask = vec::findset8(pinned, ray_coords, piece_list);
 
     // Generate attack table mask
     const v512 ones = v512::broadcast16(1);
