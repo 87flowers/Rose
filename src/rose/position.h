@@ -36,20 +36,32 @@ namespace rose {
   };
 
   struct RookInfo {
-    Square aside = Square::invalid();
-    Square hside = Square::invalid();
+    u32 raw = 0x80808080;
 
-    constexpr auto clear() -> void {
-      aside = Square::invalid();
-      hside = Square::invalid();
+    constexpr auto half(Color color) const -> u16 { return static_cast<u16>(raw >> (color.toIndex() * 16)); }
+    constexpr auto aside(Color color) const -> Square { return Square{static_cast<u8>(half(color))}; }
+    constexpr auto hside(Color color) const -> Square { return Square{static_cast<u8>(half(color) >> 8)}; }
+    constexpr auto setAside(Color color, Square sq) -> void {
+      raw &= ~(static_cast<u32>(0x00FF) << (color.toIndex() * 16));
+      raw |= static_cast<u32>(sq.raw) << (color.toIndex() * 16);
+    }
+    constexpr auto setHside(Color color, Square sq) -> void {
+      raw &= ~(static_cast<u32>(0xFF00) << (color.toIndex() * 16));
+      raw |= static_cast<u32>(sq.raw) << (color.toIndex() * 16 + 8);
     }
 
-    constexpr auto unset(Square sq) -> void {
-      aside = aside == sq ? Square::invalid() : aside;
-      hside = hside == sq ? Square::invalid() : hside;
+    constexpr auto clear(Color color) -> void { raw |= static_cast<u32>(0x8080) << (color.toIndex() * 16); }
+
+    constexpr auto unset(Color color, Square sq) -> void {
+      const v128 x = v128::from32(raw);
+      const u16 mask = vec::eq8(x, v128::broadcast8(sq.raw));
+      const v128 y = vec::blend8(mask, x, v128::broadcast8(0x80));
+      raw = static_cast<u32>(y.to32());
     }
 
-    constexpr auto isClear() const -> bool { return !aside.isValid() && !hside.isValid(); }
+    constexpr auto isClear() const -> bool { return raw == 0x80808080; }
+
+    constexpr auto toIndex() const -> usize { return _pext_u32(~raw, 0x80808080); }
 
     constexpr auto operator==(const RookInfo &) const -> bool = default;
   };
@@ -67,7 +79,7 @@ namespace rose {
     u16 m_ply{};
     Color m_active_color{};
     Square m_enpassant = Square::invalid();
-    std::array<RookInfo, 2> m_rook_info;
+    RookInfo m_rook_info{};
 
   public:
     static auto startpos() -> Position;
@@ -84,7 +96,7 @@ namespace rose {
 
     auto kingSq(Color color) const -> Square { return m_piece_list_sq[color.toIndex()].m[0]; }
     auto enpassant() const -> Square { return m_enpassant; }
-    auto rookInfo(Color color) const -> RookInfo { return m_rook_info[color.toIndex()]; }
+    auto rookInfo() const -> RookInfo { return m_rook_info; }
 
     auto isValid() const -> bool { return attackTable(m_active_color).read(kingSq(m_active_color.invert())) == 0; }
     auto isInCheck() const -> bool { return attackTable(m_active_color.invert()).read(kingSq(m_active_color)) != 0; }
@@ -167,25 +179,24 @@ template <> struct std::formatter<rose::Position, char> {
 
     ctx.advance_to(std::format_to(ctx.out(), " {} ", position.m_active_color));
 
-    const RookInfo white_rook_info = position.rookInfo(Color::white);
-    const RookInfo black_rook_info = position.rookInfo(Color::black);
-    if (white_rook_info.isClear() && black_rook_info.isClear())
+    const RookInfo rook_info = position.rookInfo();
+    if (rook_info.isClear())
       ctx.advance_to(std::format_to(ctx.out(), "-"));
-    if (white_rook_info.hside.isValid()) {
-      const bool is_classical = !config::frc && white_rook_info.hside.file() == 7;
-      ctx.advance_to(std::format_to(ctx.out(), "{}", is_classical ? 'K' : static_cast<char>('A' + white_rook_info.hside.file())));
+    if (rook_info.hside(Color::white).isValid()) {
+      const bool is_classical = !config::frc && rook_info.hside(Color::white).file() == 7;
+      ctx.advance_to(std::format_to(ctx.out(), "{}", is_classical ? 'K' : static_cast<char>('A' + rook_info.hside(Color::white).file())));
     }
-    if (white_rook_info.aside.isValid()) {
-      const bool is_classical = !config::frc && white_rook_info.aside.file() == 0;
-      ctx.advance_to(std::format_to(ctx.out(), "{}", is_classical ? 'Q' : static_cast<char>('A' + white_rook_info.aside.file())));
+    if (rook_info.aside(Color::white).isValid()) {
+      const bool is_classical = !config::frc && rook_info.aside(Color::white).file() == 0;
+      ctx.advance_to(std::format_to(ctx.out(), "{}", is_classical ? 'Q' : static_cast<char>('A' + rook_info.aside(Color::white).file())));
     }
-    if (black_rook_info.hside.isValid()) {
-      const bool is_classical = !config::frc && black_rook_info.hside.file() == 7;
-      ctx.advance_to(std::format_to(ctx.out(), "{}", is_classical ? 'k' : static_cast<char>('a' + black_rook_info.hside.file())));
+    if (rook_info.hside(Color::black).isValid()) {
+      const bool is_classical = !config::frc && rook_info.hside(Color::black).file() == 7;
+      ctx.advance_to(std::format_to(ctx.out(), "{}", is_classical ? 'k' : static_cast<char>('a' + rook_info.hside(Color::black).file())));
     }
-    if (black_rook_info.aside.isValid()) {
-      const bool is_classical = !config::frc && black_rook_info.aside.file() == 0;
-      ctx.advance_to(std::format_to(ctx.out(), "{}", is_classical ? 'q' : static_cast<char>('a' + black_rook_info.aside.file())));
+    if (rook_info.aside(Color::black).isValid()) {
+      const bool is_classical = !config::frc && rook_info.aside(Color::black).file() == 0;
+      ctx.advance_to(std::format_to(ctx.out(), "{}", is_classical ? 'q' : static_cast<char>('a' + rook_info.aside(Color::black).file())));
     }
 
     if (position.m_enpassant.isValid()) {

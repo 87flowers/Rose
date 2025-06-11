@@ -37,13 +37,25 @@ namespace rose::hash {
     return enpassant_table;
   }();
 
-  const std::array<std::array<u64, 2>, 2> castle_table = [] {
-    std::array<std::array<u64, 2>, 2> castle_table{};
+  const std::array<u64, 16> castle_table = [] {
+    std::array<u64, 4> base{};
     usize i = 64 * 12 + 8;
-    castle_table[0][0] = toHash(pm[i++]);
-    castle_table[0][1] = toHash(pm[i++]);
-    castle_table[1][0] = toHash(pm[i++]);
-    castle_table[1][1] = toHash(pm[i++]);
+    base[0] = toHash(pm[i++]);
+    base[1] = toHash(pm[i++]);
+    base[2] = toHash(pm[i++]);
+    base[3] = toHash(pm[i++]);
+
+    std::array<u64, 16> castle_table{};
+    for (usize i = 0; i < 16; i++) {
+      if (i & 0b0001)
+        castle_table[i] ^= base[0];
+      if (i & 0b0010)
+        castle_table[i] ^= base[1];
+      if (i & 0b0100)
+        castle_table[i] ^= base[2];
+      if (i & 0b1000)
+        castle_table[i] ^= base[3];
+    }
     return castle_table;
   }();
 

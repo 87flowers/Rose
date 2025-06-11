@@ -96,24 +96,19 @@ namespace rose {
     const PieceId dest_id = dest_place.id();
     const bool color = m_active_color.toIndex();
 
-    if (m_enpassant.isValid()) {
+    if (new_pos.m_enpassant.isValid()) {
       new_pos.m_hash ^= hash::enpassant_table[new_pos.m_enpassant.file()];
       new_pos.m_enpassant = Square::invalid();
     }
 
     const auto check_src_castling_rights = [&] {
-      if (src_place.ptype() == PieceType::r) {
-        new_pos.m_rook_info[color].unset(from);
-      } else if (src_place.ptype() == PieceType::k) {
-        new_pos.m_rook_info[color].clear();
+      new_pos.m_rook_info.unset(m_active_color, from);
+      if (src_place.ptype() == PieceType::k) {
+        new_pos.m_rook_info.clear(m_active_color);
       }
     };
 
-    const auto check_dest_castling_rights = [&] {
-      if (dest_place.ptype() == PieceType::r) {
-        new_pos.m_rook_info[!color].unset(to);
-      }
-    };
+    const auto check_dest_castling_rights = [&] { new_pos.m_rook_info.unset(m_active_color.invert(), to); };
 
     const auto normal = [&] {
       new_pos.movePiece(color, from, to, src_id, src_place.ptype());
@@ -211,7 +206,7 @@ namespace rose {
       new_pos.m_hash ^= hash::movePiece(rook_src, rook_dest, m_active_color, PieceType::r);
 
       new_pos.m_50mr++;
-      new_pos.m_rook_info[color].clear();
+      new_pos.m_rook_info.clear(m_active_color);
     };
 
 #define MF(x) (static_cast<int>(MoveFlags::x) >> 12)
@@ -261,16 +256,8 @@ namespace rose {
     }
 #undef MF
 
-    if (m_rook_info != new_pos.m_rook_info) {
-      if (m_rook_info[0].aside != new_pos.m_rook_info[0].aside)
-        new_pos.m_hash ^= hash::castle_table[0][0];
-      if (m_rook_info[0].hside != new_pos.m_rook_info[0].hside)
-        new_pos.m_hash ^= hash::castle_table[0][1];
-      if (m_rook_info[1].aside != new_pos.m_rook_info[1].aside)
-        new_pos.m_hash ^= hash::castle_table[1][0];
-      if (m_rook_info[1].hside != new_pos.m_rook_info[1].hside)
-        new_pos.m_hash ^= hash::castle_table[1][1];
-    }
+    new_pos.m_hash ^= hash::castle_table[m_rook_info.toIndex()];
+    new_pos.m_hash ^= hash::castle_table[new_pos.m_rook_info.toIndex()];
 
     new_pos.m_ply++;
     new_pos.m_active_color = m_active_color.invert();
@@ -324,14 +311,7 @@ namespace rose {
       result ^= hash::piece_table[board[sq].raw >> 4][sq];
     if (m_enpassant.isValid())
       result ^= hash::enpassant_table[m_enpassant.file()];
-    if (m_rook_info[0].aside.isValid())
-      result ^= hash::castle_table[0][0];
-    if (m_rook_info[0].hside.isValid())
-      result ^= hash::castle_table[0][1];
-    if (m_rook_info[1].aside.isValid())
-      result ^= hash::castle_table[1][0];
-    if (m_rook_info[1].hside.isValid())
-      result ^= hash::castle_table[1][1];
+    result ^= hash::castle_table[m_rook_info.toIndex()];
     if (m_active_color == Color::black)
       result ^= hash::move;
     return result;
@@ -533,9 +513,9 @@ namespace rose {
           if (rook_place.color() != color || rook_place.ptype() != PieceType::r || king_sq.rank() != color.toBackRank())
             return ParseError::invalid_board;
           if (rook_file < king_sq.file())
-            result.m_rook_info[color.toIndex()].aside = rook_sq;
+            result.m_rook_info.setAside(color, rook_sq);
           if (rook_file > king_sq.file())
-            result.m_rook_info[color.toIndex()].hside = rook_sq;
+            result.m_rook_info.setHside(color, rook_sq);
           return std::nullopt;
         };
         const auto scan_for_rook = [&](Color color, int file, int direction) -> std::optional<ParseError> {

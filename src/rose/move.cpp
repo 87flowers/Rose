@@ -40,14 +40,14 @@ namespace rose {
           return make(from.value(), to.value(), MoveFlags::double_push);
       }
       if (ptype == PieceType::k) {
-        if (to.value() == context.rookInfo(context.activeColor()).aside)
+        if (to.value() == context.rookInfo().aside(context.activeColor()))
           return make(from.value(), to.value(), MoveFlags::castle_aside);
-        if (to.value() == context.rookInfo(context.activeColor()).hside)
+        if (to.value() == context.rookInfo().hside(context.activeColor()))
           return make(from.value(), to.value(), MoveFlags::castle_hside);
         if (!config::frc && from.value().file() == 4 && to.value().file() == 2)
-          return make(from.value(), context.rookInfo(context.activeColor()).aside, MoveFlags::castle_aside);
+          return make(from.value(), context.rookInfo().aside(context.activeColor()), MoveFlags::castle_aside);
         if (!config::frc && from.value().file() == 4 && to.value().file() == 6)
-          return make(from.value(), context.rookInfo(context.activeColor()).hside, MoveFlags::castle_hside);
+          return make(from.value(), context.rookInfo().hside(context.activeColor()), MoveFlags::castle_hside);
       }
       return make(from.value(), to.value(), capture ? MoveFlags::cap_normal : MoveFlags::normal);
     }

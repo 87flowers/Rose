@@ -18,21 +18,21 @@
 namespace rose {
 
   template <typename T> auto MoveList::write(typename T::Mask16 mask, T v) -> void {
-    rose_assert(len + sizeof(T) / sizeof(Move) < cap);
+    rose_assert(len + sizeof(T) / sizeof(Move) < capacity());
     const T y = vec::compress16(mask, v);
     std::memcpy(data.data() + len, &y, sizeof(T));
     len += std::popcount(mask);
   }
 
   template <typename T> auto MoveList::write2(typename T::Mask32 mask, T v) -> void {
-    rose_assert(len + sizeof(T) / sizeof(Move) < cap);
+    rose_assert(len + sizeof(T) / sizeof(Move) < capacity());
     const T y = vec::compress32(mask, v);
     std::memcpy(data.data() + len, &y, sizeof(T));
     len += std::popcount(mask) * 2;
   }
 
   template <typename T> auto MoveList::write4(typename T::Mask64 mask, T v) -> void {
-    rose_assert(len + sizeof(T) / sizeof(Move) < cap);
+    rose_assert(len + sizeof(T) / sizeof(Move) < capacity());
     const T y = vec::compress64(mask, v);
     std::memcpy(data.data() + len, &y, sizeof(T));
     len += std::popcount(mask) * 4;
@@ -59,12 +59,12 @@ namespace rose {
       return result;
     };
 
-    aside_rook[0] = between(position.rookInfo(Color::white).aside, Square::parse("d1").value());
-    aside_rook[1] = between(position.rookInfo(Color::black).aside, Square::parse("d8").value());
+    aside_rook[0] = between(position.rookInfo().aside(Color::white), Square::parse("d1").value());
+    aside_rook[1] = between(position.rookInfo().aside(Color::black), Square::parse("d8").value());
     aside_king[0] = between(position.kingSq(Color::white), Square::parse("c1").value());
     aside_king[1] = between(position.kingSq(Color::black), Square::parse("c8").value());
-    hside_rook[0] = between(position.rookInfo(Color::white).hside, Square::parse("f1").value());
-    hside_rook[1] = between(position.rookInfo(Color::black).hside, Square::parse("f8").value());
+    hside_rook[0] = between(position.rookInfo().hside(Color::white), Square::parse("f1").value());
+    hside_rook[1] = between(position.rookInfo().hside(Color::black), Square::parse("f8").value());
     hside_king[0] = between(position.kingSq(Color::white), Square::parse("g1").value());
     hside_king[1] = between(position.kingSq(Color::black), Square::parse("g8").value());
   }
@@ -224,22 +224,23 @@ namespace rose {
     // Castling
     if constexpr (king_moves) {
 #define IS_CLEAR(bb, x) ((~(bb) & m_precomp_info.x[active_color.toIndex()]) == 0)
-      const RookInfo rook_info = position.rookInfo(active_color);
+      const Square rook_aside = position.rookInfo().aside(active_color);
+      const Square rook_hside = position.rookInfo().hside(active_color);
       const u64 king_bb = static_cast<u64>(1) << king_sq.raw;
-      if (rook_info.aside.isValid()) {
-        rose_assert((position.board().read(rook_info.aside).raw & 0xF0) == Place::fromColorAndPtypeAndId(active_color, PieceType::r, 0).raw);
-        const u64 rook_bb = static_cast<u64>(1) << rook_info.aside.raw;
+      if (rook_aside.isValid()) {
+        rose_assert((position.board().read(rook_aside).raw & 0xF0) == Place::fromColorAndPtypeAndId(active_color, PieceType::r, 0).raw);
+        const u64 rook_bb = static_cast<u64>(1) << rook_aside.raw;
         const u64 clear = empty | king_bb | rook_bb;
         if (IS_CLEAR(clear, aside_rook) && IS_CLEAR(~danger & clear, aside_king) && !(rook_bb & pinned_bb)) {
-          moves.push_back(Move::make(king_sq, rook_info.aside, MoveFlags::castle_aside));
+          moves.push_back(Move::make(king_sq, rook_aside, MoveFlags::castle_aside));
         }
       }
-      if (rook_info.hside.isValid()) {
-        rose_assert((position.board().read(rook_info.hside).raw & 0xF0) == Place::fromColorAndPtypeAndId(active_color, PieceType::r, 0).raw);
-        const u64 rook_bb = static_cast<u64>(1) << rook_info.hside.raw;
+      if (rook_hside.isValid()) {
+        rose_assert((position.board().read(rook_hside).raw & 0xF0) == Place::fromColorAndPtypeAndId(active_color, PieceType::r, 0).raw);
+        const u64 rook_bb = static_cast<u64>(1) << rook_hside.raw;
         const u64 clear = empty | king_bb | rook_bb;
         if (IS_CLEAR(clear, hside_rook) && IS_CLEAR(~danger & clear, hside_king) && !(rook_bb & pinned_bb)) {
-          moves.push_back(Move::make(king_sq, rook_info.hside, MoveFlags::castle_hside));
+          moves.push_back(Move::make(king_sq, rook_hside, MoveFlags::castle_hside));
         }
       }
 #undef IS_CLEAR

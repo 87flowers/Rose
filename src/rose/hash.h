@@ -10,7 +10,7 @@ namespace rose::hash {
 
   extern const std::array<std::array<u64, 64>, 16> piece_table;
   extern const std::array<u64, 8> enpassant_table;
-  extern const std::array<std::array<u64, 2>, 2> castle_table;
+  extern const std::array<u64, 16> castle_table;
   extern const u64 move;
 
   inline auto movePiece(Square from, Square to, Place src_place) -> u64 {

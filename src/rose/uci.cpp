@@ -259,9 +259,9 @@ namespace rose {
       std::print("\n");
     }
 
-    for (int color = 0; color < hash::castle_table.size(); color++) {
-      std::print("castle_table[{}]:", color);
-      for (u64 h : hash::castle_table[color])
+    {
+      std::print("castle_table:");
+      for (u64 h : hash::castle_table)
         std::print(" {:016x}", h);
       std::print("\n");
     }

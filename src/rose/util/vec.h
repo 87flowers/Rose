@@ -21,6 +21,7 @@ namespace rose::vec {
     forceinline constexpr explicit v128(std::array<u8, 16> src) : raw(std::bit_cast<__m128i>(src)) {}
     forceinline constexpr explicit v128(std::array<u16, 8> src) : raw(std::bit_cast<__m128i>(src)) {}
     forceinline static auto load(const void *src) -> v128 { return {_mm_loadu_si128(reinterpret_cast<const __m128i *>(src))}; }
+    forceinline static auto from32(u32 src) -> v128 { return {_mm_cvtsi32_si128(static_cast<i32>(src))}; }
     forceinline static auto from64(u64 src) -> v128 { return {_mm_cvtsi64_si128(static_cast<i64>(src))}; }
     forceinline static auto expandMask8(u16 src) -> v128 { return {_mm_movm_epi8(src)}; }
     forceinline static auto broadcast8(u8 src) -> v128 { return {_mm_set1_epi8(src)}; }
@@ -28,6 +29,7 @@ namespace rose::vec {
     forceinline static auto broadcast32(u32 src) -> v128 { return {_mm_set1_epi32(src)}; }
     forceinline static auto broadcast64(u64 src) -> v128 { return {_mm_set1_epi64x(src)}; }
 
+    forceinline auto to32() const -> u32 { return static_cast<u32>(_mm_cvtsi128_si32(raw)); }
     forceinline auto to64() const -> u64 { return static_cast<u64>(_mm_cvtsi128_si64(raw)); }
 
     forceinline auto msb8() const -> u16 { return _mm_movepi8_mask(raw); }
