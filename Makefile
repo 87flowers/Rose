@@ -13,6 +13,8 @@ CXXFLAGS := -std=c++26 -march=native -DROSE_VERSION=\"$(VERSION)\" -DROSE_GIT_CO
 LDFLAGS  := -pthread
 RELFLAGS := -DNDEBUG -O3 -DROSE_NO_ASSERTS -flto=thin
 DEBFLAGS := -DNDEBUG -O2 -g
+PRFFLAGS := $(RELFLAGS) -fprofile-instr-generate
+PGOFLAGS := $(RELFLAGS) -fprofile-instr-use=rose.profdata
 
 BUILD_DIR := ./build
 
@@ -22,8 +24,10 @@ TEST_SRCS := $(wildcard tests/*.cpp)
 
 LIB_REL_OBJS := $(patsubst %.cpp,$(BUILD_DIR)/rel/%.o,$(LIB_SRCS))
 LIB_DEB_OBJS := $(patsubst %.cpp,$(BUILD_DIR)/deb/%.o,$(LIB_SRCS))
+LIB_PRF_OBJS := $(patsubst %.cpp,$(BUILD_DIR)/prf/%.o,$(LIB_SRCS))
+LIB_PGO_OBJS := $(patsubst %.cpp,$(BUILD_DIR)/pgo/%.o,$(LIB_SRCS))
 
-DEPS := $(LIB_REL_OBJS:.o=.d) $(LIB_DEB_OBJS:.o=.d)
+DEPS := $(LIB_REL_OBJS:.o=.d) $(LIB_DEB_OBJS:.o=.d) $(LIB_PRF_OBJS:.o=.d) $(LIB_PGO_OBJS:.o=.d)
 
 TOOLS := $(patsubst tools/%.cpp,%,$(TOOL_SRCS))
 TESTS := $(patsubst tests/%.cpp,$(BUILD_DIR)/test_%,$(TEST_SRCS))
@@ -45,11 +49,21 @@ $(EXE): $(BUILD_DIR)/rel/src/main.o $(LIB_REL_OBJS)
 rose-debug: $(BUILD_DIR)/deb/src/main.o $(LIB_DEB_OBJS)
 > $(CXX) $^ -o $@ $(LDFLAGS) $(DEBFLAGS)
 
+rose-profile-out: $(BUILD_DIR)/prf/src/main.o $(LIB_PRF_OBJS)
+> $(CXX) $^ -o $@ $(LDFLAGS) $(PRFFLAGS)
+
+rose-pgo: $(BUILD_DIR)/pgo/src/main.o $(LIB_PGO_OBJS)
+> $(CXX) $^ -o $@ $(LDFLAGS) $(PGOFLAGS)
+
 $(TOOLS): %: $(BUILD_DIR)/rel/tools/%.o $(LIB_REL_OBJS)
 > $(CXX) $^ -o $@ $(LDFLAGS) $(RELFLAGS)
 
 $(TESTS): $(BUILD_DIR)/test_%: $(BUILD_DIR)/deb/tests/%.o $(LIB_DEB_OBJS)
 > $(CXX) $^ -o $@ $(LDFLAGS) $(DEBFLAGS)
+
+rose.profdata: rose-profile-out
+> ./rose-profile-out "bench" "perft 6"
+> llvm-profdata merge -output=rose.profdata *.profraw
 
 $(BUILD_DIR)/rel/%.o: %.cpp
 > @mkdir -p $(dir $@)
@@ -58,6 +72,14 @@ $(BUILD_DIR)/rel/%.o: %.cpp
 $(BUILD_DIR)/deb/%.o: %.cpp
 > @mkdir -p $(dir $@)
 > $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEBFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/prf/%.o: %.cpp
+> @mkdir -p $(dir $@)
+> $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(PRFFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/pgo/%.o: %.cpp rose.profdata
+> @mkdir -p $(dir $@)
+> $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(PGOFLAGS) -c $< -o $@
 
 .PHONY: all clean test bench
 
