@@ -13,8 +13,8 @@ CXXFLAGS := -std=c++26 -march=native -DROSE_VERSION=\"$(VERSION)\" -DROSE_GIT_CO
 LDFLAGS  := -pthread
 RELFLAGS := -DNDEBUG -O3 -DROSE_NO_ASSERTS -flto=thin
 DEBFLAGS := -DNDEBUG -O2 -g
-PRFFLAGS := $(RELFLAGS) -fprofile-instr-generate
-PGOFLAGS := $(RELFLAGS) -fprofile-instr-use=rose.profdata
+PRFFLAGS := $(RELFLAGS) -fprofile-generate
+PGOFLAGS := $(RELFLAGS) -fprofile-use=rose.profdata
 
 BUILD_DIR := ./build
 
