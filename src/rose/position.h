@@ -59,9 +59,9 @@ namespace rose {
       raw = static_cast<u32>(y.to32());
     }
 
-    constexpr auto has(Square sq) const -> bool { return vec::eq8(v128::from32(raw), v128::broadcast8(sq.raw)); }
+    constexpr auto has(Square sq) const -> bool { return vec::eq8(v128::from32(raw), v128::broadcast8(sq.raw)) & 0b1111; }
 
-    constexpr auto isClear() const -> bool { return raw == 0x80808080; }
+    constexpr auto isClear() const -> bool { return toIndex() == 0; }
 
     constexpr auto toIndex() const -> usize { return _pext_u32(~raw, 0x80808080); }
 
