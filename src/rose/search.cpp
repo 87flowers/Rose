@@ -135,7 +135,9 @@ namespace rose {
     }
   }
 
-  inline auto Search::isDraw(const Position &position, i32 ply) -> std::optional<i32> { return position.isDraw(m_hash_stack, m_hash_waterline, ply); }
+  inline auto Search::isRuleDraw(const Position &position, i32 ply) -> std::optional<i32> {
+    return position.isRuleDraw(m_hash_stack, m_hash_waterline, ply);
+  }
 
   inline auto Search::ttLoad(const Position &position, int ply) const -> tt::LookupResult {
     return m_shared.transposition_table.load(position.hash(), ply);
@@ -159,7 +161,7 @@ namespace rose {
     const bool is_in_check = position.isInCheck();
 
     if constexpr (!NodeT::is_root)
-      if (const auto score = isDraw(position, ply))
+      if (const auto score = isRuleDraw(position, ply))
         return *score;
     if (ply >= max_search_ply) [[unlikely]]
       return is_in_check ? 0 : eval::hce(position);
@@ -326,7 +328,7 @@ namespace rose {
 
     stats().nodes.fetch_add(1, std::memory_order::relaxed);
 
-    if (const auto score = isDraw(position, ply))
+    if (const auto score = isRuleDraw(position, ply))
       return *score;
     if (ply >= max_search_ply) [[unlikely]]
       return is_in_check ? 0 : eval::hce(position);

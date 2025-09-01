@@ -132,7 +132,7 @@ namespace rose::tool::datagen {
         result = is_white ? GameResult::black_win : GameResult::white_win;
         break;
       }
-      if (game.isDraw()) {
+      if (game.isRuleDraw() || (move == Move::none() && game.isDraw())) {
         rose_assert(score == 0);
         result = GameResult::draw;
         break;
@@ -166,6 +166,7 @@ namespace rose::tool::datagen {
       {
         std::unique_lock _{state.mutex};
         fwrite(state.file, game_record);
+        std::fflush(state.file);
 
         state.total_game_count++;
         state.total_position_count += position_count;
@@ -187,7 +188,7 @@ namespace rose::tool::datagen {
 
     dgc.initial_move_count = 8;
     dgc.soft_nodes = 5000;
-    dgc.hard_nodes = 500000;
+    dgc.hard_nodes = 5000000;
     dgc.thread_count = thread_count;
 
     state.start_time = time::Clock::now();

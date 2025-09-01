@@ -3,7 +3,21 @@
 #include <algorithm>
 #include <print>
 
+#include "rose/movegen.h"
+
 namespace rose {
+
+  auto Game::isDraw() const -> bool {
+    if (isRuleDraw())
+      return true;
+
+    // Detect stalemate
+    MoveList moves;
+    PrecompMoveGenInfo movegen_precomp{position()};
+    MoveGen movegen{position(), movegen_precomp};
+    movegen.generateMoves(moves);
+    return moves.size() == 0;
+  }
 
   auto Game::printGameRecord() const -> void {
     std::print("> position ");

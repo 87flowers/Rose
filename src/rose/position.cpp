@@ -35,9 +35,9 @@ namespace rose {
     return startpos;
   }
 
-  auto Position::isDraw(const std::vector<u64> &hash_stack) const -> std::optional<i32> { return isDraw(hash_stack, hash_stack.size(), 0); }
+  auto Position::isRuleDraw(const std::vector<u64> &hash_stack) const -> std::optional<i32> { return isRuleDraw(hash_stack, hash_stack.size(), 0); }
 
-  auto Position::isDraw(const std::vector<u64> &hash_stack, usize hash_waterline, i32 ply) const -> std::optional<i32> {
+  auto Position::isRuleDraw(const std::vector<u64> &hash_stack, usize hash_waterline, i32 ply) const -> std::optional<i32> {
     if (isRepetition(hash_stack, hash_waterline))
       return 0;
     if (fiftyMoveClock() >= 100) {
