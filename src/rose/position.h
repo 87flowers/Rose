@@ -59,6 +59,8 @@ namespace rose {
       raw = static_cast<u32>(y.to32());
     }
 
+    constexpr auto has(Square sq) const -> bool { return vec::eq8(v128::from32(raw), v128::broadcast8(sq.raw)); }
+
     constexpr auto isClear() const -> bool { return raw == 0x80808080; }
 
     constexpr auto toIndex() const -> usize { return _pext_u32(~raw, 0x80808080); }
@@ -93,6 +95,7 @@ namespace rose {
     constexpr auto activeColor() const -> Color { return m_active_color; }
     constexpr auto hash() const -> u64 { return m_hash; }
     constexpr auto fiftyMoveClock() const -> u16 { return m_50mr; }
+    constexpr auto fullMoveCounter() const -> u16 { return m_ply / 2 + 1; }
 
     auto kingSq(Color color) const -> Square { return m_piece_list_sq[color.toIndex()].m[0]; }
     auto enpassant() const -> Square { return m_enpassant; }
@@ -205,6 +208,6 @@ template <> struct std::formatter<rose::Position, char> {
       ctx.advance_to(std::format_to(ctx.out(), " - "));
     }
 
-    return std::format_to(ctx.out(), "{} {}", position.m_50mr, position.m_ply / 2 + 1);
+    return std::format_to(ctx.out(), "{} {}", position.m_50mr, position.fullMoveCounter());
   }
 };

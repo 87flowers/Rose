@@ -54,6 +54,8 @@ namespace rose {
     constexpr auto to() const -> Square { return Square{static_cast<u8>((raw >> 6) & 0x3F)}; }
     constexpr auto promo() const -> bool { return raw & 0x4000; }
     constexpr auto capture() const -> bool { return raw & 0x8000; }
+    constexpr auto castle() const -> bool { return flags() == MoveFlags::castle_aside || flags() == MoveFlags::castle_hside; }
+    constexpr auto enpassant() const -> bool { return flags() == MoveFlags::enpassant; }
     constexpr auto ptype() const -> PieceType {
       rose_assert(promo());
       constexpr std::array<PieceType, 4> lut{PieceType::q, PieceType::n, PieceType::r, PieceType::b};

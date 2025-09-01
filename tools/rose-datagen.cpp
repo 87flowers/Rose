@@ -1,4 +1,5 @@
 #include <atomic>
+#include <bit>
 #include <chrono>
 #include <cstdio>
 #include <mutex>
@@ -15,6 +16,7 @@
 #include "rose/game.h"
 #include "rose/move.h"
 #include "rose/movegen.h"
+#include "rose/tool/datagen/push.h"
 #include "rose/tool/game_result.h"
 #include "rose/util/defer.h"
 #include "rose/util/string.h"
@@ -40,43 +42,29 @@ namespace rose::tool::datagen {
     time::TimePoint start_time;
   };
 
+  static auto writeMetaFile(std::string filename, const DatagenConfig &dgc) -> void {
+    FILE *f = std::fopen(filename.c_str(), "wxb");
+    if (!f) {
+      std::print("unable to open output metafile {}\n", filename);
+      std::exit(-1);
+    }
+    rose_defer { std::fclose(f); };
+
+    std::print(f, "# Rose Datagen Metafile\n");
+    std::print(f, "Filename: {}\n", filename);
+    std::print(f, "Thread count: {}\n", dgc.thread_count);
+    std::print(f, "Initial move count: {}\n", dgc.initial_move_count);
+    std::print(f, "Soft nodes: {}\n", dgc.soft_nodes);
+    std::print(f, "Hard nodes: {}\n", dgc.hard_nodes);
+    std::print(f, "Root seed: {:016x}\n", dgc.root_seed);
+    std::print(f, "Timestamp: {}\n", dgc.timestamp);
+    std::print(f, "ROSE_VERSION: {}\n", ROSE_VERSION);
+    std::print(f, "ROSE_GIT_COMMIT_DESC: {}\n", ROSE_GIT_COMMIT_DESC);
+    std::print(f, "ROSE_GIT_COMMIT_HASH: {}\n", ROSE_GIT_COMMIT_HASH);
+  }
+
   static auto fwrite(FILE *file, const std::vector<u8> &data) -> void { std::fwrite(data.data(), sizeof(u8), data.size(), file); }
   template <typename T> static auto fwrite(FILE *file, T value) -> void { std::fwrite(&value, sizeof(T), 1, file); }
-
-  static auto pushBytes(std::vector<u8> &output, const void *ptr_void, usize size) -> void {
-    const char *ptr = reinterpret_cast<const char *>(ptr_void);
-    for (usize i = 0; i < size; i++)
-      output.push_back(static_cast<u8>(*ptr++));
-  }
-  template <typename T> static auto push(std::vector<u8> &output, T value) -> void { pushBytes(output, &value, sizeof(T)); }
-  static auto pushString(std::vector<u8> &output, std::string_view str) -> void {
-    push<u16>(output, str.size());
-    pushBytes(output, str.data(), str.size());
-  }
-
-  static auto writeFileHeader(FILE *file, const DatagenConfig &dgc) -> void {
-    fwrite(file, {'R', 'P', 'G', '1'});
-
-    std::vector<u8> header;
-    push<u16>(header, 1);
-    push<u16>(header, static_cast<u8>(dgc.thread_count));
-    push<u8>(header, 0);
-    push<u8>(header, dgc.initial_move_count);
-    push<u32>(header, dgc.soft_nodes);
-    push<u32>(header, dgc.hard_nodes);
-    push<u64>(header, dgc.root_seed);
-    pushString(header, dgc.timestamp);
-    pushString(header, ROSE_VERSION);
-    pushString(header, ROSE_GIT_COMMIT_DESC);
-    pushString(header, ROSE_GIT_COMMIT_HASH);
-    push<u32>(header, 0);
-
-    while (header.size() % 2 != 0)
-      header.push_back(0);
-
-    fwrite<u16>(file, header.size());
-    fwrite(file, header);
-  }
 
   template <typename Random> static auto makeRandomMove(Random &rand, Game &game) -> bool {
     MoveList moves;
@@ -128,13 +116,8 @@ namespace rose::tool::datagen {
     Game game;
 
     // Play random opening
-    {
-      playRandomMoves(rand, game, dgc.initial_move_count);
-      const std::vector<Move> opening_moves = game.moveStack();
-      push<u16>(output, 0xA000 + opening_moves.size());
-      for (const Move m : opening_moves)
-        push<u16>(output, m.raw);
-    }
+    playRandomMoves(rand, game, dgc.initial_move_count);
+    const size_t game_result_index = pushMarlinformatPosition(output, game.position());
 
     GameResult result;
     u64 moves_played = 0;
@@ -156,8 +139,8 @@ namespace rose::tool::datagen {
       }
 
       rose_assert(move != Move::none());
-      push<u16>(output, move.raw);
-      push<i16>(output, narrow_cast<i16>(is_white ? score : -score));
+      pushViriformatMove(output, move);
+      push<i16>(output, narrow_cast<i16>(is_white ? score : -score)); // White-relative score
       moves_played++;
 
       game.move(move);
@@ -168,7 +151,7 @@ namespace rose::tool::datagen {
     push<u16>(output, 0);
 
     // Game result
-    output[1] = 0xA0 + std::to_underlying(result);
+    output[game_result_index] = std::to_underlying(result);
 
     return {output, moves_played};
   }
@@ -181,7 +164,7 @@ namespace rose::tool::datagen {
       const auto [game_record, position_count] = playGame(dgc, rand, engine);
 
       {
-        // std::unique_lock _{state.mutex};
+        std::unique_lock _{state.mutex};
         fwrite(state.file, game_record);
 
         state.total_game_count++;
@@ -211,7 +194,7 @@ namespace rose::tool::datagen {
 
     const auto now = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::utc_clock::now());
     dgc.timestamp = std::format("{:%Y%m%d-%H%M%S}", now);
-    const std::string filename = std::format("datagen-{}-{}.rpg", dgc.timestamp, ROSE_GIT_COMMIT_DESC);
+    const std::string filename = std::format("datagen-{}-{}.viriformat", dgc.timestamp, ROSE_GIT_COMMIT_DESC);
     std::print("# Output filename: {}\n", filename);
 
     std::print("# Threads: {}\n", dgc.thread_count);
@@ -230,7 +213,7 @@ namespace rose::tool::datagen {
     }
     rose_defer { std::fclose(state.file); };
 
-    writeFileHeader(state.file, dgc);
+    writeMetaFile(filename + ".txt", dgc);
 
     // Setup signal handlers
     {
