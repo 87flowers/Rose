@@ -28,7 +28,7 @@ DEPS := $(LIB_REL_OBJS:.o=.d) $(LIB_DEB_OBJS:.o=.d)
 TOOLS := $(patsubst tools/%.cpp,%,$(TOOL_SRCS))
 TESTS := $(patsubst tests/%.cpp,$(BUILD_DIR)/test_%,$(TEST_SRCS))
 
-all: $(EXE) $(TOOLS)
+all: $(EXE) $(TOOLS) $(TESTS)
 
 clean:
 > rm -r $(BUILD_DIR)
