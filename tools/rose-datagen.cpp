@@ -26,6 +26,7 @@ namespace rose::tool::datagen {
   std::atomic<bool> g_stop = false;
 
   struct DatagenConfig {
+    std::string base_filename;
     usize initial_move_count;
     int soft_nodes;
     int hard_nodes;
@@ -35,10 +36,8 @@ namespace rose::tool::datagen {
   };
 
   struct DatagenState {
-    std::mutex mutex{};
-    std::FILE *file = nullptr;
-    u64 total_game_count = 0;
-    u64 total_position_count = 0;
+    std::atomic<u64> total_game_count = 0;
+    std::atomic<u64> total_position_count = 0;
     time::TimePoint start_time;
   };
 
@@ -156,7 +155,15 @@ namespace rose::tool::datagen {
     return {output, moves_played};
   }
 
-  static auto threadMain(DatagenState &state, const DatagenConfig &dgc, u64 thread_seed) -> void {
+  static auto threadMain(int thread_index, DatagenState &state, const DatagenConfig &dgc, u64 thread_seed) -> void {
+    std::string filename = dgc.base_filename + "." + std::to_string(thread_index) + ".viriformat";
+    FILE *f = std::fopen(filename.c_str(), "wxb");
+    if (!f) {
+      std::print("unable to open output file {}\n", filename);
+      std::exit(-1);
+    }
+    rose_defer { std::fclose(f); };
+
     Engine engine;
     std::mt19937_64 rand{thread_seed};
 
@@ -164,9 +171,8 @@ namespace rose::tool::datagen {
       const auto [game_record, position_count] = playGame(dgc, rand, engine);
 
       {
-        std::unique_lock _{state.mutex};
-        fwrite(state.file, game_record);
-        std::fflush(state.file);
+        fwrite(f, game_record);
+        std::fflush(f);
 
         state.total_game_count++;
         state.total_position_count += position_count;
@@ -174,7 +180,8 @@ namespace rose::tool::datagen {
         const auto elapsed = time::cast<time::FloatSeconds>(time::Clock::now() - state.start_time);
         const f64 positions_per_second = static_cast<f64>(state.total_position_count) / elapsed.count();
 
-        std::print("games: {}, positions: {}, {:.1f} positions/second\r", state.total_game_count, state.total_position_count, positions_per_second);
+        std::print("games: {}, positions: {}, {:.1f} positions/second\r", state.total_game_count.load(std::memory_order::relaxed),
+                   state.total_position_count.load(std::memory_order::relaxed), positions_per_second);
         std::fflush(stdout);
       }
     }
@@ -195,8 +202,8 @@ namespace rose::tool::datagen {
 
     const auto now = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::utc_clock::now());
     dgc.timestamp = std::format("{:%Y%m%d-%H%M%S}", now);
-    const std::string filename = std::format("datagen-{}-{}.viriformat", dgc.timestamp, ROSE_GIT_COMMIT_DESC);
-    std::print("# Output filename: {}\n", filename);
+    dgc.base_filename = std::format("datagen-{}-{}", dgc.timestamp, ROSE_GIT_COMMIT_DESC);
+    std::print("# Output base filename: {}\n", dgc.base_filename);
 
     std::print("# Threads: {}\n", dgc.thread_count);
 
@@ -207,14 +214,7 @@ namespace rose::tool::datagen {
 
     std::fflush(stdout);
 
-    state.file = std::fopen(filename.c_str(), "wxb");
-    if (!state.file) {
-      std::print("unable to open output file\n");
-      std::exit(-1);
-    }
-    rose_defer { std::fclose(state.file); };
-
-    writeMetaFile(filename + ".txt", dgc);
+    writeMetaFile(dgc.base_filename + ".txt", dgc);
 
     // Setup signal handlers
     {
@@ -238,7 +238,7 @@ namespace rose::tool::datagen {
     std::vector<std::jthread> threads;
     for (int i = 0; i < thread_count; i++) {
       const u64 thread_seed = per_thread_seed_gen();
-      threads.emplace_back(&rose::tool::datagen::threadMain, std::ref(state), dgc, thread_seed);
+      threads.emplace_back(&rose::tool::datagen::threadMain, i, std::ref(state), dgc, thread_seed);
     }
 
     for (int i = 0; i < thread_count; i++) {
