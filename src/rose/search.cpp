@@ -8,7 +8,7 @@
 #include <thread>
 
 #include "rose/eval/eval.h"
-#include "rose/eval/hce.h"
+#include "rose/eval/network.h"
 #include "rose/game.h"
 #include "rose/history.h"
 #include "rose/line.h"
@@ -164,7 +164,7 @@ namespace rose {
       if (const auto score = isRuleDraw(position, ply))
         return *score;
     if (ply >= max_search_ply) [[unlikely]]
-      return is_in_check ? 0 : eval::hce(position);
+      return is_in_check ? 0 : eval::evaluate(position);
 
     // Mate distance pruning
     if constexpr (!NodeT::is_root) {
@@ -194,7 +194,7 @@ namespace rose {
       }
 
       if (!is_in_check) {
-        const i32 static_eval = eval::hce(position);
+        const i32 static_eval = eval::evaluate(position);
 
         // Reverse futility pruning
         if (depth <= tunable::rfp_max_depth && static_eval - tunable::rfp_margin * depth >= beta)
@@ -331,9 +331,9 @@ namespace rose {
     if (const auto score = isRuleDraw(position, ply))
       return *score;
     if (ply >= max_search_ply) [[unlikely]]
-      return is_in_check ? 0 : eval::hce(position);
+      return is_in_check ? 0 : eval::evaluate(position);
 
-    const i32 static_eval = is_in_check ? eval::no_moves : eval::hce(position);
+    const i32 static_eval = is_in_check ? eval::no_moves : eval::evaluate(position);
 
     // Stand pat
     if (static_eval >= beta)
