@@ -67,6 +67,8 @@ namespace rose::eval {
     return y * y;
   }
 
+  inline auto copysign(i32 sign, i32 x) -> i32 { return sign < 0 ? -x : x; }
+
   inline auto evaluate(const Accumulator &us, const Accumulator &them) -> i32 {
     const Network &net = defaultNetwork();
     i32 output = 0;
@@ -74,9 +76,11 @@ namespace rose::eval {
       output += screlu(us[i]) * net.output_weights[0][i];
       output += screlu(them[i]) * net.output_weights[1][i];
     }
+    output += copysign(output, qa / 2);
     output /= qa;
     output += net.output_bias;
     output *= scale;
+    output += copysign(output, qa * qb / 2);
     output /= qa * qb;
     return output;
   }
