@@ -7,10 +7,10 @@ DEFAULT_NETWORK := $(file < src/rose_network.txt)
 GIT_COMMIT_DESC := $(shell git describe --always --dirty)
 GIT_COMMIT_HASH := $(shell git show -s --format=%H)
 
-DEFAULT_NETWORK_FILE := networks/$(DEFAULT_NETWORK).rosenet
+DEFAULT_NETWORK_FILE := $(ROOT_DIR)/networks/$(DEFAULT_NETWORK).rosenet
 
 EXE ?= rose
-EVALFILE ?= $(ROOT_DIR)$(DEFAULT_NETWORK_FILE)
+EVALFILE ?= $(DEFAULT_NETWORK_FILE)
 
 CXX := clang++
 CPPFLAGS := -Isrc -MMD -MP
