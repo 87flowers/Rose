@@ -21,10 +21,9 @@ namespace rose::eval {
     return std::clamp(score, min_normal_score, max_normal_score);
   }
 
-  inline constexpr auto isTheoretical(i32 score) -> bool {
-    rose_assert(score >= min_score && score <= max_score);
-    return score < min_normal_score || score > max_normal_score;
-  }
+  inline constexpr auto isTheoretical(i32 score) -> bool { return score < min_normal_score || score > max_normal_score; }
+  inline constexpr auto isLoss(i32 score) -> bool { return score < min_normal_score; }
+  inline constexpr auto isWin(i32 score) -> bool { return score > max_normal_score; }
 
   inline constexpr auto mated(i32 ply) -> i32 {
     rose_assert(ply >= 0);
