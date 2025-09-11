@@ -24,4 +24,6 @@ namespace rose::tunable {
   inline constexpr i32 nmr_zws_base = 4;
   inline constexpr i32 nmr_reduction_base = 2;
 
+  inline constexpr i32 qs_see_threshold = 0;
+
 } // namespace rose::tunable

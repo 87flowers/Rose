@@ -15,6 +15,7 @@
 #include "rose/move_picker.h"
 #include "rose/movegen.h"
 #include "rose/search_control.h"
+#include "rose/see.h"
 #include "rose/tunable.h"
 #include "rose/util/assert.h"
 #include "rose/util/defer.h"
@@ -350,6 +351,10 @@ namespace rose {
     usize moves_searched = 0;
 
     for (Move m = moves.next(); m != Move::none(); m = moves.next()) {
+      if (!eval::isLoss(best_score) && !see::see(position, m, tunable::qs_see_threshold)) {
+        continue;
+      }
+
       const Position child_position = position.move(m);
       m_hash_stack.push_back(child_position.hash());
       m_move_stack.push_back(m);
