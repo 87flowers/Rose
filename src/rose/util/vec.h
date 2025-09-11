@@ -146,6 +146,10 @@ namespace rose::vec {
   forceinline auto add16(v256 a, v256 b) -> v256 { return {_mm256_add_epi16(a.raw, b.raw)}; }
   forceinline auto add16(v512 a, v512 b) -> v512 { return {_mm512_add_epi16(a.raw, b.raw)}; }
 
+  forceinline auto add8_sat(v128 a, v128 b) -> v128 { return {_mm_adds_epi8(a.raw, b.raw)}; }
+  forceinline auto add8_sat(v256 a, v256 b) -> v256 { return {_mm256_adds_epi8(a.raw, b.raw)}; }
+  forceinline auto add8_sat(v512 a, v512 b) -> v512 { return {_mm512_adds_epi8(a.raw, b.raw)}; }
+
   forceinline auto bitshuffle(v128 a, v128 b) -> u16 { return _mm_bitshuffle_epi64_mask(a.raw, b.raw); }
   forceinline auto bitshuffle(v256 a, v256 b) -> u32 { return _mm256_bitshuffle_epi64_mask(a.raw, b.raw); }
   forceinline auto bitshuffle(v512 a, v512 b) -> u64 { return _mm512_bitshuffle_epi64_mask(a.raw, b.raw); }
@@ -203,6 +207,8 @@ namespace rose::vec {
     return vec::gf2p8matmul8(v512::broadcast8(0xFF), vec::gf2p8matmul8(v512::broadcast64(0x0102040810204080), a));
   }
 
+  template <int amount> forceinline auto lanebyteshl(v128 a) -> v128 { return {_mm_slli_si128(a.raw, amount)}; }
+
   forceinline auto mask8(u16 mask, v128 a) -> v128 { return {_mm_maskz_mov_epi8(mask, a.raw)}; }
   forceinline auto mask8(u32 mask, v256 a) -> v256 { return {_mm256_maskz_mov_epi8(mask, a.raw)}; }
   forceinline auto mask8(u64 mask, v512 a) -> v512 { return {_mm512_maskz_mov_epi8(mask, a.raw)}; }
@@ -258,6 +264,10 @@ namespace rose::vec {
   forceinline auto sub8(v128 a, v128 b) -> v128 { return {_mm_sub_epi8(a.raw, b.raw)}; }
   forceinline auto sub8(v256 a, v256 b) -> v256 { return {_mm256_sub_epi8(a.raw, b.raw)}; }
   forceinline auto sub8(v512 a, v512 b) -> v512 { return {_mm512_sub_epi8(a.raw, b.raw)}; }
+
+  forceinline auto sub8_sat(v128 a, v128 b) -> v128 { return {_mm_subs_epi8(a.raw, b.raw)}; }
+  forceinline auto sub8_sat(v256 a, v256 b) -> v256 { return {_mm256_subs_epi8(a.raw, b.raw)}; }
+  forceinline auto sub8_sat(v512 a, v512 b) -> v512 { return {_mm512_subs_epi8(a.raw, b.raw)}; }
 
   forceinline auto test8(v128 a, v128 b) -> u16 { return _mm_test_epi8_mask(a.raw, b.raw); }
   forceinline auto test8(v256 a, v256 b) -> u32 { return _mm256_test_epi8_mask(a.raw, b.raw); }
