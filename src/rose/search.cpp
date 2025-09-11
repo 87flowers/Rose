@@ -235,6 +235,16 @@ namespace rose {
     usize moves_searched = 0;
 
     for (Move m = moves.next(); m != Move::none(); m = moves.next()) {
+      const bool is_quiet_move = !m.capture();
+
+      if (!NodeT::is_pv && !is_in_check && is_quiet_move && !eval::isLoss(best_score)) {
+        // Late move pruning
+        if (moves_searched >= tunable::lmp_base + depth * depth / tunable::lmp_scale) {
+          moves.skipQuiets();
+          continue;
+        }
+      }
+
       const Position child_position = position.move(m);
       m_hash_stack.push_back(child_position.hash());
       m_move_stack.push_back(m);
@@ -291,12 +301,6 @@ namespace rose {
             break;
           }
         }
-      }
-
-      if (!NodeT::is_pv && !is_in_check && best_score >= eval::min_normal_score) {
-        // Late move pruning
-        if (moves_searched >= tunable::lmp_base + depth * depth / tunable::lmp_scale)
-          moves.skipQuiets();
       }
     }
 
