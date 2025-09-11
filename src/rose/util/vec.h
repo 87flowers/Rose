@@ -110,6 +110,7 @@ namespace rose::vec {
     forceinline auto nonzero8() const -> u64 { return _mm512_cmpneq_epu8_mask(raw, _mm512_setzero_si512()); }
     forceinline auto zero16() const -> u32 { return _mm512_cmpeq_epu16_mask(raw, _mm512_setzero_si512()); }
     forceinline auto nonzero16() const -> u32 { return _mm512_cmpneq_epu16_mask(raw, _mm512_setzero_si512()); }
+    forceinline auto nonzero64() const -> u8 { return _mm512_cmpneq_epu64_mask(raw, _mm512_setzero_si512()); }
 
     forceinline constexpr auto operator==(const v512 &other) const -> bool { return _mm512_cmpeq_epu64_mask(raw, other.raw) == 0xFF; }
   };
