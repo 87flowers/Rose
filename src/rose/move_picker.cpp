@@ -7,6 +7,8 @@
 
 #include "rose/common.h"
 #include "rose/search.h"
+#include "rose/see.h"
+#include "rose/tunable.h"
 #include "rose/util/static_vector.h"
 
 namespace rose {
@@ -15,7 +17,7 @@ namespace rose {
 
   auto MovePicker::skipQuiets() -> void {
     if (m_stage == Stage::emit_quiet)
-      m_stage = Stage::end;
+      m_stage = Stage::emit_bad_noisy;
     m_skip_quiets = true;
   }
 
@@ -31,15 +33,23 @@ namespace rose {
       generateMoves();
 
       sortNoisy();
-      m_stage = Stage::emit_noisy;
+      m_stage = Stage::emit_good_noisy;
       m_current_index = 0;
 
       [[fallthrough]];
-    case Stage::emit_noisy:
-      if (m_current_index < m_noisy.size() && m_noisy[m_current_index] == m_tt_move)
-        m_current_index++;
-      if (m_current_index < m_noisy.size())
+    case Stage::emit_good_noisy:
+      while (m_current_index < m_noisy.size()) {
+        if (m_noisy[m_current_index] == m_tt_move) {
+          m_current_index++;
+          continue;
+        }
+        if (!see::see(m_position, m_noisy[m_current_index], tunable::bad_noisy_see_threshold)) {
+          m_bad_noisy.push_back(m_noisy[m_current_index]);
+          m_current_index++;
+          continue;
+        }
         return m_noisy[m_current_index++];
+      }
 
       if (m_skip_quiets) {
         m_stage = Stage::end;
@@ -56,6 +66,16 @@ namespace rose {
         m_current_index++;
       if (m_current_index < m_quiet.size())
         return m_quiet[m_current_index++];
+
+      m_stage = Stage::emit_bad_noisy;
+      m_current_index = 0;
+
+      [[fallthrough]];
+    case Stage::emit_bad_noisy:
+      if (m_current_index < m_bad_noisy.size() && m_bad_noisy[m_current_index] == m_tt_move)
+        m_current_index++;
+      if (m_current_index < m_bad_noisy.size())
+        return m_bad_noisy[m_current_index++];
 
       m_stage = Stage::end;
 

@@ -16,8 +16,9 @@ namespace rose {
     enum class Stage {
       tt_move,
       generate_moves,
-      emit_noisy,
+      emit_good_noisy,
       emit_quiet,
+      emit_bad_noisy,
       end,
     };
 
@@ -31,6 +32,7 @@ namespace rose {
     MoveList m_moves;
     std::span<Move> m_noisy;
     std::span<Move> m_quiet;
+    MoveList m_bad_noisy;
 
     bool m_skip_quiets = false;
     usize m_quiet_marker = 0;
