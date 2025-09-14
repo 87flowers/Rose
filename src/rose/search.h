@@ -21,6 +21,10 @@
 
 namespace rose {
 
+  struct SearchStackEntry {
+    i32 ply;
+  };
+
   struct SearchShared {
     explicit SearchShared(int thread_count, std::shared_ptr<EngineOutput> output)
         : idle_barrier(1 + thread_count), started_barrier(1 + thread_count), stats(thread_count), output(output) {}
@@ -84,14 +88,14 @@ namespace rose {
     template <typename Controls> auto searchRoot(const Controls &ctrl) -> void;
 
     inline auto isRuleDraw(const Position &position, i32 ply) -> std::optional<i32>;
-    inline auto ttLoad(const Position &position, int ply) const -> tt::LookupResult;
-    inline auto ttStore(const Position &position, int ply, tt::LookupResult lr) -> void;
+    inline auto ttLoad(const Position &position, i32 ply) const -> tt::LookupResult;
+    inline auto ttStore(const Position &position, i32 ply, tt::LookupResult lr) -> void;
 
     template <typename NodeT, typename Controls>
-    auto search(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32;
+    auto search(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, SearchStackEntry *ss, i32 depth) -> i32;
 
     template <typename NodeT, typename Controls>
-    auto quiesce(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, i32 ply) -> i32;
+    auto quiesce(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, SearchStackEntry *ss) -> i32;
   };
 
 } // namespace rose

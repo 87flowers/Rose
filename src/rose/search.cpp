@@ -100,6 +100,10 @@ namespace rose {
   }
 
   template <typename Controls> auto Search::searchRoot(const Controls &ctrl) -> void {
+    StaticVector<SearchStackEntry, max_search_ply + 1> search_stack;
+    for (i32 i = 0; i < max_search_ply + 1; i++)
+      search_stack[i].ply = i;
+
     const auto print_info = [this, &ctrl](i32 depth, i32 score, const Line &pv) {
       const u64 nodes = m_shared.totalNodes();
       const time::Duration elapsed = ctrl.elapsed();
@@ -112,7 +116,7 @@ namespace rose {
 
     for (i32 depth = 1; depth < max_search_ply; depth++) {
       Line pv{};
-      const i32 score = search<nodetype::Root>(ctrl, m_root, pv, eval::min_score, eval::max_score, 0, depth);
+      const i32 score = search<nodetype::Root>(ctrl, m_root, pv, eval::min_score, eval::max_score, &search_stack[0], depth);
 
       if (hasStopped())
         break;
@@ -148,10 +152,11 @@ namespace rose {
   }
 
   template <typename NodeT, typename Controls>
-  auto Search::search(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32 {
+  auto Search::search(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, SearchStackEntry *ss, i32 depth) -> i32 {
+    const i32 ply = ss->ply;
 
     if (depth <= 0)
-      return quiesce<NodeT>(ctrl, position, pv, alpha, beta, ply);
+      return quiesce<NodeT>(ctrl, position, pv, alpha, beta, ss);
 
     if (!NodeT::is_root && isMainThread() && ctrl.checkHardTermination(stats(), depth)) [[unlikely]] {
       requestStop();
@@ -213,7 +218,7 @@ namespace rose {
             };
             const i32 reduction = tunable::nmr_zws_base;
             Line child_pv{};
-            return -search<nodetype::NonPv>(ctrl, child_position, child_pv, -beta, -(beta - 1), ply, depth - reduction);
+            return -search<nodetype::NonPv>(ctrl, child_position, child_pv, -beta, -(beta - 1), ss, depth - reduction);
           }();
 
           if (null_score >= beta) {
@@ -221,7 +226,7 @@ namespace rose {
               return eval::isTheoretical(null_score) ? beta : null_score;
 
             depth -= tunable::nmr_reduction_base;
-            return search<nodetype::Nmred>(ctrl, position, pv, alpha, beta, ply, depth);
+            return search<nodetype::Nmred>(ctrl, position, pv, alpha, beta, ss, depth);
           }
         }
       }
@@ -262,7 +267,7 @@ namespace rose {
           i32 reduction = (tunable::lmr_base_const + l2m * l2d) / tunable::lmr_base_scale;
           reduction = std::clamp(reduction, 1, depth - 1);
           if (reduction > 1) {
-            const i32 lmr_score = -search<nodetype::NonPv>(ctrl, child_position, child_pv, -(alpha + 1), -alpha, ply + 1, depth - reduction);
+            const i32 lmr_score = -search<nodetype::NonPv>(ctrl, child_position, child_pv, -(alpha + 1), -alpha, ss + 1, depth - reduction);
             if (lmr_score <= alpha)
               return lmr_score;
           }
@@ -270,13 +275,13 @@ namespace rose {
 
         // PVS scout search
         if (NodeT::is_pv && moves_searched > 0) {
-          const i32 scout_score = -search<nodetype::NonPv>(ctrl, child_position, child_pv, -(alpha + 1), -alpha, ply + 1, depth - 1);
+          const i32 scout_score = -search<nodetype::NonPv>(ctrl, child_position, child_pv, -(alpha + 1), -alpha, ss + 1, depth - 1);
           if (scout_score <= alpha)
             return scout_score;
         }
 
         // PVS full-window search
-        return -search<typename NodeT::Next>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, depth - 1);
+        return -search<typename NodeT::Next>(ctrl, child_position, child_pv, -beta, -alpha, ss + 1, depth - 1);
       }();
 
       moves_searched++;
@@ -328,7 +333,8 @@ namespace rose {
   }
 
   template <typename NodeT, typename Controls>
-  auto Search::quiesce(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, i32 ply) -> i32 {
+  auto Search::quiesce(const Controls &ctrl, const Position &position, Line &pv, i32 alpha, i32 beta, SearchStackEntry *ss) -> i32 {
+    const i32 ply = ss->ply;
     const bool is_in_check = position.isInCheck();
 
     stats().nodes.fetch_add(1, std::memory_order::relaxed);
@@ -369,7 +375,7 @@ namespace rose {
       };
 
       Line child_pv{};
-      const i32 child_score = -quiesce<typename NodeT::Next>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1);
+      const i32 child_score = -quiesce<typename NodeT::Next>(ctrl, child_position, child_pv, -beta, -alpha, ss + 1);
 
       moves_searched++;
 
