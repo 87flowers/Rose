@@ -243,6 +243,12 @@ namespace rose {
           moves.skipQuiets();
           continue;
         }
+
+        // PVS SEE Pruning
+        const i32 see_threshold = is_quiet_move ? -100 * depth * depth : -50 * depth * depth;
+        if (!see::see(position, m, see_threshold)) {
+          continue;
+        }
       }
 
       const Position child_position = position.move(m);
@@ -355,6 +361,7 @@ namespace rose {
     usize moves_searched = 0;
 
     for (Move m = moves.next(); m != Move::none(); m = moves.next()) {
+      // QS SEE Pruning
       if (!eval::isLoss(best_score) && !see::see(position, m, tunable::qs_see_threshold)) {
         continue;
       }

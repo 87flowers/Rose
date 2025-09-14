@@ -7,6 +7,6 @@ namespace rose {
 
 namespace rose::bench {
 
-  auto run() -> void;
+  auto run(bool print_output = false) -> void;
 
 } // namespace rose::bench
