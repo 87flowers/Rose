@@ -24,6 +24,10 @@ namespace rose::see {
 
     Color stm = position.activeColor();
 
+    // Early exit if undefended capture
+    if (!position.opponentAttackersOf(to))
+      return 0 >= threshold;
+
     i32 score = value(move.enpassant() ? PieceType::p : position.pieceOn(to));
     if (move.promo()) {
       score += value(move.ptype()) - value(PieceType::p);

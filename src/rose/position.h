@@ -102,6 +102,7 @@ namespace rose {
     auto rookInfo() const -> RookInfo { return m_rook_info; }
 
     auto pieceOn(Square sq) const -> PieceType { return m_board.read(sq).ptype(); }
+    auto opponentAttackersOf(Square sq) const -> u16 { return attackTable(m_active_color.invert()).read(sq); }
 
     auto isValid() const -> bool { return attackTable(m_active_color).read(kingSq(m_active_color.invert())) == 0; }
     auto isInCheck() const -> bool { return attackTable(m_active_color.invert()).read(kingSq(m_active_color)) != 0; }
