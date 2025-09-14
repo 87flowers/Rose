@@ -218,7 +218,7 @@ namespace rose {
             };
             const i32 reduction = tunable::nmr_zws_base;
             Line child_pv{};
-            return -search<nodetype::NonPv>(ctrl, child_position, child_pv, -beta, -(beta - 1), ss, depth - reduction);
+            return -search<nodetype::NonPv>(ctrl, child_position, child_pv, -beta, -(beta - 1), ss + 1, depth - reduction);
           }();
 
           if (null_score >= beta) {
