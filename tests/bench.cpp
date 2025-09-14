@@ -6,6 +6,6 @@
 using namespace rose;
 
 auto main() -> int {
-  bench::run();
+  bench::run(true);
   return 0;
 }

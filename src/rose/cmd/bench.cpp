@@ -5,6 +5,7 @@
 
 #include "rose/config.h"
 #include "rose/engine.h"
+#include "rose/engine_output_uci.h"
 #include "rose/game.h"
 #include "rose/position.h"
 #include "rose/uci.h"
@@ -56,9 +57,12 @@ namespace rose::bench {
       "rnbqkb1r/pp2pp2/2p2np1/6Pp/3P4/5B2/PPP2P1P/RNBQK1NR b KQkq - 0 1",
   }};
 
-  auto run() -> void {
+  auto run(bool print_output) -> void {
     Engine engine;
     Game game;
+
+    if (print_output)
+      engine.setOutput(std::make_shared<rose::EngineOutputUci>());
 
     const time::TimePoint start_time = time::Clock::now();
     const SearchLimit limit = [] {
