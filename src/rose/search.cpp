@@ -183,6 +183,17 @@ namespace rose {
     }
 
     const auto tte = ttLoad(position, ply);
+    Move tt_move = tte.move;
+
+    // Internal iterative deepening
+    if (NodeT::is_pv && depth >= 4 && !tte.hit()) {
+      Line iid_pv{};
+      const i32 iid_score = search<NodeT>(ctrl, position, iid_pv, alpha, beta, ss, depth - 2);
+
+      (void)iid_score;
+      if (!iid_pv.empty())
+        tt_move = iid_pv.pv[0];
+    }
 
     if constexpr (!NodeT::is_pv) {
       // Transposition table pruning
@@ -234,10 +245,10 @@ namespace rose {
       }
     }
 
-    MovePicker moves{*this, position, tte.move, ss->killer};
+    MovePicker moves{*this, position, tt_move, ss->killer};
 
     i32 best_score = eval::no_moves;
-    Move best_move = tte.move;
+    Move best_move = tt_move;
     tt::Bound tt_bound = tt::Bound::upper_bound;
     usize moves_searched = 0;
 
