@@ -355,6 +355,7 @@ namespace rose {
     usize moves_searched = 0;
 
     for (Move m = moves.next(); m != Move::none(); m = moves.next()) {
+      // QS SEE Pruning
       if (!eval::isLoss(best_score) && !see::see(position, m, tunable::qs_see_threshold)) {
         continue;
       }
