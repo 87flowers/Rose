@@ -52,7 +52,7 @@ namespace rose {
       }
 
       if (m_skip_quiets) {
-        m_stage = Stage::end;
+        m_stage = Stage::emit_bad_noisy;
         return Move::none();
       }
 
