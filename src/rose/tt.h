@@ -25,6 +25,8 @@ namespace rose::tt {
     Bound bound = Bound::none;
     i32 score = 0;
     Move move = Move::none();
+
+    auto hit() const -> bool { return bound != Bound::none; }
   };
 
   struct Entry {

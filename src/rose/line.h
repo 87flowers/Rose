@@ -11,6 +11,8 @@ namespace rose {
   struct Line {
     StaticVector<Move, max_search_ply + 1> pv{};
 
+    auto empty() const -> bool { return pv.empty(); }
+
     auto clear() -> void { pv.clear(); }
 
     auto write(Move m) -> void {
