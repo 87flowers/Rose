@@ -114,6 +114,8 @@ namespace rose {
     i32 last_score;
     i32 last_depth;
 
+    search_stack[0].killer = Move::none();
+
     for (i32 depth = 1; depth < max_search_ply; depth++) {
       Line pv{};
       const i32 score = search<nodetype::Root>(ctrl, m_root, pv, eval::min_score, eval::max_score, &search_stack[0], depth);
@@ -232,12 +234,14 @@ namespace rose {
       }
     }
 
-    MovePicker moves{*this, position, tte.move};
+    MovePicker moves{*this, position, tte.move, ss->killer};
 
     i32 best_score = eval::no_moves;
     Move best_move = tte.move;
     tt::Bound tt_bound = tt::Bound::upper_bound;
     usize moves_searched = 0;
+
+    (ss + 1)->killer = Move::none();
 
     for (Move m = moves.next(); m != Move::none(); m = moves.next()) {
       const bool is_quiet_move = !m.capture();
@@ -318,7 +322,10 @@ namespace rose {
 
       const std::span<Move> bad_moves = moves.getMarkedQuiets();
       for (Move badm : bad_moves)
-        m_history.updateQuietHistory(-1, badm, depth);
+        if (badm != ss->killer)
+          m_history.updateQuietHistory(-1, badm, depth);
+
+      ss->killer = best_move;
     }
 
     ttStore(position, ply,
@@ -351,7 +358,7 @@ namespace rose {
       return static_eval;
     alpha = std::max(alpha, static_eval);
 
-    MovePicker moves{*this, position, Move::none()};
+    MovePicker moves{*this, position, Move::none(), Move::none()};
     if (!is_in_check)
       moves.skipQuiets();
 

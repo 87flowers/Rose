@@ -23,6 +23,7 @@ namespace rose {
 
   struct SearchStackEntry {
     i32 ply;
+    Move killer;
   };
 
   struct SearchShared {
