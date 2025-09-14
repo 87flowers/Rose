@@ -22,11 +22,14 @@ namespace rose {
       end,
     };
 
+    auto is_in_quiet_stage() const -> bool { return m_stage > Stage::emit_good_noisy && m_stage < Stage::emit_bad_noisy; }
+
     Stage m_stage = Stage::tt_move;
 
     const Search &m_search;
     const Position &m_position;
     Move m_tt_move;
+    Move m_killer;
 
     usize m_current_index = 0;
     MoveList m_moves;
@@ -38,7 +41,7 @@ namespace rose {
     usize m_quiet_marker = 0;
 
   public:
-    MovePicker(const Search &search, const Position &position, Move tt_move);
+    MovePicker(const Search &search, const Position &position, Move tt_move, Move killer);
 
     auto skipQuiets() -> void;
 

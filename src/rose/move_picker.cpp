@@ -13,10 +13,11 @@
 
 namespace rose {
 
-  MovePicker::MovePicker(const Search &search, const Position &position, Move tt_move) : m_search(search), m_position(position), m_tt_move(tt_move) {}
+  MovePicker::MovePicker(const Search &search, const Position &position, Move tt_move, Move killer)
+      : m_search(search), m_position(position), m_tt_move(tt_move), m_killer(killer) {}
 
   auto MovePicker::skipQuiets() -> void {
-    if (m_stage == Stage::emit_quiet)
+    if (is_in_quiet_stage())
       m_stage = Stage::emit_bad_noisy;
     m_skip_quiets = true;
   }
@@ -123,6 +124,12 @@ namespace rose {
     }
 
     std::ranges::sort(std::ranges::zip_view(m_quiet, quiet_scores), [](auto &&a, auto &&b) { return std::get<1>(a) > std::get<1>(b); });
+
+    if (m_killer != Move::none()) {
+      const auto it = std::find(m_quiet.begin(), m_quiet.end(), m_killer);
+      if (it != m_quiet.end())
+        std::rotate(m_quiet.begin(), it, it + 1);
+    }
   }
 
 } // namespace rose
