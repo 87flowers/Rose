@@ -9,6 +9,7 @@
 namespace rose::eval {
 
   inline constexpr i32 no_moves = std::numeric_limits<i16>::min();
+  inline constexpr i32 infinity = -no_moves;
   inline constexpr i32 min_score = -std::numeric_limits<i16>::max();
   inline constexpr i32 max_score = std::numeric_limits<i16>::max();
 

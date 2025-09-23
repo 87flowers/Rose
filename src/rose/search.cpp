@@ -119,7 +119,34 @@ namespace rose {
 
     for (i32 depth = 1; depth < max_search_ply; depth++) {
       Line pv{};
-      const i32 score = search<nodetype::Root>(ctrl, m_root, pv, eval::min_score, eval::max_score, &search_stack[0], depth);
+      i32 score;
+
+      // Aspiration window
+      i32 delta = 25;
+      i32 alpha = -eval::infinity;
+      i32 beta = eval::infinity;
+      if (depth >= 4) {
+        alpha = last_score - delta;
+        beta = last_score + delta;
+      }
+
+      while (true) {
+        pv.clear();
+        score = search<nodetype::Root>(ctrl, m_root, pv, alpha, beta, &search_stack[0], depth);
+
+        if (hasStopped())
+          break;
+
+        if (score <= alpha) {
+          alpha = std::max(score - delta, -eval::infinity);
+        } else if (score >= beta) {
+          beta = std::min(score + delta, eval::infinity);
+        } else {
+          break;
+        }
+
+        delta *= 2;
+      }
 
       if (hasStopped())
         break;
