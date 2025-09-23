@@ -1,5 +1,6 @@
 #include "rose/search.h"
 
+#include <array>
 #include <bit>
 #include <cstdio>
 #include <mutex>
@@ -100,7 +101,7 @@ namespace rose {
   }
 
   template <typename Controls> auto Search::searchRoot(const Controls &ctrl) -> void {
-    StaticVector<SearchStackEntry, max_search_ply + 1> search_stack;
+    std::array<SearchStackEntry, max_search_ply + 1> search_stack;
     for (i32 i = 0; i < max_search_ply + 1; i++)
       search_stack[i].ply = i;
 
