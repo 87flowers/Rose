@@ -72,6 +72,12 @@ $(BUILD_DIR)/deb/src/rose/version.o: .FORCE
 > @mkdir -p $(dir $@)
 > $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEBFLAGS) $(VERSION_FLAGS) -c src/rose/version.cpp -o $@
 
+update-lps:
+> @test -z "$(shell git status --porcelain)" || echo "Working directory not clean" && exit 1
+> rm -r vendor/lps
+> git clone git@github.com:/87flowers/lps vendor/lps
+> rm -rf vendor/lps/.git
+
 .FORCE:
 
 .PHONY: all clean test bench .FORCE
