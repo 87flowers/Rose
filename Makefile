@@ -78,6 +78,12 @@ update-lps:
 > git clone git@github.com:/87flowers/lps vendor/lps
 > rm -rf vendor/lps/.git
 
+update-fmt:
+> @test -z "$(shell git status --porcelain)" || echo "Working directory not clean" && exit 1
+> rm -r vendor/fmt
+> git clone git@github.com:/fmtlib/fmt vendor/fmt
+> rm -rf vendor/fmt/.git
+
 .FORCE:
 
 .PHONY: all clean test bench .FORCE
