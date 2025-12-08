@@ -1,0 +1,8 @@
+/build*/
+/out/
+/rose
+/rose-*
+/networks
+datagen-*.viriformat
+datagen-*.txt
+*.rpg
