@@ -11,7 +11,7 @@ EXE ?= rose
 CXX := clang++
 CPPFLAGS := -Isrc -MMD -MP
 CPPFLAGS += -DFMT_HEADER_ONLY -Ivendor/fmt/include
-CPPFLAGS += -Ivendor/fmt/include
+CPPFLAGS += -Ivendor/lps/include
 CXXFLAGS := -std=c++26 -march=native
 LDFLAGS  := -pthread
 RELFLAGS := -DNDEBUG -O3 -DROSE_NO_ASSERTS -flto=thin
