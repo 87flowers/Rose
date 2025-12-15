@@ -78,6 +78,10 @@ namespace rose {
       return "wb"[to_index()];
     }
 
+    constexpr auto operator!() const -> Color {
+      return invert();
+    }
+
     constexpr auto operator==(const Color&) const -> bool = default;
   };
 

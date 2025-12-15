@@ -1,6 +1,9 @@
 #include "rose/position.hpp"
 
+#include "rose/board.hpp"
 #include "rose/common.hpp"
+#include "rose/geometry.hpp"
+#include "rose/move.hpp"
 #include "rose/square.hpp"
 #include "rose/util/string.hpp"
 
@@ -9,6 +12,209 @@
 #include <utility>
 
 namespace rose {
+
+  template<bool update_dst_sliders>
+  auto Position::move_piece(Color color, Square src, Square dst, PieceId id, PieceType src_ptype, PieceType dst_ptype) -> void {
+    remove_piece<true>(color, src, id);
+    add_piece(color, dst, id, dst_ptype);
+  }
+
+  auto Position::add_piece(Color color, Square sq, PieceId id, PieceType ptype) -> void {
+    m_piece_list_sq[color.to_index()][id] = sq;
+    m_piece_list_ptype[color.to_index()][id] = ptype;
+    m_board[sq] = Place::make(color, ptype, id);
+  }
+
+  template<bool update_sliders>
+  auto Position::remove_piece(Color color, Square sq, PieceId id) -> void {
+    m_piece_list_sq[color.to_index()][id] = Square::invalid();
+    m_piece_list_ptype[color.to_index()][id] = PieceType::none;
+    m_board[sq] = Place::empty;
+  }
+
+  auto Position::startpos() -> Position {
+    static const Position startpos = Position::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").value();
+    return startpos;
+  }
+
+  auto Position::move(Move m) const -> Position {
+    Position new_pos = *this;
+
+    const Square from = m.from();
+    const Square to = m.to();
+    const Place src_place = m_board[from];
+    const Place dest_place = m_board[to];
+    const PieceId src_id = src_place.id();
+    const PieceId dest_id = dest_place.id();
+
+    if (new_pos.m_enpassant.is_valid()) {
+      new_pos.m_enpassant = Square::invalid();
+    }
+
+    const auto check_src_castling_rights = [&] {
+      new_pos.m_rook_info.unset(m_stm, from);
+      if (src_place.ptype() == PieceType::k) {
+        new_pos.m_rook_info.clear(m_stm);
+      }
+    };
+
+    const auto check_dest_castling_rights = [&] {
+      new_pos.m_rook_info.unset(!m_stm, to);
+    };
+
+    const auto normal = [&] {
+      new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      if (src_place.ptype() != PieceType::p) {
+        new_pos.m_50mr++;
+      } else {
+        new_pos.m_50mr = 0;
+      }
+      check_src_castling_rights();
+    };
+
+    const auto cap_normal = [&] {
+      new_pos.remove_piece<false>(!m_stm, to, dest_id);
+      new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      new_pos.m_50mr = 0;
+      check_src_castling_rights();
+      check_dest_castling_rights();
+    };
+
+    const auto promo = [&](auto ptype) {
+      new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
+      new_pos.m_50mr = 0;
+    };
+
+    const auto cap_promo = [&](auto ptype) {
+      new_pos.remove_piece<false>(!m_stm, to, dest_id);
+      new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
+      new_pos.m_50mr = 0;
+      check_dest_castling_rights();
+    };
+
+    const auto double_push = [&] {
+      new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      new_pos.m_50mr = 0;
+      new_pos.m_enpassant = Square {narrow_cast<u8>((from.raw + to.raw) >> 1)};
+    };
+
+    const auto enpassant = [&] {
+      const Square victim = Square::from_file_and_rank(to.file(), from.rank());
+      const PieceId victim_id = m_board[victim].id();
+
+      new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      new_pos.remove_piece<true>(!m_stm, victim, victim_id);
+
+      new_pos.m_50mr = 0;
+      check_src_castling_rights();
+      check_dest_castling_rights();
+    };
+
+    const auto castle = [&](u8 king_dest_file, u8 rook_dest_file) {
+      const Square king_dest {narrow_cast<u8>((from.raw & 0x38) | king_dest_file)};
+      const Square rook_dest {narrow_cast<u8>((from.raw & 0x38) | rook_dest_file)};
+      const Square king_src = m.from();
+      const Square rook_src = m.to();
+      const PieceId king_id = m_board[king_src].id();
+      const PieceId rook_id = m_board[rook_src].id();
+
+      new_pos.remove_piece<true>(m_stm, king_src, king_id);
+      new_pos.remove_piece<true>(m_stm, rook_src, rook_id);
+      new_pos.add_piece(m_stm, king_dest, king_id, PieceType::k);
+      new_pos.add_piece(m_stm, rook_dest, rook_id, PieceType::r);
+
+      new_pos.m_50mr++;
+      new_pos.m_rook_info.clear(m_stm);
+    };
+
+#define MF(x) (static_cast<int>(MoveFlags::x) >> 12)
+    switch (static_cast<int>(m.flags()) >> 12) {
+    case MF(normal):
+      normal();
+      break;
+    case MF(double_push):
+      double_push();
+      break;
+    case MF(castle_aside):
+      castle(2, 3);
+      break;
+    case MF(castle_hside):
+      castle(6, 5);
+      break;
+    case MF(promo_q):
+      promo(std::integral_constant<PieceType, PieceType::q> {});
+      break;
+    case MF(promo_n):
+      promo(std::integral_constant<PieceType, PieceType::n> {});
+      break;
+    case MF(promo_r):
+      promo(std::integral_constant<PieceType, PieceType::r> {});
+      break;
+    case MF(promo_b):
+      promo(std::integral_constant<PieceType, PieceType::b> {});
+      break;
+    case MF(cap_normal):
+      cap_normal();
+      break;
+    case MF(enpassant):
+      enpassant();
+      break;
+    case MF(cap_promo_q):
+      cap_promo(std::integral_constant<PieceType, PieceType::q> {});
+      break;
+    case MF(cap_promo_n):
+      cap_promo(std::integral_constant<PieceType, PieceType::n> {});
+      break;
+    case MF(cap_promo_r):
+      cap_promo(std::integral_constant<PieceType, PieceType::r> {});
+      break;
+    case MF(cap_promo_b):
+      cap_promo(std::integral_constant<PieceType, PieceType::b> {});
+      break;
+    }
+#undef MF
+
+    new_pos.m_ply++;
+    new_pos.m_stm = !m_stm;
+
+    new_pos.m_attack_table = new_pos.calc_attacks_slow();
+
+    return new_pos;
+  }
+
+  auto Position::calc_attacks_slow() const -> std::array<Wordboard, 2> {
+    std::array<std::array<PieceMask, 64>, 2> result {};
+    for (int i = 0; i < 64; i++) {
+      const Square sq {static_cast<u8>(i)};
+      const auto [white, black] = calc_attacks_slow(sq);
+      result[0][i] = white;
+      result[1][i] = black;
+    }
+    return std::bit_cast<std::array<Wordboard, 2>>(result);
+  }
+
+  auto Position::calc_attacks_slow(Square sq) const -> std::array<PieceMask, 2> {
+    const auto [ray_coords, ray_valid] = geometry::superpiece_rays(sq);
+    const u8x64 ray_places = ray_coords.swizzle(m_board.to_vector());
+
+    const m8x64 occupied = ray_places.nonzeros();
+    const m8x64 color = ray_places.msb();
+
+    const m8x64 visible = geometry::superpiece_attacks(ray_places, ray_valid) & occupied;
+
+    const m8x64 attackers = geometry::attackers_from_rays(ray_places);
+    const m8x64 white_attackers = ~color & visible & attackers;
+    const m8x64 black_attackers = color & visible & attackers;
+
+    const int white_attackers_count = white_attackers.popcount();
+    const int black_attackers_count = black_attackers.popcount();
+    const u8x16 white_attackers_coord = white_attackers.compress(ray_coords).extract_aligned<u8x16, 0>();
+    const u8x16 black_attackers_coord = black_attackers.compress(ray_coords).extract_aligned<u8x16, 0>();
+    return {
+      geometry::find_set(white_attackers_coord, white_attackers_count, m_piece_list_sq[0].to_vector()),
+      geometry::find_set(black_attackers_coord, black_attackers_count, m_piece_list_sq[1].to_vector()),
+    };
+  }
 
   auto Position::parse(std::string_view board_str,
                        std::string_view color_str,
@@ -40,7 +246,7 @@ namespace rose {
           const u8 current_id = 0x00;
           if (result.m_piece_list_sq[color].m[current_id].is_valid())
             return std::unexpected(ParseError::too_many_kings);
-          result.m_board[sq] = Place::from(static_cast<Color::Underlying>(color), PieceType::k, current_id);
+          result.m_board[sq] = Place::make(static_cast<Color::Underlying>(color), PieceType::k, current_id);
           result.m_piece_list_sq[color].m[current_id] = sq;
           result.m_piece_list_ptype[color].m[current_id] = PieceType::k;
           place_index++;
@@ -50,7 +256,7 @@ namespace rose {
           u8& current_id = id[color];
           if (current_id >= result.m_piece_list_sq[color].m.size())
             return std::unexpected(ParseError::too_many_pieces);
-          result.m_board[sq] = Place::from(c, pt, current_id);
+          result.m_board[sq] = Place::make(c, pt, current_id);
           result.m_piece_list_sq[color].m[current_id] = sq;
           result.m_piece_list_ptype[color].m[current_id] = pt;
           place_index++;
@@ -100,7 +306,7 @@ namespace rose {
               return ParseError::invalid_board;
             const Square rook_sq = Square::from_file_and_rank(static_cast<u8>(file), color.to_back_rank());
             const Place rook_place = result.m_board[rook_sq];
-            if (rook_place.isEmpty()) {
+            if (rook_place.is_empty()) {
               file += direction;
               continue;
             }
@@ -155,7 +361,7 @@ namespace rose {
       return std::unexpected(ParseError::out_of_range);
     }
 
-    // result.m_attack_table = result.calcAttacksSlow();
+    result.m_attack_table = result.calc_attacks_slow();
     // result.m_hash = result.calcHashSlow();
 
     return result;

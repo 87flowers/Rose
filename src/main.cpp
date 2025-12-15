@@ -1,10 +1,24 @@
+#include "rose/interface.hpp"
 #include "rose/version.hpp"
 
 #include <fmt/format.h>
+#include <iostream>
+#include <ranges>
 
-using namespace rose;
+auto main(int argc, char** argv) -> int {
+  fmt::print("# 🌹 Rose {}{}{}\n", rose::version::version_string, rose::version::git_commit_desc.empty() ? "" : "-", rose::version::git_commit_desc);
 
-auto main() -> int {
-  fmt::print("# 🌹 Rose {}{}{}\n", version::version_string, version::git_commit_desc.empty() ? "" : "-", version::git_commit_desc);
+  rose::Interface engine;
+
+  if (argc > 1) {
+    for (rose::usize i : std::views::iota(1, argc)) {
+      engine.parse_command(argv[i]);
+    }
+  }
+
+  std::string line;
+  while (std::getline(std::cin, line)) {
+    engine.parse_command(line);
+  }
   return 0;
 }

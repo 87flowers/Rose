@@ -7,12 +7,13 @@ GIT_COMMIT_DESC := $(shell git describe --always --dirty)
 GIT_COMMIT_HASH := $(shell git show -s --format=%H)
 
 EXE ?= rose
+ARCH ?= native
 
 CXX := clang++
 CPPFLAGS := -Isrc -MMD -MP
 CPPFLAGS += -DFMT_HEADER_ONLY -Ivendor/fmt/include
 CPPFLAGS += -Ivendor/lps/include
-CXXFLAGS := -std=c++26 -march=native
+CXXFLAGS := -std=c++26 -march=$(ARCH)
 LDFLAGS  := -pthread
 RELFLAGS := -DNDEBUG -O3 -DROSE_NO_ASSERTS -flto=thin
 DEBFLAGS := -DNDEBUG -O2 -g
@@ -21,7 +22,7 @@ VERSION_FLAGS := -DROSE_VERSION=\"$(VERSION)\"
 VERSION_FLAGS += -DROSE_GIT_COMMIT_HASH=\"$(GIT_COMMIT_HASH)\"
 VERSION_FLAGS += -DROSE_GIT_COMMIT_DESC=\"$(GIT_COMMIT_DESC)\"
 
-BUILD_DIR := ./build
+BUILD_DIR := ./build/$(ARCH)
 
 LIB_SRCS := $(wildcard src/rose/*.cpp) $(wildcard src/rose/**/*.cpp)
 TOOL_SRCS := $(wildcard tools/*.cpp)
@@ -33,12 +34,12 @@ LIB_DEB_OBJS := $(patsubst %.cpp,$(BUILD_DIR)/deb/%.o,$(LIB_SRCS))
 DEPS := $(LIB_REL_OBJS:.o=.d) $(LIB_DEB_OBJS:.o=.d)
 
 TOOLS := $(patsubst tools/%.cpp,%,$(TOOL_SRCS))
-TESTS := $(patsubst tests/%.cpp,$(BUILD_DIR)/test_%,$(TEST_SRCS))
+TESTS := $(patsubst tests/%.cpp,$(BUILD_DIR)/%,$(TEST_SRCS))
 
 all: $(EXE) rose-debug $(TOOLS) $(TESTS)
 
 clean:
-> rm -r $(BUILD_DIR)
+> rm -r ./build
 
 test: $(TESTS)
 > for t in $(TESTS); do echo "Running" $$t && $$t > /dev/null || exit 1; done
@@ -55,7 +56,7 @@ rose-debug: $(BUILD_DIR)/deb/src/main.o $(LIB_DEB_OBJS)
 $(TOOLS): %: $(BUILD_DIR)/rel/tools/%.o $(LIB_REL_OBJS)
 > $(CXX) $^ -o $@ $(LDFLAGS) $(RELFLAGS)
 
-$(TESTS): $(BUILD_DIR)/test_%: $(BUILD_DIR)/deb/tests/%.o $(LIB_DEB_OBJS)
+$(TESTS): $(BUILD_DIR)/%: $(BUILD_DIR)/deb/tests/%.o $(LIB_DEB_OBJS)
 > $(CXX) $^ -o $@ $(LDFLAGS) $(DEBFLAGS)
 
 $(BUILD_DIR)/rel/%.o: %.cpp

@@ -1,7 +1,8 @@
 #pragma once
 
-#include "common.hpp"
-#include "square.hpp"
+#include "rose/common.hpp"
+#include "rose/square.hpp"
+#include "rose/util/lsb_iterator.hpp"
 
 #include <bit>
 
@@ -10,29 +11,67 @@ namespace rose {
   struct Bitboard {
     u64 raw = 0;
 
+    using Iterator = LsbIterator<Bitboard>;
+
     constexpr Bitboard() = default;
 
     constexpr explicit Bitboard(u64 raw) :
         raw(raw) {
     }
 
-    auto empty() const -> bool {
+    constexpr auto is_empty() const -> bool {
       return raw == 0;
     }
 
-    auto lsb() const -> Square {
-      return Square { static_cast<u8>(std::countr_zero(m_raw)) };
+    constexpr auto lsb() const -> Square {
+      return Square {static_cast<u8>(std::countr_zero(raw))};
     }
 
-    bool operator==(const Bitboard&) const = default;
+    constexpr auto pop_lsb() -> void {
+      raw &= raw - 1;
+    }
+
+    constexpr auto begin() const -> Iterator {
+      return Iterator {*this};
+    }
+
+    constexpr auto end() const -> Iterator {
+      return Iterator {Bitboard {}};
+    }
+
+    friend constexpr auto operator~(Bitboard a) -> Bitboard {
+      return Bitboard {~a.raw};
+    }
+
+    friend constexpr auto operator&(Bitboard a, Bitboard b) -> Bitboard {
+      return Bitboard {a.raw & b.raw};
+    }
+
+    friend constexpr auto operator|(Bitboard a, Bitboard b) -> Bitboard {
+      return Bitboard {a.raw | b.raw};
+    }
+
+    friend constexpr auto operator^(Bitboard a, Bitboard b) -> Bitboard {
+      return Bitboard {a.raw ^ b.raw};
+    }
+
+    friend constexpr auto operator>>(Bitboard a, int shift) -> Bitboard {
+      return Bitboard {a.raw >> shift};
+    }
+
+    friend constexpr auto operator<<(Bitboard a, int shift) -> Bitboard {
+      return Bitboard {a.raw << shift};
+    }
+
+    constexpr auto operator==(const Bitboard&) const -> bool = default;
   };
 
   constexpr auto Color::to_bitboard() const -> Bitboard {
-    return Bitboard { static_cast<u64>(-static_cast<i64>(raw)) };
+    return Bitboard {static_cast<u64>(-static_cast<i64>(raw))};
   }
 
   constexpr auto Square::to_bitboard() const -> Bitboard {
-    return Bitboard { static_cast<u64>(1) << raw };
+    return Bitboard {static_cast<u64>(1) << raw};
   }
 
 }  // namespace rose

@@ -3,10 +3,12 @@
 #include "rose/board.hpp"
 #include "rose/common.hpp"
 #include "rose/config.hpp"
+#include "rose/move.hpp"
 #include "rose/square.hpp"
 #include "rose/util/tokenizer.hpp"
 
 #include <fmt/format.h>
+#include <type_traits>
 #include <utility>
 
 namespace rose {
@@ -19,6 +21,20 @@ namespace rose {
 
     auto to_vector() const -> u8x16 {
       return u8x16::load(m.data());
+    }
+
+    template<PieceType... ptype>
+    auto piece_mask_for() const -> PieceMask
+      requires std::is_same_v<T, PieceType>
+    {
+      static_assert(sizeof...(ptype) > 0);
+      if constexpr (sizeof...(ptype) == 1) {
+        return PieceMask {to_vector().eq(u8x16::splat(ptype.raw...)).to_bits()};
+      } else {
+        constexpr u8 test_bits = (0 | ... | (1 << ptype.to_index()));
+        constexpr u8x16 ptype_to_bits {{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0, 0, 0, 0, 0, 0, 0, 0}};
+        return PieceMask {(to_vector().swizzle(ptype_to_bits) & u8x16::splat(test_bits)).nonzeros().to_bits()};
+      }
     }
 
     constexpr auto operator[](PieceId id) -> T& {
@@ -83,7 +99,11 @@ namespace rose {
     }
 
     constexpr auto to_index() const -> usize {
+#if LPS_AVX2 || LPS_AVX512
       return _pext_u32(~raw, 0x80808080);
+#else
+      return ((~raw & 0x80808080) * 0x00204081) >> 28;
+#endif
     }
 
     constexpr auto operator==(const RookInfo&) const -> bool = default;
@@ -93,6 +113,7 @@ namespace rose {
   private:
     friend class fmt::formatter<Position, char>;
 
+    std::array<Wordboard, 2> m_attack_table {};
     Byteboard m_board {};
     std::array<PieceList<Square>, 2> m_piece_list_sq {};
     std::array<PieceList<PieceType>, 2> m_piece_list_ptype {};
@@ -102,6 +123,13 @@ namespace rose {
     Square m_enpassant = Square::invalid();
     Color m_stm {};
 
+    template<bool update_dst_sliders>
+    auto move_piece(Color color, Square src, Square dst, PieceId id, PieceType src_ptype, PieceType dst_ptype) -> void;
+
+    auto add_piece(Color color, Square sq, PieceId id, PieceType ptype) -> void;
+    template<bool update_sliders>
+    auto remove_piece(Color color, Square sq, PieceId id) -> void;
+
   public:
     static auto startpos() -> Position;
 
@@ -109,6 +137,18 @@ namespace rose {
 
     constexpr auto board() const -> const Byteboard& {
       return m_board;
+    }
+
+    constexpr auto attack_table(Color color) const -> const Wordboard& {
+      return m_attack_table[color.to_index()];
+    }
+
+    constexpr auto piece_list_sq(Color color) const -> PieceList<Square> {
+      return m_piece_list_sq[color.to_index()];
+    }
+
+    constexpr auto piece_list_type(Color color) const -> PieceList<PieceType> {
+      return m_piece_list_ptype[color.to_index()];
     }
 
     constexpr auto rook_info() const -> RookInfo {
@@ -134,6 +174,25 @@ namespace rose {
     auto king_sq(Color color) const -> Square {
       return m_piece_list_sq[color.to_index()][PieceId::king()];
     }
+
+    template<PieceType... ptypes>
+    auto piece_mask_for(Color color) const -> PieceMask {
+      return piece_list_type(color).piece_mask_for<ptypes...>();
+    }
+
+    template<PieceType ptype>
+    auto bitboard_for(Color color) const -> Bitboard {
+      return board().bitboard_for<ptype>(color);
+    }
+
+    auto is_valid() const -> bool {
+      return attack_table(m_stm).read(king_sq(!m_stm)).is_empty();
+    }
+
+    auto move(Move m) const -> Position;
+
+    auto calc_attacks_slow() const -> std::array<Wordboard, 2>;
+    auto calc_attacks_slow(Square sq) const -> std::array<PieceMask, 2>;
 
     static auto parse(std::string_view str) -> std::expected<Position, ParseError> {
       Tokenizer it {str};
@@ -183,7 +242,7 @@ struct fmt::formatter<rose::Position, char> {
       for (i8 file = 0; file < 8; file++) {
         const Square sq = Square::from_file_and_rank(file, rank);
         const Place p = position.m_board[sq];
-        if (p.isEmpty()) {
+        if (p.is_empty()) {
           blanks++;
         } else {
           emit_blanks();

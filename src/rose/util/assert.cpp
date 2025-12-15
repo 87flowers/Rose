@@ -1,7 +1,7 @@
 #include "rose/util/assert.hpp"
 
 #include <cstdio>
-#include <print>
+#include <fmt/format.h>
 #include <utility>
 
 namespace rose::internal {
