@@ -3,7 +3,7 @@ SUFFIX :=
 ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 
 CPPFLAGS := -Iinclude -Itests
-CXXFLAGS := -std=c++20 -march=native -Wall -Wextra -Wpedantic -Werror
+CXXFLAGS := -std=c++26 -march=native -Wall -Wextra -Wpedantic
 LDFLAGS  :=
 DEBFLAGS := -DNDEBUG -O2 -g
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lps/detail/always_false.hpp"
+#include "lps/detail/convert.hpp"
 #include "lps/detail/msb.hpp"
 #include "lps/detail/vector_clamped_size.hpp"
 #include "lps/generic/basic_vector_mask.def.hpp"
@@ -68,76 +69,7 @@ namespace lps::sse4_2 {
   template<class T, usize N, class Env>
   template<class U>
   constexpr detail::vector_clamped_size<Env, U, N> vector<T, N, Env>::convert() const {
-    using Result = detail::vector_clamped_size<Env, U, N>;
-    if constexpr (sizeof(T) == sizeof(u8)) {
-      if constexpr (sizeof(U) == sizeof(u8)) {
-        return *this;
-      } else if constexpr (std::is_same_v<T, i8> && std::is_same_v<U, i16>) {
-        return Result { _mm_cvtepi8_epi16(raw) };
-      } else if constexpr (sizeof(U) == sizeof(u16)) {
-        return Result { _mm_cvtepu8_epi16(raw) };
-      } else if constexpr (std::is_same_v<T, i8> && std::is_same_v<U, i32>) {
-        return Result { _mm_cvtepi8_epi32(raw) };
-      } else if constexpr (sizeof(U) == sizeof(u32)) {
-        return Result { _mm_cvtepu8_epi32(raw) };
-      } else if constexpr (std::is_same_v<T, i8> && std::is_same_v<U, i64>) {
-        return Result { _mm_cvtepi8_epi64(raw) };
-      } else if constexpr (sizeof(U) == sizeof(u64)) {
-        return Result { _mm_cvtepu8_epi64(raw) };
-      } else {
-        static_assert(detail::always_false<T>);
-      }
-    } else if constexpr (sizeof(T) == sizeof(u16)) {
-      if constexpr (sizeof(U) == sizeof(u8)) {
-        // TODO: Optimize
-        return Result { _mm_packus_epi16(_mm_and_si128(raw, _mm_set1_epi16(0x00FF)), _mm_setzero_si128()) };
-      } else if constexpr (sizeof(U) == sizeof(u16)) {
-        return *this;
-      } else if constexpr (std::is_same_v<T, i16> && std::is_same_v<U, i32>) {
-        return Result { _mm_cvtepi16_epi32(raw) };
-      } else if constexpr (sizeof(U) == sizeof(u32)) {
-        return Result { _mm_cvtepu16_epi32(raw) };
-      } else if constexpr (std::is_same_v<T, i16> && std::is_same_v<U, i64>) {
-        return Result { _mm_cvtepi16_epi64(raw) };
-      } else if constexpr (sizeof(U) == sizeof(u64)) {
-        return Result { _mm_cvtepu16_epi64(raw) };
-      } else {
-        static_assert(detail::always_false<T>);
-      }
-    } else if constexpr (sizeof(T) == sizeof(u32)) {
-      if constexpr (sizeof(U) == sizeof(u8)) {
-        // TODO: Optimize
-        return Result { _mm_packus_epi16(_mm_packus_epi32(_mm_and_si128(raw, _mm_set1_epi32(0x00FF)), _mm_setzero_si128()), _mm_setzero_si128()) };
-      } else if constexpr (sizeof(U) == sizeof(u16)) {
-        // TODO: Optimize
-        return Result { _mm_packus_epi32(_mm_and_si128(raw, _mm_set1_epi32(0x0000FFFF)), _mm_setzero_si128()) };
-      } else if constexpr (sizeof(U) == sizeof(u32)) {
-        return *this;
-      } else if constexpr (std::is_same_v<T, i32> && std::is_same_v<U, i64>) {
-        return Result { _mm_cvtepi32_epi64(raw) };
-      } else if constexpr (sizeof(U) == sizeof(u64)) {
-        return Result { _mm_cvtepu32_epi64(raw) };
-      } else {
-        static_assert(detail::always_false<T>);
-      }
-    } else if constexpr (sizeof(T) == sizeof(u64)) {
-      if constexpr (sizeof(U) == sizeof(u8)) {
-        // TODO: Implement
-        static_assert(detail::always_false<T>, "unimplemented");
-      } else if constexpr (sizeof(U) == sizeof(u16)) {
-        // TODO: Implement
-        static_assert(detail::always_false<T>, "unimplemented");
-      } else if constexpr (sizeof(U) == sizeof(u32)) {
-        // TODO: Implement
-        static_assert(detail::always_false<T>, "unimplemented");
-      } else if constexpr (sizeof(U) == sizeof(u64)) {
-        return *this;
-      } else {
-        static_assert(detail::always_false<T>);
-      }
-    } else {
-      static_assert(detail::always_false<T>);
-    }
+    return detail::convert<Env, T, U, N>(*this);
   }
 
   template<class T, usize N, class Env>

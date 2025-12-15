@@ -47,7 +47,7 @@ namespace lps::generic {
   template<class T, usize N>
   template<class U>
   constexpr vector<U, detail::clamped_size<U, N>> vector<T, N>::convert() const {
-    vector<U, detail::clamped_size<U, N>> result;
+    vector<U, detail::clamped_size<U, N>> result {};
     for (usize i = 0; i < N; i++) {
       result.raw[i] = static_cast<U>(raw[i]);
     }
