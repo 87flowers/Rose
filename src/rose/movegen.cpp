@@ -19,8 +19,14 @@ namespace rose {
   auto MoveList::write(M mask, T v) -> void {
     const usize count = std::popcount(mask);
     rose_assert(len + count < capacity());
+#if LPS_AVX512
+    using V = lps::environment::vector<u16, T::size>;
+    const V y = lps::environment::bit_mask<u16, T::size> {mask}.compress(std::bit_cast<V>(v));
+    std::memcpy(data.data() + len, &y, sizeof(V));
+#else
     for (int i = 0; i < count; i++, mask &= mask - 1)
       std::memcpy(data.data() + len + i, reinterpret_cast<char*>(&v.raw) + std::countr_zero(mask) * sizeof(u16), sizeof(u16));
+#endif
     len += count;
   }
 
@@ -28,8 +34,14 @@ namespace rose {
   auto MoveList::write2(M mask, T v) -> void {
     const usize count = std::popcount(mask);
     rose_assert(len + count * 2 < capacity());
+#if LPS_AVX512
+    using V = lps::environment::vector<u32, T::size / 2>;
+    const V y = lps::environment::bit_mask<u32, T::size / 2> {mask}.compress(std::bit_cast<V>(v));
+    std::memcpy(data.data() + len, &y, sizeof(V));
+#else
     for (int i = 0; i < count; i++, mask &= mask - 1)
       std::memcpy(data.data() + len + i * 2, reinterpret_cast<char*>(&v.raw) + std::countr_zero(mask) * sizeof(u16) * 2, sizeof(u16) * 2);
+#endif
     len += count * 2;
   }
 
@@ -37,8 +49,14 @@ namespace rose {
   auto MoveList::write4(M mask, T v) -> void {
     const usize count = std::popcount(mask);
     rose_assert(len + count * 4 < capacity());
+#if LPS_AVX512
+    using V = lps::environment::vector<u64, T::size / 4>;
+    const V y = lps::environment::bit_mask<u64, T::size / 4> {mask}.compress(std::bit_cast<V>(v));
+    std::memcpy(data.data() + len, &y, sizeof(V));
+#else
     for (int i = 0; i < count; i++, mask &= mask - 1)
       std::memcpy(data.data() + len + i * 4, reinterpret_cast<char*>(&v.raw) + std::countr_zero(mask) * sizeof(u16) * 4, sizeof(u16) * 4);
+#endif
     len += count * 4;
   }
 
