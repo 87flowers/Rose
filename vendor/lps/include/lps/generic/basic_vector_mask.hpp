@@ -35,6 +35,12 @@ namespace lps::generic {
 
   template<class T, usize N>
   template<class U>
+  constexpr basic_vector_mask<detail::mask_element_t<U>, detail::clamped_size<U, N>> basic_vector_mask<T, N>::convert() const {
+    return std::bit_cast<basic_vector_mask<detail::mask_element_t<U>, detail::clamped_size<U, N>>>(raw.template convert<detail::mask_element_t<U>>());
+  }
+
+  template<class T, usize N>
+  template<class U>
     requires std::is_same_v<T, detail::mask_element_t<U>>
   constexpr vector<U, N> basic_vector_mask<T, N>::mask(const vector<U, N>& v1) const {
     return select(vector<U, N>::zero(), v1);

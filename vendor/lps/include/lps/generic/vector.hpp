@@ -58,9 +58,7 @@ namespace lps::generic {
   template<class V, usize extract_index>
   constexpr V vector<T, N>::extract_aligned() const {
     V result;
-    for (usize i = 0; i < V::size; i++) {
-      result.raw[i] = raw[extract_index * V::size + i];
-    }
+    std::memcpy(&result, reinterpret_cast<const char*>(this) + extract_index * sizeof(V), sizeof(V));
     return result;
   }
 
@@ -94,9 +92,7 @@ namespace lps::generic {
 
   template<class T, usize N>
   constexpr vector<T, N>::mask_type vector<T, N>::swizzle(const vector<T, N>::mask_type& src) const {
-    vector<T, N>::mask_type result;
-    result.raw = swizzle(src.raw);
-    return result;
+    return std::bit_cast<vector<T, N>::mask_type>(swizzle(src.raw.template convert<T>()));
   }
 
   template<class T, usize N>

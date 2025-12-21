@@ -40,7 +40,8 @@ namespace rose::perft {
   }
 
   auto value(const Position& position, usize depth) -> u64 {
-    return core<false, true>(position, depth);
+    // TODO: make bulk
+    return core<false, false>(position, depth);
   }
 
   auto run(const Position& position, usize depth, bool bulk) -> void {

@@ -80,14 +80,24 @@ namespace rose {
     }
 
     constexpr auto to_vector() const -> u8x16 {
+#if LPS_SSE4_2 || LPS_AVX2 || LPS_AVX512
       return u8x16 {_mm_cvtsi32_si128(std::bit_cast<int>(raw))};
+#else
+      u8x16 result {};
+      std::memcpy(&result, &raw, sizeof(u32));
+      return result;
+#endif
     }
 
     constexpr auto unset(Color color, Square sq) -> void {
       const u8x16 x = to_vector();
       const m8x16 mask = x.eq(u8x16::splat(sq.raw));
       const u8x16 y = mask.select(x, u8x16::splat(0x80));
+#if LPS_SSE4_2 || LPS_AVX2 || LPS_AVX512
       raw = std::bit_cast<u32>(_mm_cvtsi128_si32(y.raw));
+#else
+      raw = y.extract_aligned<u32, 0>();
+#endif
     }
 
     constexpr auto has(Square sq) const -> bool {
@@ -123,12 +133,16 @@ namespace rose {
     Square m_enpassant = Square::invalid();
     Color m_stm {};
 
-    template<bool update_dst_sliders>
-    auto move_piece(Color color, Square src, Square dst, PieceId id, PieceType src_ptype, PieceType dst_ptype) -> void;
+    auto add_attacks(Color color, Square sq, PieceId id, PieceType ptype) -> void;
+    auto remove_attacks(Color color, PieceId id) -> void;
+    auto toggle_sliders(Square sq) -> void;
 
+    template<bool update_sliders>
     auto add_piece(Color color, Square sq, PieceId id, PieceType ptype) -> void;
     template<bool update_sliders>
     auto remove_piece(Color color, Square sq, PieceId id) -> void;
+    template<bool update_dst_sliders>
+    auto move_piece(Color color, Square src, Square dst, PieceId id, PieceType src_ptype, PieceType dst_ptype) -> void;
 
   public:
     static auto startpos() -> Position;
@@ -213,6 +227,8 @@ namespace rose {
                       std::string_view enpassant,
                       std::string_view clock_50mr,
                       std::string_view ply) -> std::expected<Position, ParseError>;
+
+    auto dump() const -> void;
 
     constexpr auto operator==(const Position&) const -> bool = default;
   };

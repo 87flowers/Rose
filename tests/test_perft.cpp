@@ -54,7 +54,7 @@ auto main() -> int {
 
     for (usize depth = 0; depth < results.size(); depth++) {
       const u64 value = perft::value(position, depth);
-      fmt::print("{}: {}\n", depth, value);
+      fmt::print("{}: {} ({})\n", depth, value, results[depth]);
       rose_assert(value == results[depth]);
     }
   }

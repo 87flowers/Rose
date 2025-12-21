@@ -2,6 +2,7 @@
 
 #include "lps/detail/bit_mask_base.hpp"
 #include "lps/detail/mask_element.hpp"
+#include "lps/detail/vector_clamped_size.hpp"
 #include "lps/generic/generic.fwd.hpp"
 #include "lps/stdint.hpp"
 
@@ -42,6 +43,9 @@ namespace lps::generic {
     constexpr void set(usize index, bool value);
 
     template<class U>
+    constexpr basic_vector_mask<detail::mask_element_t<U>, detail::clamped_size<U, N>> convert() const;
+
+    template<class U>
       requires std::is_same_v<T, detail::mask_element_t<U>>
     constexpr vector<U, N> mask(const vector<U, N>& v1) const;
 
@@ -77,7 +81,7 @@ namespace lps::generic {
     friend struct vector;
   private:
     static constexpr T false_value = T { 0 };
-    static constexpr T true_value = static_cast<T>(~T { 0 });
+    static constexpr T true_value = T { -1 };
 
     inner_type raw;
   };

@@ -13,13 +13,51 @@
 
 namespace rose {
 
-  template<bool update_dst_sliders>
-  auto Position::move_piece(Color color, Square src, Square dst, PieceId id, PieceType src_ptype, PieceType dst_ptype) -> void {
-    remove_piece<true>(color, src, id);
-    add_piece(color, dst, id, dst_ptype);
+  auto Position::add_attacks(Color color, Square sq, PieceId id, PieceType ptype) -> void {
+    const auto [ray_coords, ray_valid] = geometry::superpiece_rays(sq);
+    const u8x64 ray_places = ray_coords.swizzle(m_board.to_vector());
+    const u8x64 iperm = geometry::superpiece_inverse_rays(sq);
+
+    const m8x64 raymask = geometry::superpiece_attacks(ray_places, ray_valid);
+
+    const m8x64 attacker_mask = raymask & geometry::attack_mask(color, ptype);
+    const m8x64 add_mask = iperm.swizzle(attacker_mask).andnot(iperm.msb());
+
+    m_attack_table[color.to_index()].raw |= add_mask.convert<u16>().mask(u16x64::splat(id.to_piece_mask().raw));
   }
 
+  auto Position::remove_attacks(Color color, PieceId id) -> void {
+    m_attack_table[color.to_index()].raw &= u16x64::splat(~id.to_piece_mask().raw);
+  }
+
+  auto Position::toggle_sliders(Square sq) -> void {
+    const auto [ray_coords, ray_valid] = geometry::superpiece_rays(sq);
+    const u8x64 ray_places = ray_coords.swizzle(m_board.to_vector());
+    const u8x64 iperm = geometry::superpiece_inverse_rays(sq);
+
+    const m8x64 sliders = geometry::sliders_from_rays(ray_places);
+    const m8x64 raymask = geometry::superpiece_attacks(ray_places, ray_valid);
+    const m8x64 visible_sliders = raymask & sliders;
+
+    u8x64 slider_ids = geometry::slider_broadcast(visible_sliders.mask(ray_places));
+    slider_ids = raymask.mask(geometry::flip_rays(slider_ids));
+    slider_ids = iperm.swizzle(slider_ids);
+
+    const m16x64 valid_ids = slider_ids.nonzeros().convert<u16>();
+    const m16x64 color = slider_ids.msb().convert<u16>();
+
+    const u16x64 bits = valid_ids.mask(u16x64::splat(1) << (slider_ids & u8x64::splat(0xF)).convert<u16>());
+
+    m_attack_table[0].raw ^= (~color).mask(bits);
+    m_attack_table[1].raw ^= color.mask(bits);
+  }
+
+  template<bool update_sliders>
   auto Position::add_piece(Color color, Square sq, PieceId id, PieceType ptype) -> void {
+    if constexpr (update_sliders)
+      toggle_sliders(sq);
+    add_attacks(color, sq, id, ptype);
+
     m_piece_list_sq[color.to_index()][id] = sq;
     m_piece_list_ptype[color.to_index()][id] = ptype;
     m_board[sq] = Place::make(color, ptype, id);
@@ -27,9 +65,19 @@ namespace rose {
 
   template<bool update_sliders>
   auto Position::remove_piece(Color color, Square sq, PieceId id) -> void {
+    if constexpr (update_sliders)
+      toggle_sliders(sq);
+    remove_attacks(color, id);
+
     m_piece_list_sq[color.to_index()][id] = Square::invalid();
     m_piece_list_ptype[color.to_index()][id] = PieceType::none;
     m_board[sq] = Place::empty;
+  }
+
+  template<bool update_dst_sliders>
+  auto Position::move_piece(Color color, Square src, Square dst, PieceId id, PieceType src_ptype, PieceType dst_ptype) -> void {
+    remove_piece<true>(color, src, id);
+    add_piece<update_dst_sliders>(color, dst, id, dst_ptype);
   }
 
   auto Position::startpos() -> Position {
@@ -73,8 +121,8 @@ namespace rose {
     };
 
     const auto cap_normal = [&] {
-      new_pos.remove_piece<false>(!m_stm, to, dest_id);
-      new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      new_pos.remove_piece<true>(!m_stm, to, dest_id);
+      new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
       new_pos.m_50mr = 0;
       check_src_castling_rights();
       check_dest_castling_rights();
@@ -86,8 +134,8 @@ namespace rose {
     };
 
     const auto cap_promo = [&](auto ptype) {
-      new_pos.remove_piece<false>(!m_stm, to, dest_id);
-      new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
+      new_pos.remove_piece<true>(!m_stm, to, dest_id);
+      new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
       new_pos.m_50mr = 0;
       check_dest_castling_rights();
     };
@@ -120,8 +168,8 @@ namespace rose {
 
       new_pos.remove_piece<true>(m_stm, king_src, king_id);
       new_pos.remove_piece<true>(m_stm, rook_src, rook_id);
-      new_pos.add_piece(m_stm, king_dest, king_id, PieceType::k);
-      new_pos.add_piece(m_stm, rook_dest, rook_id, PieceType::r);
+      new_pos.add_piece<true>(m_stm, king_dest, king_id, PieceType::k);
+      new_pos.add_piece<true>(m_stm, rook_dest, rook_id, PieceType::r);
 
       new_pos.m_50mr++;
       new_pos.m_rook_info.clear(m_stm);
@@ -176,8 +224,6 @@ namespace rose {
 
     new_pos.m_ply++;
     new_pos.m_stm = !m_stm;
-
-    new_pos.m_attack_table = new_pos.calc_attacks_slow();
 
     return new_pos;
   }
@@ -365,6 +411,45 @@ namespace rose {
     // result.m_hash = result.calcHashSlow();
 
     return result;
+  }
+
+  auto Position::dump() const -> void {
+    fmt::print("fen: {}\n", *this);
+    // m_attack_table:
+    for (int c : {0, 1}) {
+      fmt::print("m_attack_table[{}]:\n", c);
+      for (int r = 7; r >= 0; r--) {
+        for (int f = 0; f < 8; f++) {
+          const Square sq = Square::from_file_and_rank(f, r);
+          fmt::print("{:04x} ", m_attack_table[c].read(sq).raw);
+        }
+        fmt::print("\n");
+      }
+    }
+    // m_board:
+    {
+      fmt::print("m_board:\n");
+      for (int r = 7; r >= 0; r--) {
+        for (int f = 0; f < 8; f++) {
+          const Square sq = Square::from_file_and_rank(f, r);
+          fmt::print("{:02x}:{} ", (u8)m_board[sq].raw, m_board[sq]);
+        }
+        fmt::print("\n");
+      }
+    }
+    // m_piece_list:
+    for (int c : {0, 1}) {
+      fmt::print("m_piece_list[{}]: ", c);
+      for (u8 id = 0; id < 16; id++) {
+        fmt::print("{}:{} ", m_piece_list_ptype[c][PieceId {id}], m_piece_list_sq[c][PieceId {id}]);
+      }
+      fmt::print("\n");
+    }
+    fmt::print("m_rook_info: {:08x}\n", m_rook_info.raw);
+    fmt::print("m_50mr: {}\n", m_50mr);
+    fmt::print("m_ply: {}\n", m_ply);
+    fmt::print("m_enpassant: {}\n", m_enpassant);
+    fmt::print("m_stm: {}\n", m_stm);
   }
 
 }  // namespace rose

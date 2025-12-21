@@ -3,6 +3,7 @@
 #include "lps/avx512/avx512.fwd.hpp"
 #include "lps/detail/bit_mask_base.hpp"
 #include "lps/detail/mask_element.hpp"
+#include "lps/detail/vector_clamped_size.hpp"
 #include "lps/stdint.hpp"
 
 #include <array>
@@ -23,6 +24,9 @@ namespace lps::avx512 {
     static constexpr basic_vector_mask splat(bool value);
 
     constexpr void set(usize index, bool value);
+
+    template<class U>
+    constexpr typename Env::template vector_mask<U, detail::clamped_size<U, N>> convert() const;
 
     template<class V>
       requires std::is_same_v<V, typename Env::template vector<typename V::element_type, N>>

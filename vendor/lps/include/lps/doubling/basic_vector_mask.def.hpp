@@ -2,6 +2,7 @@
 
 #include "lps/detail/bit_mask_base.hpp"
 #include "lps/detail/mask_element.hpp"
+#include "lps/detail/vector_clamped_size.hpp"
 #include "lps/doubling/doubling.fwd.hpp"
 #include "lps/stdint.hpp"
 
@@ -12,6 +13,10 @@ namespace lps::doubling {
 
   template<class T, usize N, class Env>
   struct basic_vector_mask {
+    static constexpr bool is_128_bit = N * sizeof(T) == 16 * sizeof(u8);
+    static constexpr bool is_256_bit = N * sizeof(T) == 32 * sizeof(u8);
+    static constexpr bool is_512_bit = N * sizeof(T) == 64 * sizeof(u8);
+
     static constexpr usize size = N;
     using inner_type = Env::template vector<T, N>;
     using base_type = Env::template vector_mask<T, N / 2>;
@@ -23,6 +28,9 @@ namespace lps::doubling {
     static constexpr basic_vector_mask splat(bool value);
 
     constexpr void set(usize index, bool value);
+
+    template<class U>
+    constexpr typename Env::template vector_mask<U, detail::clamped_size<U, N>> convert() const;
 
     template<class V>
       requires std::is_same_v<V, typename Env::template vector<typename V::element_type, N>>

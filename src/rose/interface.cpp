@@ -98,6 +98,8 @@ namespace rose {
       uci_perft(it);
     } else if (cmd == "getposition") {
       game.print_game_record();
+    } else if (cmd == "dumpposition") {
+      game.position().dump();
     } else if (cmd == "quit") {
       std::exit(0);
     } else {

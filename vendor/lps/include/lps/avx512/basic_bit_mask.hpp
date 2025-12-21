@@ -41,6 +41,12 @@ namespace lps::avx512 {
   }
 
   template<class T, usize N, class Env>
+  template<class U>
+  LPS_INLINE constexpr typename Env::template bit_mask<U, detail::clamped_size<U, N>> basic_bit_mask<T, N, Env>::convert() const {
+    return typename Env::template bit_mask<U, detail::clamped_size<U, N>> { raw };
+  }
+
+  template<class T, usize N, class Env>
   template<class V>
     requires std::is_same_v<V, typename Env::template vector<typename V::element_type, N>>
   LPS_INLINE constexpr V basic_bit_mask<T, N, Env>::mask(const V& v1) const {

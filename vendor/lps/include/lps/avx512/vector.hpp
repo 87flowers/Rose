@@ -157,37 +157,37 @@ namespace lps::avx512 {
   LPS_INLINE constexpr vector<T, N, Env> vector<T, N, Env>::swizzle(const vector<T, N, Env>& src0, const vector<T, N, Env>& src1) const {
     if constexpr (is_128_bit) {
       if constexpr (sizeof(T) == sizeof(u8)) {
-        return { _mm_maskz_permutex2var_epi8(_knot_mask16(_mm_movepi8_mask(raw)), raw, src0.raw, src1.raw) };
+        return { _mm_maskz_permutex2var_epi8(_knot_mask16(_mm_movepi8_mask(raw)), src0.raw, raw, src1.raw) };
       } else if constexpr (sizeof(T) == sizeof(u16)) {
-        return { _mm_maskz_permutex2var_epi16(_knot_mask8(_mm_movepi16_mask(raw)), raw, src0.raw, src1.raw) };
+        return { _mm_maskz_permutex2var_epi16(_knot_mask8(_mm_movepi16_mask(raw)), src0.raw, raw, src1.raw) };
       } else if constexpr (sizeof(T) == sizeof(u32)) {
-        return { _mm_maskz_permutex2var_epi32(_knot_mask8(_mm_movepi32_mask(raw)), raw, src0.raw, src1.raw) };
+        return { _mm_maskz_permutex2var_epi32(_knot_mask8(_mm_movepi32_mask(raw)), src0.raw, raw, src1.raw) };
       } else if constexpr (sizeof(T) == sizeof(u64)) {
-        return { _mm_maskz_permutex2var_epi64(_knot_mask8(_mm_movepi64_mask(raw)), raw, src0.raw, src1.raw) };
+        return { _mm_maskz_permutex2var_epi64(_knot_mask8(_mm_movepi64_mask(raw)), src0.raw, raw, src1.raw) };
       } else {
         static_assert(detail::always_false<T>);
       }
     } else if constexpr (is_256_bit) {
       if constexpr (sizeof(T) == sizeof(u8)) {
-        return { _mm256_maskz_permutex2var_epi8(_knot_mask32(_mm256_movepi8_mask(raw)), raw, src0.raw, src1.raw) };
+        return { _mm256_maskz_permutex2var_epi8(_knot_mask32(_mm256_movepi8_mask(raw)), src0.raw, raw, src1.raw) };
       } else if constexpr (sizeof(T) == sizeof(u16)) {
-        return { _mm256_maskz_permutex2var_epi16(_knot_mask16(_mm256_movepi16_mask(raw)), raw, src0.raw, src1.raw) };
+        return { _mm256_maskz_permutex2var_epi16(_knot_mask16(_mm256_movepi16_mask(raw)), src0.raw, raw, src1.raw) };
       } else if constexpr (sizeof(T) == sizeof(u32)) {
-        return { _mm256_maskz_permutex2var_epi32(_knot_mask8(_mm256_movepi32_mask(raw)), raw, src0.raw, src1.raw) };
+        return { _mm256_maskz_permutex2var_epi32(_knot_mask8(_mm256_movepi32_mask(raw)), src0.raw, raw, src1.raw) };
       } else if constexpr (sizeof(T) == sizeof(u64)) {
-        return { _mm256_maskz_permutex2var_epi64(_knot_mask8(_mm256_movepi64_mask(raw)), raw, src0.raw, src1.raw) };
+        return { _mm256_maskz_permutex2var_epi64(_knot_mask8(_mm256_movepi64_mask(raw)), src0.raw, raw, src1.raw) };
       } else {
         static_assert(detail::always_false<T>);
       }
     } else {
       if constexpr (sizeof(T) == sizeof(u8)) {
-        return { _mm512_maskz_permutex2var_epi8(_knot_mask64(_mm512_movepi8_mask(raw)), raw, src0.raw, src1.raw) };
+        return { _mm512_maskz_permutex2var_epi8(_knot_mask64(_mm512_movepi8_mask(raw)), src0.raw, raw, src1.raw) };
       } else if constexpr (sizeof(T) == sizeof(u16)) {
-        return { _mm512_maskz_permutex2var_epi16(_knot_mask32(_mm512_movepi16_mask(raw)), raw, src0.raw, src1.raw) };
+        return { _mm512_maskz_permutex2var_epi16(_knot_mask32(_mm512_movepi16_mask(raw)), src0.raw, raw, src1.raw) };
       } else if constexpr (sizeof(T) == sizeof(u32)) {
-        return { _mm512_maskz_permutex2var_epi32(_knot_mask16(_mm512_movepi32_mask(raw)), raw, src0.raw, src1.raw) };
+        return { _mm512_maskz_permutex2var_epi32(_knot_mask16(_mm512_movepi32_mask(raw)), src0.raw, raw, src1.raw) };
       } else if constexpr (sizeof(T) == sizeof(u64)) {
-        return { _mm512_maskz_permutex2var_epi64(_knot_mask8(_mm512_movepi64_mask(raw)), raw, src0.raw, src1.raw) };
+        return { _mm512_maskz_permutex2var_epi64(_knot_mask8(_mm512_movepi64_mask(raw)), src0.raw, raw, src1.raw) };
       } else {
         static_assert(detail::always_false<T>);
       }
@@ -201,7 +201,7 @@ namespace lps::avx512 {
 
   template<class T, usize N, class Env>
   LPS_INLINE constexpr vector<T, N, Env>::bmask_type vector<T, N, Env>::swizzle(const bmask_type& src) const {
-    return mask_type { swizzle(src.to_vector()).msb().to_bits() };
+    return mask_type { swizzle(src.to_vector().template convert<T>()).msb().to_bits() };
   }
 
   template<class T, usize N, class Env>
