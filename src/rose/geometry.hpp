@@ -275,6 +275,15 @@ namespace rose::geometry {
 #endif
   }
 
+  inline auto flip_mask(m8x64 x) -> m8x64 {
+#if LPS_AVX512
+    return m8x64 {std::rotl(x.raw, 32)};
+#else
+    auto y = std::bit_cast<std::array<m8x32, 2> >(x);
+    return std::bit_cast<m8x64>(std::array<m8x32, 2> {y[1], y[0]});
+#endif
+  }
+
   inline auto find_set(u8x16 needle, usize needle_count, u8x16 haystack) -> PieceMask {
 #if LPS_SSE4_2 || LPS_AVX2 || LPS_AVX512
     return PieceMask {narrow_cast<u16>(_mm_extract_epi16(_mm_cmpestrm(needle.raw, needle_count, haystack.raw, 16, 0), 0))};

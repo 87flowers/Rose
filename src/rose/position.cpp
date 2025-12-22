@@ -40,7 +40,7 @@ namespace rose {
     const m8x64 visible_sliders = raymask & sliders;
 
     u8x64 slider_ids = geometry::slider_broadcast(visible_sliders.mask(ray_places));
-    slider_ids = m8x64 {std::rotl(raymask.to_bits(), 32)}.mask(slider_ids);
+    slider_ids = geometry::flip_mask(raymask).mask(slider_ids);
     slider_ids = iperm.swizzle(slider_ids);
 
     const m16x64 valid_ids = slider_ids.nonzeros().convert<u16>();
@@ -73,16 +73,16 @@ namespace rose {
 
     u8x64 src_slider_ids = geometry::slider_broadcast(src_visible_sliders.mask(src_ray_places));
     u8x64 dst_slider_ids = geometry::slider_broadcast(dst_visible_sliders.mask(dst_ray_places));
-    src_slider_ids = m8x64 {std::rotl(src_raymask.to_bits(), 32)}.mask(src_slider_ids);
-    dst_slider_ids = m8x64 {std::rotl(dst_raymask.to_bits(), 32)}.mask(dst_slider_ids);
+    src_slider_ids = geometry::flip_mask(src_raymask).mask(src_slider_ids);
+    dst_slider_ids = geometry::flip_mask(dst_raymask).mask(dst_slider_ids);
     src_slider_ids = src_iperm.swizzle(src_slider_ids);
     dst_slider_ids = dst_iperm.swizzle(dst_slider_ids);
 
-    const m16x64 src_valid_ids = src_slider_ids.nonzeros().convert<u16>();
-    const m16x64 dst_valid_ids = dst_slider_ids.nonzeros().convert<u16>();
     const m16x64 src_color = src_slider_ids.msb().convert<u16>();
     const m16x64 dst_color = dst_slider_ids.msb().convert<u16>();
 
+    const m16x64 src_valid_ids = src_slider_ids.nonzeros().convert<u16>();
+    const m16x64 dst_valid_ids = dst_slider_ids.nonzeros().convert<u16>();
     const u16x64 src_bits = src_valid_ids.mask(u16x64::splat(1) << (src_slider_ids & u8x64::splat(0xF)).convert<u16>());
     const u16x64 dst_bits = dst_valid_ids.mask(u16x64::splat(1) << (dst_slider_ids & u8x64::splat(0xF)).convert<u16>());
 
