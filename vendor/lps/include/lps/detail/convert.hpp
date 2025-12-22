@@ -4,6 +4,7 @@
 #include "lps/generic/vector.hpp"
 #include "lps/stdint.hpp"
 
+#include <array>
 #include <bit>
 #include <type_traits>
 
@@ -137,6 +138,13 @@ namespace lps::detail {
 #endif
 
 #if LPS_AVX512
+  LPS_DEFINE_CONVERT(128, u8, u32, { return Result { _mm512_cvtepu8_epi32(v.raw) }; })
+  LPS_DEFINE_CONVERT(128, i8, i32, { return Result { _mm512_cvtepi8_epi32(v.raw) }; })
+  LPS_DEFINE_CONVERT(128, u16, u64, { return Result { _mm512_cvtepu16_epi64(v.raw) }; })
+  LPS_DEFINE_CONVERT(128, i16, i64, { return Result { _mm512_cvtepi16_epi64(v.raw) }; })
+#endif
+
+#if LPS_AVX512
   LPS_DEFINE_CONVERT(256, u8, u16, { return Result { _mm512_cvtepu8_epi16(v.raw) }; })
   LPS_DEFINE_CONVERT(256, i8, i16, { return Result { _mm512_cvtepi8_epi16(v.raw) }; })
   LPS_DEFINE_CONVERT(256, u16, u32, { return Result { _mm512_cvtepu16_epi32(v.raw) }; })
@@ -146,10 +154,30 @@ namespace lps::detail {
 #endif
 
 #if LPS_AVX512
-  LPS_DEFINE_CONVERT(128, u8, u32, { return Result { _mm512_cvtepu8_epi32(v.raw) }; })
-  LPS_DEFINE_CONVERT(128, i8, i32, { return Result { _mm512_cvtepi8_epi32(v.raw) }; })
-  LPS_DEFINE_CONVERT(128, u16, u64, { return Result { _mm512_cvtepu16_epi64(v.raw) }; })
-  LPS_DEFINE_CONVERT(128, i16, i64, { return Result { _mm512_cvtepi16_epi64(v.raw) }; })
+  LPS_DEFINE_CONVERT(512, u8, u16, {
+    return std::bit_cast<Result>(
+      std::array { _mm512_cvtepu8_epi16(_mm512_castsi512_si256(v.raw)), _mm512_cvtepu8_epi16(_mm512_extracti64x4_epi64(v.raw, 1)) });
+  })
+  LPS_DEFINE_CONVERT(512, i8, i16, {
+    return std::bit_cast<Result>(
+      std::array { _mm512_cvtepi8_epi16(_mm512_castsi512_si256(v.raw)), _mm512_cvtepi8_epi16(_mm512_extracti64x4_epi64(v.raw, 1)) });
+  })
+  LPS_DEFINE_CONVERT(512, u16, u32, {
+    return std::bit_cast<Result>(
+      std::array { _mm512_cvtepu16_epi32(_mm512_castsi512_si256(v.raw)), _mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(v.raw, 1)) });
+  })
+  LPS_DEFINE_CONVERT(512, i16, i32, {
+    return std::bit_cast<Result>(
+      std::array { _mm512_cvtepi16_epi32(_mm512_castsi512_si256(v.raw)), _mm512_cvtepi16_epi32(_mm512_extracti64x4_epi64(v.raw, 1)) });
+  })
+  LPS_DEFINE_CONVERT(512, u32, u64, {
+    return std::bit_cast<Result>(
+      std::array { _mm512_cvtepu32_epi64(_mm512_castsi512_si256(v.raw)), _mm512_cvtepu32_epi64(_mm512_extracti64x4_epi64(v.raw, 1)) });
+  })
+  LPS_DEFINE_CONVERT(512, i32, i64, {
+    return std::bit_cast<Result>(
+      std::array { _mm512_cvtepi32_epi64(_mm512_castsi512_si256(v.raw)), _mm512_cvtepi32_epi64(_mm512_extracti64x4_epi64(v.raw, 1)) });
+  })
 #endif
 
 }  // namespace lps::detail
