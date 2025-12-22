@@ -33,14 +33,14 @@ namespace rose {
   auto Position::toggle_sliders(Square sq) -> void {
     const auto [ray_coords, ray_valid] = geometry::superpiece_rays(sq);
     const u8x64 ray_places = ray_coords.swizzle(m_board.to_vector());
-    const u8x64 iperm = geometry::superpiece_inverse_rays(sq);
+    const u8x64 iperm = geometry::superpiece_inverse_rays_flipped(sq);
 
     const m8x64 sliders = geometry::sliders_from_rays(ray_places);
     const m8x64 raymask = geometry::superpiece_attacks(ray_places, ray_valid);
     const m8x64 visible_sliders = raymask & sliders;
 
     u8x64 slider_ids = geometry::slider_broadcast(visible_sliders.mask(ray_places));
-    slider_ids = raymask.mask(geometry::flip_rays(slider_ids));
+    slider_ids = m8x64 {std::rotl(raymask.to_bits(), 32)}.mask(slider_ids);
     slider_ids = iperm.swizzle(slider_ids);
 
     const m16x64 valid_ids = slider_ids.nonzeros().convert<u16>();

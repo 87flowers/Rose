@@ -39,7 +39,8 @@ namespace rose::geometry {
     return internal::compress_coords(uncompressed);
   }
 
-  inline auto superpiece_inverse_rays(Square sq) -> u8x64 {
+  template<u8x64 offsets>
+  inline auto superpiece_inverse_rays_base(Square sq) -> u8x64 {
     constexpr u8 none = 0xFF;
     constexpr u8x64 table0 {{
       none, none, none, none, none, none, none, none, none, none, none, none, none, none, none, none,  //
@@ -65,7 +66,15 @@ namespace rose::geometry {
       none, none, 0x3E, none, none, none, none, none, 0x06, none, none, none, none, none, 0x0E, none,  //
       none, 0x3F, none, none, none, none, none, none, 0x07, none, none, none, none, none, none, 0x0F,  //
     }};
-    constexpr u8x64 offsets {{
+
+    const u8x64 indexes = offsets - u8x64::splat(internal::expand_sq(sq));
+    const u8x64 result0 = (indexes & u8x64::splat(0x7F)).swizzle(table0, table1);
+    const u8x64 result1 = (indexes & u8x64::splat(0x7F)).swizzle(table2, table3);
+    return indexes.msb().select(result0, result1);
+  }
+
+  inline auto superpiece_inverse_rays(Square sq) -> u8x64 {
+    return superpiece_inverse_rays_base<u8x64 {{
       0210, 0211, 0212, 0213, 0214, 0215, 0216, 0217,  // north
       0230, 0231, 0232, 0233, 0234, 0235, 0236, 0237,  // north-east
       0250, 0251, 0252, 0253, 0254, 0255, 0256, 0257,  // east
@@ -74,12 +83,54 @@ namespace rose::geometry {
       0330, 0331, 0332, 0333, 0334, 0335, 0336, 0337,  // south-west
       0350, 0351, 0352, 0353, 0354, 0355, 0356, 0357,  // west
       0370, 0371, 0372, 0373, 0374, 0375, 0376, 0377,  // north-west
+    }}>(sq);
+  }
+
+  template<u8x64 offsets>
+  inline auto superpiece_inverse_rays_flipped_base(Square sq) -> u8x64 {
+    constexpr u8 none = 0xFF;
+    constexpr u8x64 table0 {{
+      none, none, none, none, none, none, none, none, none, none, none, none, none, none, none, none,  //
+      none, 0x0F, none, none, none, none, none, none, 0x07, none, none, none, none, none, none, 0x3F,  //
+      none, none, 0x0E, none, none, none, none, none, 0x06, none, none, none, none, none, 0x3E, none,  //
+      none, none, none, 0x0D, none, none, none, none, 0x05, none, none, none, none, 0x3D, none, none,  //
+    }};
+    constexpr u8x64 table1 {{
+      none, none, none, none, 0x0C, none, none, none, 0x04, none, none, none, 0x3C, none, none, none,  //
+      none, none, none, none, none, 0x0B, none, none, 0x03, none, none, 0x3B, none, none, none, none,  //
+      none, none, none, none, none, none, 0x0A, 0x08, 0x02, 0x00, 0x3A, none, none, none, none, none,  //
+      none, none, none, none, none, none, 0x10, 0x09, 0x01, 0x39, 0x38, none, none, none, none, none,  //
+    }};
+    constexpr u8x64 table2 {{
+      none, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11, none, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,  //
+      none, none, none, none, none, none, 0x18, 0x19, 0x21, 0x29, 0x30, none, none, none, none, none,  //
+      none, none, none, none, none, none, 0x1A, 0x20, 0x22, 0x28, 0x2A, none, none, none, none, none,  //
+      none, none, none, none, none, 0x1B, none, none, 0x23, none, none, 0x2B, none, none, none, none,  //
+    }};
+    constexpr u8x64 table3 {{
+      none, none, none, none, 0x1C, none, none, none, 0x24, none, none, none, 0x2C, none, none, none,  //
+      none, none, none, 0x1D, none, none, none, none, 0x25, none, none, none, none, 0x2D, none, none,  //
+      none, none, 0x1E, none, none, none, none, none, 0x26, none, none, none, none, none, 0x2E, none,  //
+      none, 0x1F, none, none, none, none, none, none, 0x27, none, none, none, none, none, none, 0x2F,  //
     }};
 
     const u8x64 indexes = offsets - u8x64::splat(internal::expand_sq(sq));
     const u8x64 result0 = (indexes & u8x64::splat(0x7F)).swizzle(table0, table1);
     const u8x64 result1 = (indexes & u8x64::splat(0x7F)).swizzle(table2, table3);
     return indexes.msb().select(result0, result1);
+  }
+
+  inline auto superpiece_inverse_rays_flipped(Square sq) -> u8x64 {
+    return superpiece_inverse_rays_flipped_base<u8x64 {{
+      0210, 0211, 0212, 0213, 0214, 0215, 0216, 0217,  // north
+      0230, 0231, 0232, 0233, 0234, 0235, 0236, 0237,  // north-east
+      0250, 0251, 0252, 0253, 0254, 0255, 0256, 0257,  // east
+      0270, 0271, 0272, 0273, 0274, 0275, 0276, 0277,  // south-east
+      0310, 0311, 0312, 0313, 0314, 0315, 0316, 0317,  // south
+      0330, 0331, 0332, 0333, 0334, 0335, 0336, 0337,  // south-west
+      0350, 0351, 0352, 0353, 0354, 0355, 0356, 0357,  // west
+      0370, 0371, 0372, 0373, 0374, 0375, 0376, 0377,  // north-west
+    }}>(sq);
   }
 
   inline auto superpiece_attacks(u8x64 ray_places, m8x64 ray_valid) -> m8x64 {
