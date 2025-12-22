@@ -135,13 +135,13 @@ namespace rose {
 
     auto add_attacks(Color color, Square sq, PieceId id, PieceType ptype) -> void;
     auto remove_attacks(Color color, PieceId id) -> void;
-    auto toggle_sliders(Square sq) -> void;
+    auto toggle_sliders_single(Square sq) -> void;
+    auto toggle_sliders_pair(Square src_sq, Square dst_sq) -> void;
 
     template<bool update_sliders>
     auto add_piece(Color color, Square sq, PieceId id, PieceType ptype) -> void;
     template<bool update_sliders>
     auto remove_piece(Color color, Square sq, PieceId id) -> void;
-    template<bool update_dst_sliders>
     auto move_piece(Color color, Square src, Square dst, PieceId id, PieceType src_ptype, PieceType dst_ptype) -> void;
     auto mutate_piece(Square sq, Color src_color, PieceId src_id, Color dst_color, PieceId dst_id, PieceType dst_ptype) -> void;
 
