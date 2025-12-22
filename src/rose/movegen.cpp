@@ -116,10 +116,10 @@ namespace rose {
 
     const PieceMask king_mask = PieceMask::king();
     const PieceMask pawn_mask = position.piece_mask_for<PieceType::p>(stm);
-    const PieceMask nonpawn_mask = ~pawn_mask;
+    const PieceMask nonpawn_mask = ~pawn_mask & ~king_mask;
 
     const Bitboard pawn_active = position.attack_table(stm).bitboard_for(pawn_mask) & valid_destinations;
-    const Bitboard nonpawn_active = position.attack_table(stm).bitboard_for(~pawn_mask) & valid_destinations;
+    const Bitboard nonpawn_active = position.attack_table(stm).bitboard_for(nonpawn_mask) & valid_destinations;
     const Bitboard king_active = position.attack_table(stm).bitboard_for(king_mask) & valid_destinations;
     const Bitboard danger = position.attack_table(!stm).bitboard_any();
 
@@ -154,7 +154,7 @@ namespace rose {
     // Pawn captures
     write_moves<MoveFlags::cap_normal>(moves, at, srcs, pawn_active & enemy & pawn_info.non_promo_dest, pawn_mask);
     // Non-pawn captures
-    write_moves<MoveFlags::cap_normal>(moves, at, srcs, nonpawn_active & enemy, nonpawn_mask & ~king_mask);
+    write_moves<MoveFlags::cap_normal>(moves, at, srcs, nonpawn_active & enemy, nonpawn_mask);
     // King captures
     if constexpr (!in_check)
       write_moves<MoveFlags::cap_normal>(moves, at, srcs, king_active & enemy & ~danger, king_mask);
@@ -181,7 +181,7 @@ namespace rose {
       do_castle(rook_hside, 5, 6, MoveFlags::castle_hside);
     }
     // Non-pawn quiets
-    write_moves<MoveFlags::normal>(moves, at, srcs, nonpawn_active & empty, nonpawn_mask & ~king_mask);
+    write_moves<MoveFlags::normal>(moves, at, srcs, nonpawn_active & empty, nonpawn_mask);
     // King quiets
     if constexpr (!in_check)
       write_moves<MoveFlags::normal>(moves, at, srcs, king_active & empty & ~danger, king_mask);
