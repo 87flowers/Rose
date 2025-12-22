@@ -21,7 +21,8 @@ namespace rose {
     rose_assert(len + count < capacity());
 #if LPS_AVX512
     using V = lps::environment::vector<u16, T::size>;
-    const V y = lps::environment::bit_mask<u16, T::size> {mask}.compress(std::bit_cast<V>(v));
+    using BM = lps::environment::bit_mask<u16, T::size>;
+    const V y = BM {mask}.compress(std::bit_cast<V>(v));
     std::memcpy(data.data() + len, &y, sizeof(V));
 #else
     for (int i = 0; i < count; i++, mask &= mask - 1)
@@ -36,7 +37,8 @@ namespace rose {
     rose_assert(len + count * 2 < capacity());
 #if LPS_AVX512
     using V = lps::environment::vector<u32, T::size / 2>;
-    const V y = lps::environment::bit_mask<u32, T::size / 2> {mask}.compress(std::bit_cast<V>(v));
+    using BM = lps::environment::bit_mask<u32, T::size / 2>;
+    const V y = BM {mask}.compress(std::bit_cast<V>(v));
     std::memcpy(data.data() + len, &y, sizeof(V));
 #else
     for (int i = 0; i < count; i++, mask &= mask - 1)
@@ -51,7 +53,8 @@ namespace rose {
     rose_assert(len + count * 4 < capacity());
 #if LPS_AVX512
     using V = lps::environment::vector<u64, T::size / 4>;
-    const V y = lps::environment::bit_mask<u64, T::size / 4> {mask}.compress(std::bit_cast<V>(v));
+    using BM = lps::environment::bit_mask<u64, T::size / 4>;
+    const V y = BM {mask}.compress(std::bit_cast<V>(v));
     std::memcpy(data.data() + len, &y, sizeof(V));
 #else
     for (int i = 0; i < count; i++, mask &= mask - 1)

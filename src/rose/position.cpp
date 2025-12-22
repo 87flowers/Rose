@@ -80,6 +80,11 @@ namespace rose {
     add_piece<update_dst_sliders>(color, dst, id, dst_ptype);
   }
 
+  auto Position::mutate_piece(Square sq, Color src_color, PieceId src_id, Color dst_color, PieceId dst_id, PieceType dst_ptype) -> void {
+    remove_piece<false>(src_color, sq, src_id);
+    add_piece<false>(dst_color, sq, dst_id, dst_ptype);
+  }
+
   auto Position::startpos() -> Position {
     static const Position startpos = Position::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").value();
     return startpos;
@@ -121,8 +126,8 @@ namespace rose {
     };
 
     const auto cap_normal = [&] {
-      new_pos.remove_piece<true>(!m_stm, to, dest_id);
-      new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      new_pos.remove_piece<true>(m_stm, from, src_id);
+      new_pos.mutate_piece(to, !m_stm, dest_id, m_stm, src_id, src_place.ptype());
       new_pos.m_50mr = 0;
       check_src_castling_rights();
       check_dest_castling_rights();
@@ -134,8 +139,8 @@ namespace rose {
     };
 
     const auto cap_promo = [&](auto ptype) {
-      new_pos.remove_piece<true>(!m_stm, to, dest_id);
-      new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
+      new_pos.remove_piece<true>(m_stm, from, src_id);
+      new_pos.mutate_piece(to, !m_stm, dest_id, m_stm, src_id, decltype(ptype)::value);
       new_pos.m_50mr = 0;
       check_dest_castling_rights();
     };

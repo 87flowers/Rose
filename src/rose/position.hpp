@@ -143,6 +143,7 @@ namespace rose {
     auto remove_piece(Color color, Square sq, PieceId id) -> void;
     template<bool update_dst_sliders>
     auto move_piece(Color color, Square src, Square dst, PieceId id, PieceType src_ptype, PieceType dst_ptype) -> void;
+    auto mutate_piece(Square sq, Color src_color, PieceId src_id, Color dst_color, PieceId dst_id, PieceType dst_ptype) -> void;
 
   public:
     static auto startpos() -> Position;
