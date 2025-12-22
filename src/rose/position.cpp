@@ -53,7 +53,29 @@ namespace rose {
     m_attack_table[1].raw ^= color.mask(bits);
   }
 
-  auto Position::toggle_sliders_pair(Square src_sq, Square dst_sq) -> void {
+  template<bool update_sliders>
+  auto Position::add_piece(Color color, Square sq, PieceId id, PieceType ptype) -> void {
+    if constexpr (update_sliders)
+      toggle_sliders_single(sq);
+    add_attacks(color, sq, id, ptype);
+
+    m_piece_list_sq[color.to_index()][id] = sq;
+    m_piece_list_ptype[color.to_index()][id] = ptype;
+    m_board[sq] = Place::make(color, ptype, id);
+  }
+
+  template<bool update_sliders>
+  auto Position::remove_piece(Color color, Square sq, PieceId id) -> void {
+    if constexpr (update_sliders)
+      toggle_sliders_single(sq);
+    remove_attacks(color, id);
+
+    m_piece_list_sq[color.to_index()][id] = Square::invalid();
+    m_piece_list_ptype[color.to_index()][id] = PieceType::none;
+    m_board[sq] = Place::empty;
+  }
+
+  auto Position::move_piece(Color color, Square src_sq, Square dst_sq, PieceId id, PieceType src_ptype, PieceType dst_ptype) -> void {
     const auto [src_ray_coords, src_ray_valid] = geometry::superpiece_rays(src_sq);
     const auto [dst_ray_coords, dst_ray_valid] = geometry::superpiece_rays(dst_sq);
 
@@ -61,6 +83,8 @@ namespace rose {
     const u8x64 src_ray_places = src_ray_coords.swizzle(board);
     board = m8x64 {~src_sq.to_bitboard().raw}.mask(board);
     const u8x64 dst_ray_places = dst_ray_coords.swizzle(board);
+    board = m8x64 {dst_sq.to_bitboard().raw}.select(board, u8x64::splat(Place::make(color, dst_ptype, id).raw));
+    std::memcpy(m_board.mailbox.data(), &board, sizeof(board));
 
     const u8x64 src_iperm = geometry::superpiece_inverse_rays_flipped(src_sq);
     const u8x64 dst_iperm = geometry::superpiece_inverse_rays_flipped(dst_sq);
@@ -87,36 +111,25 @@ namespace rose {
     const u16x64 src_bits = src_valid_ids.mask(u16x64::splat(1) << (src_slider_ids & u8x64::splat(0xF)).convert<u16>());
     const u16x64 dst_bits = dst_valid_ids.mask(u16x64::splat(1) << (dst_slider_ids & u8x64::splat(0xF)).convert<u16>());
 
+    const u16x64 id_bit = u16x64::splat(id.to_piece_mask().raw);
+    const m8x64 dst_attack_mask = dst_raymask & geometry::attack_mask(color, dst_ptype);
+    const m16x64 add_mask = dst_iperm.swizzle(geometry::flip_mask(dst_attack_mask)).convert<u16>();
+
     m_attack_table[0].raw ^= (~src_color).mask(src_bits) ^ (~dst_color).mask(dst_bits);
     m_attack_table[1].raw ^= src_color.mask(src_bits) ^ dst_color.mask(dst_bits);
-  }
 
-  template<bool update_sliders>
-  auto Position::add_piece(Color color, Square sq, PieceId id, PieceType ptype) -> void {
-    if constexpr (update_sliders)
-      toggle_sliders_single(sq);
-    add_attacks(color, sq, id, ptype);
-
-    m_piece_list_sq[color.to_index()][id] = sq;
-    m_piece_list_ptype[color.to_index()][id] = ptype;
-    m_board[sq] = Place::make(color, ptype, id);
-  }
-
-  template<bool update_sliders>
-  auto Position::remove_piece(Color color, Square sq, PieceId id) -> void {
-    if constexpr (update_sliders)
-      toggle_sliders_single(sq);
-    remove_attacks(color, id);
-
-    m_piece_list_sq[color.to_index()][id] = Square::invalid();
-    m_piece_list_ptype[color.to_index()][id] = PieceType::none;
-    m_board[sq] = Place::empty;
-  }
-
-  auto Position::move_piece(Color color, Square src, Square dst, PieceId id, PieceType src_ptype, PieceType dst_ptype) -> void {
-    toggle_sliders_pair(src, dst);
-    remove_piece<false>(color, src, id);
-    add_piece<false>(color, dst, id, dst_ptype);
+    switch (color.raw) {
+    case Color::white:
+      m_piece_list_sq[0][id] = dst_sq;
+      m_piece_list_ptype[0][id] = dst_ptype;
+      m_attack_table[0].raw = m_attack_table[0].raw.andnot(id_bit) | add_mask.mask(id_bit);
+      break;
+    case Color::black:
+      m_piece_list_sq[1][id] = dst_sq;
+      m_piece_list_ptype[1][id] = dst_ptype;
+      m_attack_table[1].raw = m_attack_table[1].raw.andnot(id_bit) | add_mask.mask(id_bit);
+      break;
+    }
   }
 
   auto Position::mutate_piece(Square sq, Color src_color, PieceId src_id, Color dst_color, PieceId dst_id, PieceType dst_ptype) -> void {
