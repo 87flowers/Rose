@@ -1,5 +1,6 @@
 #include "rose/position.hpp"
 
+#include "rose/bitboard.hpp"
 #include "rose/board.hpp"
 #include "rose/common.hpp"
 #include "rose/geometry.hpp"
@@ -271,6 +272,59 @@ namespace rose {
     return new_pos;
   }
 
+  auto Position::calc_pin_info() const -> std::tuple<std::array<PieceMask, 64>, Bitboard> {
+    const Square sq = king_sq(m_stm);
+
+    const auto [ray_coords, ray_valid_premask] = geometry::superpiece_rays(sq);
+    const m8x64 ray_valid = ray_valid_premask & m8x64 {0xFEFEFEFEFEFEFEFE};
+    const u8x64 ray_places = ray_coords.swizzle(m_board.to_vector());
+    const u8x64 iperm = geometry::superpiece_inverse_rays(sq);
+
+    const m8x64 blockers = ray_places.nonzeros();
+    const m8x64 color = ray_places.msb();
+    const m8x64 enemy = (color ^ m8x64 {m_stm.to_bitboard().raw}) & blockers;
+
+    // Closest blockers
+    const m8x64 potentially_pinned = blockers & geometry::superpiece_attacks(ray_places, ray_valid);
+
+    // Find all enemy sliders with the correct attacks for the rays they're on
+    const m8x64 maybe_attacking = enemy & geometry::sliders_from_rays(ray_places);
+    // Second closest blockers
+    const m8x64 not_closest = blockers.andnot(potentially_pinned);
+    const m8x64 pin_raymasks = geometry::superpiece_attacks(not_closest.to_vector().convert<u8>(), ray_valid);
+    const m8x64 potential_attackers = not_closest & pin_raymasks;
+    // Second closest blockers that are of the correct type to be pinning attackers.
+    const m8x64 attackers = maybe_attacking & potential_attackers;
+
+    // A closest blocker is pinned if it has a valid pinning attacker.
+#if LPS_AVX512
+    const m8x64 no_pinner_mask {std::bit_cast<vm8x64>(std::bit_cast<u64x8>(attackers.to_vector()).zeros().to_vector()).to_bits()};
+#else
+    const m8x64 no_pinner_mask = std::bit_cast<m8x64>(std::bit_cast<m64x8>(attackers).to_vector().zeros());
+#endif
+    const m8x64 pinned = potentially_pinned.andnot(enemy).andnot(no_pinner_mask);
+
+    // Translate to valid move rays
+    const u8x64 pinned_ids = pin_raymasks.mask(geometry::lane_broadcast(pinned.mask(ray_places)));
+    const u8x64 board_layout = iperm.swizzle(pinned_ids);
+
+    // Convert from list of squares to piecemask
+    const int pinned_count = pinned.popcount();
+    const u8x16 pinned_coord = pinned.compress(ray_coords).extract_aligned<u8x16, 0>();
+    const PieceMask piece_mask = geometry::find_set(pinned_coord, pinned_count, piece_list_sq(m_stm).to_vector());
+
+    // Generate attack table mask
+    const u16x64 ones = u16x64::splat(1);
+    const m16x64 valid_ids = board_layout.nonzeros().convert<u16>();
+    const u16x64 masked_ids = (board_layout & u8x64::splat(0xF)).convert<u16>();
+    const u16x64 bits = valid_ids.mask(ones << masked_ids);
+    const u16x64 at_mask = u16x64::splat(~piece_mask.raw) | bits;
+
+    const Bitboard pinned_bb {board_layout.nonzeros().to_bits()};
+
+    return {Wordboard {m_attack_table[m_stm.to_index()].raw & at_mask}.to_mailbox(), pinned_bb};
+  }
+
   auto Position::calc_attacks_slow() const -> std::array<Wordboard, 2> {
     std::array<std::array<PieceMask, 64>, 2> result {};
     for (int i = 0; i < 64; i++) {
@@ -493,6 +547,26 @@ namespace rose {
     fmt::print("m_ply: {}\n", m_ply);
     fmt::print("m_enpassant: {}\n", m_enpassant);
     fmt::print("m_stm: {}\n", m_stm);
+    // calc_pin_info:
+    {
+      const auto [at, pinned] = calc_pin_info();
+      fmt::print("pinned-masked m_attack_table:\n");
+      for (int r = 7; r >= 0; r--) {
+        for (int f = 0; f < 8; f++) {
+          const Square sq = Square::from_file_and_rank(f, r);
+          fmt::print("{:04x} ", at[sq.raw].raw);
+        }
+        fmt::print("\n");
+      }
+      fmt::print("pinned:\n");
+      for (int r = 7; r >= 0; r--) {
+        for (int f = 0; f < 8; f++) {
+          const Square sq = Square::from_file_and_rank(f, r);
+          fmt::print("{} ", pinned.read(sq) ? 1 : 0);
+        }
+        fmt::print("\n");
+      }
+    }
   }
 
 }  // namespace rose

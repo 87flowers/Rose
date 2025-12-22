@@ -5,6 +5,7 @@
 #include "rose/move.hpp"
 #include "rose/pawns.hpp"
 #include "rose/position.hpp"
+#include "rose/rays.hpp"
 #include "rose/util/static_vector.hpp"
 
 #include <bit>
@@ -74,6 +75,21 @@ namespace rose {
     }
   }
 
+  template<MoveFlags mf>
+  auto MoveGen::write_moves(MoveList& moves, Square from, Bitboard to_bb) -> void {
+    constexpr std::array<u16x32, 2> base = [] consteval {
+      std::array<Move, 64> base;
+      for (u8 i = 0; i < 64; i++) {
+        base[i] = Move::make(Square {0}, Square {i}, mf);
+      }
+      return std::bit_cast<std::array<u16x32, 2>>(base);
+    }();
+    if (!to_bb.is_empty()) {
+      moves.write(static_cast<u32>(to_bb.raw >> 0), base[0] | u16x32::splat(from.raw));
+      moves.write(static_cast<u32>(to_bb.raw >> 32), base[1] | u16x32::splat(from.raw));
+    }
+  }
+
   auto MoveGen::write_cap_promo(MoveList& moves, const std::array<PieceMask, 64>& at, Bitboard bb, PieceMask pm) -> void {
     const Color stm = m_position.stm();
     for (Square to : bb) {
@@ -88,24 +104,23 @@ namespace rose {
     }
   }
 
-  auto MoveGen::generate_moves_no_checkers(MoveList& moves, Square king_sq) -> void {
-    const Bitboard valid_destinations = ~Bitboard {};
-
+  template<bool in_check>
+  auto MoveGen::generate_moves_to(MoveList& moves, Square king_sq, Bitboard valid_destinations, PieceType one_checker) -> void {
     const Position& position = m_position;
     const Color stm = position.stm();
 
     const Bitboard empty = position.board().empty_bitboard();
     const Bitboard enemy = position.board().color_bitboard(!stm);
 
-    const std::array<PieceMask, 64> at = position.attack_table(stm).to_mailbox();
+    const auto [at, pinned_bb] = position.calc_pin_info();
 
     const PieceMask king_mask = PieceMask::king();
     const PieceMask pawn_mask = position.piece_mask_for<PieceType::p>(stm);
     const PieceMask nonpawn_mask = ~pawn_mask;
 
-    const Bitboard pawn_active = position.attack_table(stm).bitboard_for(pawn_mask);
-    const Bitboard nonpawn_active = position.attack_table(stm).bitboard_for(~pawn_mask);
-    const Bitboard king_active = position.attack_table(stm).bitboard_for(king_mask);
+    const Bitboard pawn_active = position.attack_table(stm).bitboard_for(pawn_mask) & valid_destinations;
+    const Bitboard nonpawn_active = position.attack_table(stm).bitboard_for(~pawn_mask) & valid_destinations;
+    const Bitboard king_active = position.attack_table(stm).bitboard_for(king_mask) & valid_destinations;
     const Bitboard danger = position.attack_table(!stm).bitboard_any();
 
     const auto pawn_info = pawns::pawn_shifts(stm);
@@ -115,7 +130,7 @@ namespace rose {
     // Capture-with-promotion
     write_cap_promo(moves, at, pawn_active & enemy & pawn_info.promo_zone, pawn_mask);
     // En passant
-    if (const Square ep = position.enpassant(); ep.is_valid()) {
+    if (const Square ep = position.enpassant(); ep.is_valid() && (!in_check || one_checker == PieceType::p)) {
       const PieceMask attackers = at[ep.raw] & pawn_mask;
       if (!attackers.is_empty()) {
         const Square victim = Square::from_file_and_rank(ep.file(), stm == Color::white ? 4 : 3);
@@ -141,9 +156,10 @@ namespace rose {
     // Non-pawn captures
     write_moves<MoveFlags::cap_normal>(moves, at, srcs, nonpawn_active & enemy, nonpawn_mask & ~king_mask);
     // King captures
-    write_moves<MoveFlags::cap_normal>(moves, at, srcs, king_active & enemy & ~danger, king_mask);
+    if constexpr (!in_check)
+      write_moves<MoveFlags::cap_normal>(moves, at, srcs, king_active & enemy & ~danger, king_mask);
     // Castling
-    {
+    if constexpr (!in_check) {
       const Square rook_hside = position.rook_info().hside(stm);
       const Square rook_aside = position.rook_info().aside(stm);
       const Bitboard king_bb = king_sq.to_bitboard();
@@ -155,7 +171,7 @@ namespace rose {
           const Bitboard rook_ray = backrank_ray(rook_sq, Square::from_file_and_rank(rook_dest, king_sq.rank()));
           const Bitboard king_ray = backrank_ray(king_sq, Square::from_file_and_rank(king_dest, king_sq.rank()));
           const Bitboard clear = empty | king_bb | rook_bb;
-          if ((~clear & rook_ray).is_empty() && ((~clear | danger) & king_ray).is_empty()) {
+          if ((~clear & rook_ray).is_empty() && ((~clear | danger) & king_ray).is_empty() && (rook_bb & pinned_bb).is_empty()) {
             moves.push_back(Move::make(king_sq, rook_sq, mf));
           }
         }
@@ -167,10 +183,13 @@ namespace rose {
     // Non-pawn quiets
     write_moves<MoveFlags::normal>(moves, at, srcs, nonpawn_active & empty, nonpawn_mask & ~king_mask);
     // King quiets
-    write_moves<MoveFlags::normal>(moves, at, srcs, king_active & empty & ~danger, king_mask);
+    if constexpr (!in_check)
+      write_moves<MoveFlags::normal>(moves, at, srcs, king_active & empty & ~danger, king_mask);
     // Do pawns
     {
-      const Bitboard bb = position.bitboard_for<PieceType::p>(stm);
+      const Bitboard pinned_pawns = pinned_bb & ~Bitboard::file_mask(king_sq.file());
+
+      const Bitboard bb = position.bitboard_for<PieceType::p>(stm) & ~pinned_pawns;
       const auto pawn_empty = pawns::pawn_destination_empty(stm, empty, valid_destinations);
       const auto pawn_moves = pawns::pawn_moves(stm);
 
@@ -198,12 +217,49 @@ namespace rose {
     }
   }
 
+  auto MoveGen::generate_king_moves_with_checkers(MoveList& moves, Square king_sq, PieceMask checkers) -> void {
+    const Color stm = m_position.stm();
+
+    const Bitboard valid_destinations = [&] {
+      Bitboard checkers_rays {};
+      for (const PieceId checker_id : checkers) {
+        const Square checker_sq = m_position.piece_list_sq(!stm)[checker_id];
+        const PieceType checker_ptype = m_position.piece_list_type(!stm)[checker_id];
+        if (checker_ptype.is_slider()) {
+          checkers_rays |= rays::king_invalid_destinations(king_sq, checker_sq) & ~checker_sq.to_bitboard();
+        }
+      }
+      return ~checkers_rays;
+    }();
+
+    const Bitboard empty = m_position.board().empty_bitboard();
+    const Bitboard enemy = m_position.board().color_bitboard(!stm);
+
+    const auto at = m_position.attack_table(stm).to_mailbox();
+
+    const PieceMask king_mask = PieceMask::king();
+
+    const Bitboard active = m_position.attack_table(stm).bitboard_for(king_mask) & valid_destinations;
+    const Bitboard danger = m_position.attack_table(!stm).bitboard_any();
+
+    write_moves<MoveFlags::cap_normal>(moves, king_sq, active & enemy & ~danger);
+    write_moves<MoveFlags::normal>(moves, king_sq, active & empty & ~danger);
+  }
+
+  auto MoveGen::generate_moves_no_checkers(MoveList& moves, Square king_sq) -> void {
+    generate_moves_to<false>(moves, king_sq, ~Bitboard {}, PieceType::none);
+  }
+
   auto MoveGen::generate_moves_one_checker(MoveList& moves, Square king_sq, PieceMask checkers) -> void {
-    generate_moves_no_checkers(moves, king_sq);
+    const PieceType checker_ptype = m_position.piece_list_type(!m_position.stm())[checkers.lsb()];
+    const Square checker_sq = m_position.piece_list_sq(!m_position.stm())[checkers.lsb()];
+    const Bitboard valid_destinations = checker_ptype == PieceType::n ? checker_sq.to_bitboard() : rays::calc_ray_to(king_sq, checker_sq);
+    generate_moves_to<true>(moves, king_sq, valid_destinations, checker_ptype);
+    generate_king_moves_with_checkers(moves, king_sq, checkers);
   }
 
   auto MoveGen::generate_moves_two_checkers(MoveList& moves, Square king_sq, PieceMask checkers) -> void {
-    generate_moves_no_checkers(moves, king_sq);
+    generate_king_moves_with_checkers(moves, king_sq, checkers);
   }
 
   MoveGen::MoveGen(const Position& position) :

@@ -142,4 +142,17 @@ namespace lps::doubling {
     return first = first | second;
   }
 
+  template<class T, usize N, class Env>
+  LPS_INLINE constexpr basic_vector_mask<T, N, Env> operator^(const basic_vector_mask<T, N, Env>& first, const basic_vector_mask<T, N, Env>& second) {
+    basic_vector_mask<T, N, Env> result;
+    result.raw[0] = first.raw[0] ^ second.raw[0];
+    result.raw[1] = first.raw[1] ^ second.raw[1];
+    return result;
+  }
+
+  template<class T, usize N, class Env>
+  LPS_INLINE constexpr basic_vector_mask<T, N, Env>& operator^=(basic_vector_mask<T, N, Env>& first, const basic_vector_mask<T, N, Env>& second) {
+    return first = first ^ second;
+  }
+
 }  // namespace lps::doubling

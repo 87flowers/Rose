@@ -156,4 +156,16 @@ namespace lps::sse4_2 {
     return first = first | second;
   }
 
+  template<class T, usize N, class Env>
+  constexpr basic_vector_mask<T, N, Env> operator^(const basic_vector_mask<T, N, Env>& first, const basic_vector_mask<T, N, Env>& second) {
+    basic_vector_mask<T, N, Env> result;
+    result.raw = first.raw ^ second.raw;
+    return result;
+  }
+
+  template<class T, usize N, class Env>
+  constexpr basic_vector_mask<T, N, Env>& operator^=(basic_vector_mask<T, N, Env>& first, const basic_vector_mask<T, N, Env>& second) {
+    return first = first ^ second;
+  }
+
 }  // namespace lps::sse4_2

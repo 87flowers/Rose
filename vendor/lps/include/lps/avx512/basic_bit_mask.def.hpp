@@ -119,4 +119,10 @@ namespace lps::avx512 {
   template<class T, usize N, class Env>
   constexpr basic_bit_mask<T, N, Env>& operator|=(basic_bit_mask<T, N, Env>& first, const basic_bit_mask<T, N, Env>& second);
 
+  template<class T, usize N, class Env>
+  constexpr basic_bit_mask<T, N, Env> operator^(const basic_bit_mask<T, N, Env>& first, const basic_bit_mask<T, N, Env>& second);
+
+  template<class T, usize N, class Env>
+  constexpr basic_bit_mask<T, N, Env>& operator^=(basic_bit_mask<T, N, Env>& first, const basic_bit_mask<T, N, Env>& second);
+
 }  // namespace lps::avx512

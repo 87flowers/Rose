@@ -2,6 +2,7 @@
 
 #include "rose/common.hpp"
 #include "rose/square.hpp"
+#include "rose/util/assert.hpp"
 #include "rose/util/lsb_iterator.hpp"
 
 #include <bit>
@@ -17,6 +18,11 @@ namespace rose {
 
     constexpr explicit Bitboard(u64 raw) :
         raw(raw) {
+    }
+
+    static constexpr Bitboard file_mask(i8 file) {
+      rose_assert(file >= 0 && file <= 7);
+      return Bitboard {static_cast<u64>(0x0101010101010101) << file};
     }
 
     constexpr auto is_empty() const -> bool {
@@ -39,6 +45,10 @@ namespace rose {
       return Iterator {Bitboard {}};
     }
 
+    auto read(Square sq) const -> bool {
+      return (raw >> sq.raw) & 1;
+    }
+
     friend constexpr auto operator~(Bitboard a) -> Bitboard {
       return Bitboard {~a.raw};
     }
@@ -47,12 +57,24 @@ namespace rose {
       return Bitboard {a.raw & b.raw};
     }
 
+    friend constexpr auto operator&=(Bitboard& a, Bitboard b) -> Bitboard {
+      return a = a & b;
+    }
+
     friend constexpr auto operator|(Bitboard a, Bitboard b) -> Bitboard {
       return Bitboard {a.raw | b.raw};
     }
 
+    friend constexpr auto operator|=(Bitboard& a, Bitboard b) -> Bitboard {
+      return a = a | b;
+    }
+
     friend constexpr auto operator^(Bitboard a, Bitboard b) -> Bitboard {
       return Bitboard {a.raw ^ b.raw};
+    }
+
+    friend constexpr auto operator^=(Bitboard& a, Bitboard b) -> Bitboard {
+      return a = a ^ b;
     }
 
     friend constexpr auto operator>>(Bitboard a, int shift) -> Bitboard {

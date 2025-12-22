@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rose/bitboard.hpp"
 #include "rose/board.hpp"
 #include "rose/common.hpp"
 #include "rose/config.hpp"
@@ -8,6 +9,7 @@
 #include "rose/util/tokenizer.hpp"
 
 #include <fmt/format.h>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -205,6 +207,8 @@ namespace rose {
     }
 
     auto move(Move m) const -> Position;
+
+    auto calc_pin_info() const -> std::tuple<std::array<PieceMask, 64>, Bitboard>;
 
     auto calc_attacks_slow() const -> std::array<Wordboard, 2>;
     auto calc_attacks_slow(Square sq) const -> std::array<PieceMask, 2>;

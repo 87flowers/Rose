@@ -73,4 +73,10 @@ namespace lps::sse4_2 {
   template<class T, usize N, class Env>
   constexpr basic_vector_mask<T, N, Env>& operator|=(basic_vector_mask<T, N, Env>& first, const basic_vector_mask<T, N, Env>& second);
 
+  template<class T, usize N, class Env>
+  constexpr basic_vector_mask<T, N, Env> operator^(const basic_vector_mask<T, N, Env>& first, const basic_vector_mask<T, N, Env>& second);
+
+  template<class T, usize N, class Env>
+  constexpr basic_vector_mask<T, N, Env>& operator^=(basic_vector_mask<T, N, Env>& first, const basic_vector_mask<T, N, Env>& second);
+
 }  // namespace lps::sse4_2

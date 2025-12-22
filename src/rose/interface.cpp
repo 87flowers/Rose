@@ -71,7 +71,7 @@ namespace rose {
     const auto depth = parse_int(depth_str);
     if (!depth || *depth < 0)
       return print_unrecognised_token("perft", depth_str);
-    perft::run(game.position(), static_cast<usize>(*depth), false);
+    perft::run(game.position(), static_cast<usize>(*depth), true);
   }
 
   auto Interface::uci_moves(Tokenizer& it) -> void {

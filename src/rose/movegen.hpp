@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rose/bitboard.hpp"
 #include "rose/common.hpp"
 #include "rose/move.hpp"
 #include "rose/position.hpp"
@@ -24,7 +25,13 @@ namespace rose {
 
     template<MoveFlags mf>
     auto write_moves(MoveList& moves, const std::array<PieceMask, 64>& at, u16x16 srcs, Bitboard bb, PieceMask pm) -> void;
+    template<MoveFlags mf>
+    auto write_moves(MoveList& moves, Square from, Bitboard to_bb) -> void;
     auto write_cap_promo(MoveList& moves, const std::array<PieceMask, 64>& at, Bitboard bb, PieceMask pm) -> void;
+
+    template<bool in_check>
+    auto generate_moves_to(MoveList& moves, Square king_sq, Bitboard valid_destinations, PieceType one_checker) -> void;
+    auto generate_king_moves_with_checkers(MoveList& moves, Square king_sq, PieceMask checkers) -> void;
 
     auto generate_moves_no_checkers(MoveList& moves, Square king_sq) -> void;
     auto generate_moves_one_checker(MoveList& moves, Square king_sq, PieceMask checkers) -> void;

@@ -197,7 +197,7 @@ namespace lps::avx512 {
 
   template<class T, usize N, class Env>
   [[nodiscard]] LPS_INLINE constexpr std::array<T, N> basic_bit_mask<T, N, Env>::to_array() const {
-    return raw.to_vector().to_array();
+    return to_vector().to_array();
   }
 
   template<class T, usize N, class Env>
@@ -308,6 +308,27 @@ namespace lps::avx512 {
   template<class T, usize N, class Env>
   LPS_INLINE constexpr basic_bit_mask<T, N, Env>& operator|=(basic_bit_mask<T, N, Env>& first, const basic_bit_mask<T, N, Env>& second) {
     return first = first | second;
+  }
+
+  template<class T, usize N, class Env>
+  LPS_INLINE constexpr basic_bit_mask<T, N, Env> operator^(const basic_bit_mask<T, N, Env>& first, const basic_bit_mask<T, N, Env>& second) {
+    using raw_type = typename basic_bit_mask<T, N, Env>::raw_type;
+    if constexpr (sizeof(raw_type) == sizeof(u8)) {
+      return basic_bit_mask<T, N, Env> { _kxor_mask8(first.raw, second.raw) };
+    } else if constexpr (sizeof(raw_type) == sizeof(u16)) {
+      return basic_bit_mask<T, N, Env> { _kxor_mask16(first.raw, second.raw) };
+    } else if constexpr (sizeof(raw_type) == sizeof(u32)) {
+      return basic_bit_mask<T, N, Env> { _kxor_mask32(first.raw, second.raw) };
+    } else if constexpr (sizeof(raw_type) == sizeof(u64)) {
+      return basic_bit_mask<T, N, Env> { _kxor_mask64(first.raw, second.raw) };
+    } else {
+      static_assert(detail::always_false<T>);
+    }
+  }
+
+  template<class T, usize N, class Env>
+  LPS_INLINE constexpr basic_bit_mask<T, N, Env>& operator^=(basic_bit_mask<T, N, Env>& first, const basic_bit_mask<T, N, Env>& second) {
+    return first = first ^ second;
   }
 
 }  // namespace lps::avx512

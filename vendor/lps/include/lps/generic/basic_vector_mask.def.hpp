@@ -30,6 +30,12 @@ namespace lps::generic {
   constexpr basic_vector_mask<T, N>& operator|=(basic_vector_mask<T, N>& first, const basic_vector_mask<T, N>& second);
 
   template<class T, usize N>
+  constexpr basic_vector_mask<T, N> operator^(const basic_vector_mask<T, N>& first, const basic_vector_mask<T, N>& second);
+
+  template<class T, usize N>
+  constexpr basic_vector_mask<T, N>& operator^=(basic_vector_mask<T, N>& first, const basic_vector_mask<T, N>& second);
+
+  template<class T, usize N>
   struct basic_vector_mask {
     static constexpr usize size = N;
     using inner_type = vector<T, N>;
@@ -76,6 +82,10 @@ namespace lps::generic {
     friend constexpr basic_vector_mask<T, N> operator| <T, N>(const basic_vector_mask<T, N>& first, const basic_vector_mask<T, N>& second);
 
     friend constexpr basic_vector_mask<T, N>& operator|= <T, N>(basic_vector_mask<T, N>& first, const basic_vector_mask<T, N>& second);
+
+    friend constexpr basic_vector_mask<T, N> operator^ <T, N>(const basic_vector_mask<T, N>& first, const basic_vector_mask<T, N>& second);
+
+    friend constexpr basic_vector_mask<T, N>& operator^= <T, N>(basic_vector_mask<T, N>& first, const basic_vector_mask<T, N>& second);
 
     template<class U, usize M>
     friend struct vector;

@@ -26,9 +26,6 @@ namespace rose::perft {
 
     for (Move m : moves) {
       const Position new_position = position.move(m);
-      if (!new_position.is_valid())
-        continue;
-
       const u64 child = core<false, bulk>(new_position, depth - 1);
       if constexpr (print) {
         fmt::print("{}: {}\n", m, child);
@@ -40,8 +37,7 @@ namespace rose::perft {
   }
 
   auto value(const Position& position, usize depth) -> u64 {
-    // TODO: make bulk
-    return core<false, false>(position, depth);
+    return core<false, true>(position, depth);
   }
 
   auto run(const Position& position, usize depth, bool bulk) -> void {

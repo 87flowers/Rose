@@ -144,4 +144,17 @@ namespace lps::generic {
     return first;
   }
 
+  template<class T, usize N>
+  constexpr basic_vector_mask<T, N> operator^(const basic_vector_mask<T, N>& first, const basic_vector_mask<T, N>& second) {
+    basic_vector_mask<T, N> result;
+    result.raw = first.raw ^ second.raw;
+    return result;
+  }
+
+  template<class T, usize N>
+  constexpr basic_vector_mask<T, N>& operator^=(basic_vector_mask<T, N>& first, const basic_vector_mask<T, N>& second) {
+    first.raw ^= second.raw;
+    return first;
+  }
+
 }  // namespace lps::generic
