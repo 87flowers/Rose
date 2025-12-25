@@ -98,7 +98,7 @@ namespace rose {
     const m8x64 src_visible_sliders = src_raymask & src_sliders;
     const m8x64 dst_visible_sliders = dst_raymask & dst_sliders;
 
-    u8x64 src_slider_ids = geometry::slider_broadcast(src_visible_sliders.mask(src_ray_coords.swizzle(board)));
+    u8x64 src_slider_ids = geometry::slider_broadcast(src_visible_sliders.mask(is_capture ? src_ray_coords.swizzle(board) : src_ray_places));
     u8x64 dst_slider_ids = geometry::slider_broadcast(dst_visible_sliders.mask(dst_ray_places));
     src_slider_ids = geometry::flip_mask(src_raymask).mask(src_slider_ids);
     dst_slider_ids = geometry::flip_mask(dst_raymask).mask(dst_slider_ids);
