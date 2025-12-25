@@ -162,11 +162,11 @@ namespace rose {
     if constexpr (!in_check) {
       const Square rook_hside = position.rook_info().hside(stm);
       const Square rook_aside = position.rook_info().aside(stm);
-      const Bitboard king_bb = king_sq.to_bitboard();
 
-      const auto do_castle = [&](Square rook_sq, i8 rook_dest, i8 king_dest, MoveFlags mf) {
+      const auto do_castle = [&](Square king_sq, Square rook_sq, i8 rook_dest, i8 king_dest, MoveFlags mf) {
         if (rook_sq.is_valid()) {
           rose_assert(position.board()[rook_sq].ptype() == PieceType::r && position.board()[rook_sq].color() == stm);
+          const Bitboard king_bb = king_sq.to_bitboard();
           const Bitboard rook_bb = rook_sq.to_bitboard();
           const Bitboard rook_ray = backrank_ray(rook_sq, Square::from_file_and_rank(rook_dest, king_sq.rank()));
           const Bitboard king_ray = backrank_ray(king_sq, Square::from_file_and_rank(king_dest, king_sq.rank()));
@@ -177,8 +177,21 @@ namespace rose {
         }
       };
 
-      do_castle(rook_aside, 3, 2, MoveFlags::castle_aside);
-      do_castle(rook_hside, 5, 6, MoveFlags::castle_hside);
+      if (config::frc) {
+        do_castle(king_sq, rook_aside, 3, 2, MoveFlags::castle_aside);
+        do_castle(king_sq, rook_hside, 5, 6, MoveFlags::castle_hside);
+      } else {
+        switch (stm.raw) {
+        case Color::white:
+          do_castle(Square::from_file_and_rank(4, 0), Square::from_file_and_rank(0, 0), 3, 2, MoveFlags::castle_aside);
+          do_castle(Square::from_file_and_rank(4, 0), Square::from_file_and_rank(7, 0), 5, 6, MoveFlags::castle_hside);
+          break;
+        case Color::black:
+          do_castle(Square::from_file_and_rank(4, 7), Square::from_file_and_rank(0, 7), 3, 2, MoveFlags::castle_aside);
+          do_castle(Square::from_file_and_rank(4, 7), Square::from_file_and_rank(7, 7), 5, 6, MoveFlags::castle_hside);
+          break;
+        }
+      }
     }
     // Non-pawn quiets
     write_moves<MoveFlags::normal>(moves, at, srcs, nonpawn_active & empty, nonpawn_mask);
