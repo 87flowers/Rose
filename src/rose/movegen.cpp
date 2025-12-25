@@ -68,10 +68,8 @@ namespace rose {
   auto MoveGen::write_moves(MoveList& moves, const std::array<PieceMask, 64>& at, u16x16 srcs, Bitboard bb, PieceMask pm) -> void {
     for (Square to : bb) {
       const PieceMask mask = pm & at[to.raw];
-      if (!mask.is_empty()) {
-        const u16x16 dest = u16x16::splat(static_cast<u16>(mf) | (static_cast<u16>(to.raw) << 6));
-        moves.write(mask.raw, srcs | dest);
-      }
+      const u16x16 dest = u16x16::splat(static_cast<u16>(mf) | (static_cast<u16>(to.raw) << 6));
+      moves.write(mask.raw, srcs | dest);
     }
   }
 
@@ -84,10 +82,8 @@ namespace rose {
       }
       return std::bit_cast<std::array<u16x32, 2>>(base);
     }();
-    if (!to_bb.is_empty()) {
-      moves.write(static_cast<u32>(to_bb.raw >> 0), base[0] | u16x32::splat(from.raw));
-      moves.write(static_cast<u32>(to_bb.raw >> 32), base[1] | u16x32::splat(from.raw));
-    }
+    moves.write(static_cast<u32>(to_bb.raw >> 0), base[0] | u16x32::splat(from.raw));
+    moves.write(static_cast<u32>(to_bb.raw >> 32), base[1] | u16x32::splat(from.raw));
   }
 
   auto MoveGen::write_cap_promo(MoveList& moves, const std::array<PieceMask, 64>& at, Bitboard bb, PieceMask pm) -> void {
