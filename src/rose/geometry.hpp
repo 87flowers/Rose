@@ -133,14 +133,24 @@ namespace rose::geometry {
     }}>(sq);
   }
 
+  auto superpiece_attacks(u8x64 ray_places, m8x64 ray_valid) -> m8x64;
+  auto superpiece_attacks(m8x64 ray_places, m8x64 ray_valid) -> m8x64;
+
   inline auto superpiece_attacks(u8x64 ray_places, m8x64 ray_valid) -> m8x64 {
 #if LPS_AVX512
-    const u64 occupied = ray_places.nonzeros().raw;
-    const u64 o = occupied | 0x8181818181818181;
+    return superpiece_attacks(ray_places.nonzeros(), ray_valid);
+#else
+    return ray_valid.andnot(ray_places.eq(std::bit_cast<u8x64>(std::bit_cast<u64x8>(ray_places) - u64x8::splat(0x101))));
+#endif
+  }
+
+  inline auto superpiece_attacks(m8x64 occupied, m8x64 ray_valid) -> m8x64 {
+#if LPS_AVX512
+    const u64 o = occupied.raw | 0x8181818181818181;
     const u64 x = o ^ (o - 0x0303030303030303);
     return m8x64 {x} & ray_valid;
 #else
-    return ray_valid.andnot(ray_places.eq(std::bit_cast<u8x64>(std::bit_cast<u64x8>(ray_places) - u64x8::splat(0x101))));
+    return superpiece_attacks(occupied.to_vector().convert<u8>(), ray_valid);
 #endif
   }
 
