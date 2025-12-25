@@ -61,7 +61,10 @@ namespace rose {
 
     m_piece_list_sq[color.to_index()][id] = sq;
     m_piece_list_ptype[color.to_index()][id] = ptype;
-    m_board[sq] = Place::make(color, ptype, id);
+
+    u8x64 board = m_board.to_vector();
+    board = m8x64 {sq.to_bitboard().raw}.select(board, u8x64::splat(Place::make(color, ptype, id).raw));
+    std::memcpy(m_board.mailbox.data(), &board, sizeof(board));
   }
 
   template<bool update_sliders>
@@ -72,8 +75,11 @@ namespace rose {
 
     m_piece_list_sq[color.to_index()][id] = Square::invalid();
     m_piece_list_ptype[color.to_index()][id] = PieceType::none;
-    if constexpr (update_sliders)
-      m_board[sq] = Place::empty;
+    if constexpr (update_sliders) {
+      u8x64 board = m_board.to_vector();
+      board = m8x64 {~sq.to_bitboard().raw}.mask(board);
+      std::memcpy(m_board.mailbox.data(), &board, sizeof(board));
+    }
   }
 
   template<bool is_capture>
