@@ -160,31 +160,35 @@ namespace rose {
       const Square rook_aside = position.rook_info().aside(stm);
 
       const auto do_castle = [&](Square king_sq, Square rook_sq, i8 rook_dest, i8 king_dest, MoveFlags mf) {
-        if (rook_sq.is_valid()) {
-          rose_assert(position.board()[rook_sq].ptype() == PieceType::r && position.board()[rook_sq].color() == stm);
-          const Bitboard king_bb = king_sq.to_bitboard();
-          const Bitboard rook_bb = rook_sq.to_bitboard();
-          const Bitboard rook_ray = backrank_ray(rook_sq, Square::from_file_and_rank(rook_dest, king_sq.rank()));
-          const Bitboard king_ray = backrank_ray(king_sq, Square::from_file_and_rank(king_dest, king_sq.rank()));
-          const Bitboard clear = empty | king_bb | rook_bb;
-          if ((~clear & rook_ray).is_empty() && ((~clear | danger) & king_ray).is_empty() && (rook_bb & pinned_bb).is_empty()) {
-            moves.push_back(Move::make(king_sq, rook_sq, mf));
-          }
+        rose_assert(position.board()[rook_sq].ptype() == PieceType::r && position.board()[rook_sq].color() == stm);
+        const Bitboard king_bb = king_sq.to_bitboard();
+        const Bitboard rook_bb = rook_sq.to_bitboard();
+        const Bitboard rook_ray = backrank_ray(rook_sq, Square::from_file_and_rank(rook_dest, king_sq.rank()));
+        const Bitboard king_ray = backrank_ray(king_sq, Square::from_file_and_rank(king_dest, king_sq.rank()));
+        const Bitboard clear = empty | king_bb | rook_bb;
+        if ((~clear & rook_ray).is_empty() && ((~clear | danger) & king_ray).is_empty() && (rook_bb & pinned_bb).is_empty()) {
+          moves.push_back(Move::make(king_sq, rook_sq, mf));
         }
       };
 
       if (config::frc) {
-        do_castle(king_sq, rook_aside, 3, 2, MoveFlags::castle_aside);
-        do_castle(king_sq, rook_hside, 5, 6, MoveFlags::castle_hside);
+        if (rook_aside.is_valid())
+          do_castle(king_sq, rook_aside, 3, 2, MoveFlags::castle_aside);
+        if (rook_hside.is_valid())
+          do_castle(king_sq, rook_hside, 5, 6, MoveFlags::castle_hside);
       } else {
         switch (stm.raw) {
         case Color::white:
-          do_castle(Square::from_file_and_rank(4, 0), Square::from_file_and_rank(0, 0), 3, 2, MoveFlags::castle_aside);
-          do_castle(Square::from_file_and_rank(4, 0), Square::from_file_and_rank(7, 0), 5, 6, MoveFlags::castle_hside);
+          if (rook_aside.is_valid())
+            do_castle(Square::from_file_and_rank(4, 0), Square::from_file_and_rank(0, 0), 3, 2, MoveFlags::castle_aside);
+          if (rook_hside.is_valid())
+            do_castle(Square::from_file_and_rank(4, 0), Square::from_file_and_rank(7, 0), 5, 6, MoveFlags::castle_hside);
           break;
         case Color::black:
-          do_castle(Square::from_file_and_rank(4, 7), Square::from_file_and_rank(0, 7), 3, 2, MoveFlags::castle_aside);
-          do_castle(Square::from_file_and_rank(4, 7), Square::from_file_and_rank(7, 7), 5, 6, MoveFlags::castle_hside);
+          if (rook_aside.is_valid())
+            do_castle(Square::from_file_and_rank(4, 7), Square::from_file_and_rank(0, 7), 3, 2, MoveFlags::castle_aside);
+          if (rook_hside.is_valid())
+            do_castle(Square::from_file_and_rank(4, 7), Square::from_file_and_rank(7, 7), 5, 6, MoveFlags::castle_hside);
           break;
         }
       }

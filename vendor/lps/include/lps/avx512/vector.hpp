@@ -116,37 +116,37 @@ namespace lps::avx512 {
   LPS_INLINE constexpr vector<T, N, Env> vector<T, N, Env>::swizzle(const vector<T, N, Env>& src) const {
     if constexpr (is_128_bit) {
       if constexpr (sizeof(T) == sizeof(u8)) {
-        return { _mm_maskz_permutexvar_epi8(_knot_mask16(_mm_movepi8_mask(raw)), raw, src.raw) };
+        return { _mm_permutexvar_epi8(raw, src.raw) };
       } else if constexpr (sizeof(T) == sizeof(u16)) {
-        return { _mm_maskz_permutexvar_epi16(_knot_mask8(_mm_movepi16_mask(raw)), raw, src.raw) };
+        return { _mm_permutexvar_epi16(raw, src.raw) };
       } else if constexpr (sizeof(T) == sizeof(u32)) {
-        return { _mm_maskz_permutexvar_epi32(_knot_mask8(_mm_movepi32_mask(raw)), raw, src.raw) };
+        return { _mm_permutexvar_epi32(raw, src.raw) };
       } else if constexpr (sizeof(T) == sizeof(u64)) {
-        return { _mm_maskz_permutexvar_epi64(_knot_mask8(_mm_movepi64_mask(raw)), raw, src.raw) };
+        return { _mm_permutexvar_epi64(raw, src.raw) };
       } else {
         static_assert(detail::always_false<T>);
       }
     } else if constexpr (is_256_bit) {
       if constexpr (sizeof(T) == sizeof(u8)) {
-        return { _mm256_maskz_permutexvar_epi8(_knot_mask32(_mm256_movepi8_mask(raw)), raw, src.raw) };
+        return { _mm256_permutexvar_epi8(raw, src.raw) };
       } else if constexpr (sizeof(T) == sizeof(u16)) {
-        return { _mm256_maskz_permutexvar_epi16(_knot_mask16(_mm256_movepi16_mask(raw)), raw, src.raw) };
+        return { _mm256_permutexvar_epi16(raw, src.raw) };
       } else if constexpr (sizeof(T) == sizeof(u32)) {
-        return { _mm256_maskz_permutexvar_epi32(_knot_mask8(_mm256_movepi32_mask(raw)), raw, src.raw) };
+        return { _mm256_permutexvar_epi32(raw, src.raw) };
       } else if constexpr (sizeof(T) == sizeof(u64)) {
-        return { _mm256_maskz_permutexvar_epi64(_knot_mask8(_mm256_movepi64_mask(raw)), raw, src.raw) };
+        return { _mm256_permutexvar_epi64(raw, src.raw) };
       } else {
         static_assert(detail::always_false<T>);
       }
     } else {
       if constexpr (sizeof(T) == sizeof(u8)) {
-        return { _mm512_maskz_permutexvar_epi8(_knot_mask64(_mm512_movepi8_mask(raw)), raw, src.raw) };
+        return { _mm512_permutexvar_epi8(raw, src.raw) };
       } else if constexpr (sizeof(T) == sizeof(u16)) {
-        return { _mm512_maskz_permutexvar_epi16(_knot_mask32(_mm512_movepi16_mask(raw)), raw, src.raw) };
+        return { _mm512_permutexvar_epi16(raw, src.raw) };
       } else if constexpr (sizeof(T) == sizeof(u32)) {
-        return { _mm512_maskz_permutexvar_epi32(_knot_mask16(_mm512_movepi32_mask(raw)), raw, src.raw) };
+        return { _mm512_permutexvar_epi32(raw, src.raw) };
       } else if constexpr (sizeof(T) == sizeof(u64)) {
-        return { _mm512_maskz_permutexvar_epi64(_knot_mask8(_mm512_movepi64_mask(raw)), raw, src.raw) };
+        return { _mm512_permutexvar_epi64(raw, src.raw) };
       } else {
         static_assert(detail::always_false<T>);
       }

@@ -72,9 +72,11 @@ namespace rose {
 
     m_piece_list_sq[color.to_index()][id] = Square::invalid();
     m_piece_list_ptype[color.to_index()][id] = PieceType::none;
-    m_board[sq] = Place::empty;
+    if constexpr (update_sliders)
+      m_board[sq] = Place::empty;
   }
 
+  template<bool is_capture>
   auto Position::move_piece(Color color, Square src_sq, Square dst_sq, PieceId id, PieceType src_ptype, PieceType dst_ptype) -> void {
     const auto [src_ray_coords, src_ray_valid] = geometry::superpiece_rays(src_sq);
     const auto [dst_ray_coords, dst_ray_valid] = geometry::superpiece_rays(dst_sq);
@@ -96,7 +98,7 @@ namespace rose {
     const m8x64 src_visible_sliders = src_raymask & src_sliders;
     const m8x64 dst_visible_sliders = dst_raymask & dst_sliders;
 
-    u8x64 src_slider_ids = geometry::slider_broadcast(src_visible_sliders.mask(src_ray_places));
+    u8x64 src_slider_ids = geometry::slider_broadcast(src_visible_sliders.mask(src_ray_coords.swizzle(board)));
     u8x64 dst_slider_ids = geometry::slider_broadcast(dst_visible_sliders.mask(dst_ray_places));
     src_slider_ids = geometry::flip_mask(src_raymask).mask(src_slider_ids);
     dst_slider_ids = geometry::flip_mask(dst_raymask).mask(dst_slider_ids);
@@ -113,58 +115,19 @@ namespace rose {
 
     const u16x64 id_bit = u16x64::splat(id.to_piece_mask().raw);
     const m8x64 dst_attack_mask = dst_raymask & geometry::attack_mask(color, dst_ptype);
-    const m16x64 add_mask = dst_iperm.swizzle(geometry::flip_mask(dst_attack_mask)).convert<u16>();
+    const m16x64 add_mask = (~dst_iperm.msb() & dst_iperm.swizzle(geometry::flip_mask(dst_attack_mask))).convert<u16>();
 
-    m_attack_table[0].raw ^= (~src_color).mask(src_bits) ^ (~dst_color).mask(dst_bits);
-    m_attack_table[1].raw ^= src_color.mask(src_bits) ^ dst_color.mask(dst_bits);
-
-    switch (color.raw) {
-    case Color::white:
-      m_attack_table[0].raw = m_attack_table[0].raw.andnot(id_bit) | add_mask.mask(id_bit);
-      m_piece_list_sq[0][id] = dst_sq;
-      m_piece_list_ptype[0][id] = dst_ptype;
-      break;
-    case Color::black:
-      m_attack_table[1].raw = m_attack_table[1].raw.andnot(id_bit) | add_mask.mask(id_bit);
-      m_piece_list_sq[1][id] = dst_sq;
-      m_piece_list_ptype[1][id] = dst_ptype;
-      break;
+    if constexpr (is_capture) {
+      m_attack_table[0].raw ^= (~src_color).mask(src_bits);
+      m_attack_table[1].raw ^= src_color.mask(src_bits);
+    } else {
+      m_attack_table[0].raw ^= (~src_color).mask(src_bits) ^ (~dst_color).mask(dst_bits);
+      m_attack_table[1].raw ^= src_color.mask(src_bits) ^ dst_color.mask(dst_bits);
     }
-  }
 
-  auto Position::mutate_piece(Square sq, PieceId src_id, Color dst_color, PieceId dst_id, PieceType dst_ptype) -> void {
-    const auto [ray_coords, ray_valid] = geometry::superpiece_rays(sq);
-
-    u8x64 board = m_board.to_vector();
-    const u8x64 ray_places = ray_coords.swizzle(board);
-    board = m8x64 {sq.to_bitboard().raw}.select(board, u8x64::splat(Place::make(dst_color, dst_ptype, dst_id).raw));
-    std::memcpy(m_board.mailbox.data(), &board, sizeof(board));
-
-    const u8x64 iperm = geometry::superpiece_inverse_rays(sq);
-
-    const m8x64 raymask = geometry::superpiece_attacks(ray_places, ray_valid);
-
-    const m8x64 attacker_mask = raymask & geometry::attack_mask(dst_color, dst_ptype);
-    const m8x64 add_mask = iperm.swizzle(attacker_mask).andnot(iperm.msb());
-
-    switch (dst_color.raw) {
-    case Color::white:
-      m_attack_table[1].raw &= u16x64::splat(~src_id.to_piece_mask().raw);
-      m_attack_table[0].raw |= add_mask.convert<u16>().mask(u16x64::splat(dst_id.to_piece_mask().raw));
-      m_piece_list_sq[1][src_id] = Square::invalid();
-      m_piece_list_ptype[1][src_id] = PieceType::none;
-      m_piece_list_sq[0][dst_id] = sq;
-      m_piece_list_ptype[0][dst_id] = dst_ptype;
-      break;
-    case Color::black:
-      m_attack_table[0].raw &= u16x64::splat(~src_id.to_piece_mask().raw);
-      m_attack_table[1].raw |= add_mask.convert<u16>().mask(u16x64::splat(dst_id.to_piece_mask().raw));
-      m_piece_list_sq[0][src_id] = Square::invalid();
-      m_piece_list_ptype[0][src_id] = PieceType::none;
-      m_piece_list_sq[1][dst_id] = sq;
-      m_piece_list_ptype[1][dst_id] = dst_ptype;
-      break;
-    }
+    m_attack_table[color.to_index()].raw = m_attack_table[color.to_index()].raw.andnot(id_bit) | add_mask.mask(id_bit);
+    m_piece_list_sq[color.to_index()][id] = dst_sq;
+    m_piece_list_ptype[color.to_index()][id] = dst_ptype;
   }
 
   auto Position::startpos() -> Position {
@@ -198,7 +161,7 @@ namespace rose {
     };
 
     const auto normal = [&] {
-      new_pos.move_piece(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
       if (src_place.ptype() != PieceType::p) {
         new_pos.m_50mr++;
       } else {
@@ -208,27 +171,27 @@ namespace rose {
     };
 
     const auto cap_normal = [&] {
-      new_pos.remove_piece<true>(m_stm, from, src_id);
-      new_pos.mutate_piece(to, dest_id, m_stm, src_id, src_place.ptype());
+      new_pos.remove_piece<false>(!m_stm, to, dest_id);
+      new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
       new_pos.m_50mr = 0;
       check_src_castling_rights();
       check_dest_castling_rights();
     };
 
     const auto promo = [&](auto ptype) {
-      new_pos.move_piece(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
+      new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
       new_pos.m_50mr = 0;
     };
 
     const auto cap_promo = [&](auto ptype) {
-      new_pos.remove_piece<true>(m_stm, from, src_id);
-      new_pos.mutate_piece(to, dest_id, m_stm, src_id, decltype(ptype)::value);
+      new_pos.remove_piece<false>(!m_stm, to, dest_id);
+      new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
       new_pos.m_50mr = 0;
       check_dest_castling_rights();
     };
 
     const auto double_push = [&] {
-      new_pos.move_piece(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
       new_pos.m_50mr = 0;
       new_pos.m_enpassant = Square {narrow_cast<u8>((from.raw + to.raw) >> 1)};
     };
@@ -237,8 +200,8 @@ namespace rose {
       const Square victim = Square::from_file_and_rank(to.file(), from.rank());
       const PieceId victim_id = m_board[victim].id();
 
-      new_pos.move_piece(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
       new_pos.remove_piece<true>(!m_stm, victim, victim_id);
+      new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
 
       new_pos.m_50mr = 0;
       check_src_castling_rights();
@@ -349,7 +312,7 @@ namespace rose {
 
     // Translate to valid move rays
     const u8x64 pinned_ids = pin_raymasks.mask(geometry::lane_broadcast(pinned.mask(ray_places)));
-    const u8x64 board_layout = iperm.swizzle(pinned_ids);
+    const u8x64 board_layout = (~iperm.msb()).mask(iperm.swizzle(pinned_ids));
 
     // Convert from list of squares to piecemask
     const int pinned_count = pinned.popcount();

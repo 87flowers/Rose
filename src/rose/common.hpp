@@ -61,7 +61,7 @@ namespace rose {
     }
 
     constexpr auto to_back_rank() const -> i8 {
-      return raw == white ? 0 : 7;
+      return -static_cast<i8>(raw) & 7;
     }
 
     constexpr auto to_index() const -> usize {
@@ -69,7 +69,7 @@ namespace rose {
     }
 
     constexpr auto to_msb8() const -> u8 {
-      return raw == white ? 0 : 0x80;
+      return -static_cast<i8>(raw) & 0x80;
     }
 
     constexpr auto to_bitboard() const -> Bitboard;
