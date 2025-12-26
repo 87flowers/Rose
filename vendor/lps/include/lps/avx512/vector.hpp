@@ -516,7 +516,7 @@ namespace lps::avx512 {
       } else {
         static_assert(detail::always_false<T>);
       }
-    } else if constexpr (is_128_bit) {
+    } else if constexpr (is_256_bit) {
       if constexpr (sizeof(T) == sizeof(u8)) {
         return bmask_type { _mm256_cmpeq_epu8_mask(raw, second.raw) };
       } else if constexpr (sizeof(T) == sizeof(u16)) {
@@ -567,7 +567,7 @@ namespace lps::avx512 {
       } else {
         static_assert(detail::always_false<T>);
       }
-    } else if constexpr (is_128_bit) {
+    } else if constexpr (is_256_bit) {
       if constexpr (sizeof(T) == sizeof(u8)) {
         return bmask_type { _mm256_cmpneq_epu8_mask(raw, second.raw) };
       } else if constexpr (sizeof(T) == sizeof(u16)) {
@@ -619,7 +619,7 @@ namespace lps::avx512 {
         } else {
           static_assert(detail::always_false<T>);
         }
-      } else if constexpr (is_128_bit) {
+      } else if constexpr (is_256_bit) {
         if constexpr (sizeof(T) == sizeof(u8)) {
           return bmask_type { _mm256_cmpgt_epi8_mask(raw, second.raw) };
         } else if constexpr (sizeof(T) == sizeof(u16)) {
@@ -657,7 +657,7 @@ namespace lps::avx512 {
         } else {
           static_assert(detail::always_false<T>);
         }
-      } else if constexpr (is_128_bit) {
+      } else if constexpr (is_256_bit) {
         if constexpr (sizeof(T) == sizeof(u8)) {
           return bmask_type { _mm256_cmpgt_epu8_mask(raw, second.raw) };
         } else if constexpr (sizeof(T) == sizeof(u16)) {
@@ -987,7 +987,27 @@ namespace lps::avx512 {
 
   template<class T, usize N, class Env>
   LPS_INLINE constexpr vector<T, N, Env> operator<<(const vector<T, N, Env>& first, const vector<T, N, Env>& second) {
-    return std::bit_cast<vector<T, N, Env>>(std::bit_cast<generic::vector<T, N>>(first) << std::bit_cast<generic::vector<T, N>>(second));
+    if constexpr (vector<T, N, Env>::is_128_bit && sizeof(T) == sizeof(u16)) {
+      return vector<T, N, Env> { _mm_sllv_epi16(first.raw, second.raw) };
+    } else if constexpr (vector<T, N, Env>::is_128_bit && sizeof(T) == sizeof(u32)) {
+      return vector<T, N, Env> { _mm_sllv_epi32(first.raw, second.raw) };
+    } else if constexpr (vector<T, N, Env>::is_128_bit && sizeof(T) == sizeof(u64)) {
+      return vector<T, N, Env> { _mm_sllv_epi64(first.raw, second.raw) };
+    } else if constexpr (vector<T, N, Env>::is_256_bit && sizeof(T) == sizeof(u16)) {
+      return vector<T, N, Env> { _mm256_sllv_epi16(first.raw, second.raw) };
+    } else if constexpr (vector<T, N, Env>::is_256_bit && sizeof(T) == sizeof(u32)) {
+      return vector<T, N, Env> { _mm256_sllv_epi32(first.raw, second.raw) };
+    } else if constexpr (vector<T, N, Env>::is_256_bit && sizeof(T) == sizeof(u64)) {
+      return vector<T, N, Env> { _mm256_sllv_epi64(first.raw, second.raw) };
+    } else if constexpr (vector<T, N, Env>::is_512_bit && sizeof(T) == sizeof(u16)) {
+      return vector<T, N, Env> { _mm512_sllv_epi16(first.raw, second.raw) };
+    } else if constexpr (vector<T, N, Env>::is_512_bit && sizeof(T) == sizeof(u32)) {
+      return vector<T, N, Env> { _mm512_sllv_epi32(first.raw, second.raw) };
+    } else if constexpr (vector<T, N, Env>::is_512_bit && sizeof(T) == sizeof(u64)) {
+      return vector<T, N, Env> { _mm512_sllv_epi64(first.raw, second.raw) };
+    } else {
+      return std::bit_cast<vector<T, N, Env>>(std::bit_cast<generic::vector<T, N>>(first) << std::bit_cast<generic::vector<T, N>>(second));
+    }
   }
 
   template<class T, usize N, class Env>
