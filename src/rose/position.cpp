@@ -14,6 +14,35 @@
 
 namespace rose {
 
+#if !defined(LPS_AVX512) || !LPS_AVX512
+  template<class T, class U>
+  static inline auto concat(U a, U b) -> T {
+    return std::bit_cast<T>(std::array {a, b});
+  }
+#endif
+
+  static inline auto expand_mask(m8x64 x) -> m16x64 {
+#if LPS_AVX512
+    return x.convert<u16>();
+#else
+    return concat<m16x64>(x.to_vector().zip_low(x.to_vector()), x.to_vector().zip_high(x.to_vector()));
+#endif
+  }
+
+  static inline auto id_to_at(u8x64 ids) -> u16x64 {
+    ids &= u8x64::splat(0xF);
+#if LPS_AVX512
+    const m16x64 valid_ids = ids.nonzeros().convert<u16>();
+    return valid_ids.mask(u16x64::splat(1) << ids.convert<u16>());
+#else
+    constexpr u8x16 lo_shift {{0x00, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
+    constexpr u8x16 hi_shift {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}};
+    const u8x64 bits_lo = ids.swizzle(lo_shift);
+    const u8x64 bits_hi = ids.swizzle(hi_shift);
+    return concat<u16x64>(bits_lo.zip_low(bits_hi), bits_lo.zip_high(bits_hi));
+#endif
+  }
+
   auto Position::add_attacks(Color color, Square sq, PieceId id, PieceType ptype) -> void {
     const auto [ray_coords, ray_valid] = geometry::superpiece_rays(sq);
     const u8x64 ray_places = ray_coords.swizzle(m_board.to_vector());
@@ -24,7 +53,7 @@ namespace rose {
     const m8x64 attacker_mask = raymask & geometry::attack_mask(color, ptype);
     const m8x64 add_mask = iperm.swizzle(attacker_mask).andnot(iperm.msb());
 
-    m_attack_table[color.to_index()].raw |= add_mask.convert<u16>().mask(u16x64::splat(id.to_piece_mask().raw));
+    m_attack_table[color.to_index()].raw |= expand_mask(add_mask).mask(u16x64::splat(id.to_piece_mask().raw));
   }
 
   auto Position::remove_attacks(Color color, PieceId id) -> void {
@@ -44,10 +73,9 @@ namespace rose {
     slider_ids = geometry::flip_mask(raymask).mask(slider_ids);
     slider_ids = iperm.swizzle(slider_ids);
 
-    const m16x64 valid_ids = slider_ids.nonzeros().convert<u16>();
     const m16x64 color = slider_ids.msb().convert<u16>();
 
-    const u16x64 bits = valid_ids.mask(u16x64::splat(1) << (slider_ids & u8x64::splat(0xF)).convert<u16>());
+    const u16x64 bits = id_to_at(slider_ids);
 
     m_attack_table[0].raw ^= (~color).mask(bits);
     m_attack_table[1].raw ^= color.mask(bits);
@@ -111,17 +139,15 @@ namespace rose {
     src_slider_ids = src_iperm.swizzle(src_slider_ids);
     dst_slider_ids = dst_iperm.swizzle(dst_slider_ids);
 
-    const m16x64 src_color = src_slider_ids.msb().convert<u16>();
-    const m16x64 dst_color = dst_slider_ids.msb().convert<u16>();
+    const m16x64 src_color = expand_mask(src_slider_ids.msb());
+    const m16x64 dst_color = expand_mask(dst_slider_ids.msb());
 
-    const m16x64 src_valid_ids = src_slider_ids.nonzeros().convert<u16>();
-    const m16x64 dst_valid_ids = dst_slider_ids.nonzeros().convert<u16>();
-    const u16x64 src_bits = src_valid_ids.mask(u16x64::splat(1) << (src_slider_ids & u8x64::splat(0xF)).convert<u16>());
-    const u16x64 dst_bits = dst_valid_ids.mask(u16x64::splat(1) << (dst_slider_ids & u8x64::splat(0xF)).convert<u16>());
+    const u16x64 src_bits = id_to_at(src_slider_ids);
+    const u16x64 dst_bits = id_to_at(dst_slider_ids);
 
     const u16x64 id_bit = u16x64::splat(id.to_piece_mask().raw);
     const m8x64 dst_attack_mask = dst_raymask & geometry::attack_mask(color, dst_ptype);
-    const m16x64 add_mask = (~dst_iperm.msb() & dst_iperm.swizzle(geometry::flip_mask(dst_attack_mask))).convert<u16>();
+    const m16x64 add_mask = expand_mask((~dst_iperm.msb() & dst_iperm.swizzle(geometry::flip_mask(dst_attack_mask))));
 
     if constexpr (is_capture) {
       m_attack_table[0].raw ^= (~src_color).mask(src_bits);
@@ -328,19 +354,22 @@ namespace rose {
 #endif
 
     // Translate to valid move rays
-    const u8x64 pinned_ids = pin_raymasks.mask(geometry::lane_broadcast(pinned.mask(ray_places)));
+    const u8x64 nonmasked_pinned_ids = geometry::lane_broadcast(pinned.mask(ray_places));
+    const u8x64 pinned_ids = pin_raymasks.mask(nonmasked_pinned_ids);
     const u8x64 board_layout = (~iperm.msb()).mask(iperm.swizzle(pinned_ids));
 
     // Convert from list of squares to piecemask
+#if LPS_AVX512
     const int pinned_count = pinned.popcount();
     const u8x16 pinned_coord = pinned.compress(ray_coords).extract_aligned<u8x16, 0>();
     const PieceMask piece_mask = geometry::find_set(pinned_coord, pinned_count, piece_list_sq(m_stm).to_vector());
+#else
+    const PieceMask piece_mask {
+      static_cast<u16>((u64x8::splat(1) << (std::bit_cast<u64x8>(nonmasked_pinned_ids) & u64x8::splat(0xF))).reduce_or() & ~1)};
+#endif
 
     // Generate attack table mask
-    const u16x64 ones = u16x64::splat(1);
-    const m16x64 valid_ids = board_layout.nonzeros().convert<u16>();
-    const u16x64 masked_ids = (board_layout & u8x64::splat(0xF)).convert<u16>();
-    const u16x64 bits = valid_ids.mask(ones << masked_ids);
+    const u16x64 bits = id_to_at(board_layout);
     const u16x64 at_mask = u16x64::splat(~piece_mask.raw) | bits;
 
     const Bitboard pinned_bb {board_layout.nonzeros().to_bits()};

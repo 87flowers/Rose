@@ -3,6 +3,8 @@
 #include "rose/board.hpp"
 #include "rose/common.hpp"
 
+#include <array>
+
 namespace rose::geometry {
 
   namespace internal {
