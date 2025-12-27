@@ -14,6 +14,7 @@ auto main(int argc, char** argv) -> int {
     for (rose::usize i : std::views::iota(1, argc)) {
       engine.parse_command(argv[i]);
     }
+    return 0;
   }
 
   std::string line;
