@@ -187,6 +187,7 @@ namespace rose {
     const PieceId dest_id = dest_place.id();
 
     if (new_pos.m_enpassant.is_valid()) {
+      new_pos.m_hash ^= hash::enpassant_table[new_pos.m_enpassant.file()];
       new_pos.m_enpassant = Square::invalid();
     }
 
@@ -203,6 +204,7 @@ namespace rose {
 
     const auto normal = [&] {
       new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      new_pos.m_hash ^= hash::move_piece(from, to, src_place);
       if (src_place.ptype() != PieceType::p) {
         new_pos.m_50mr++;
       } else {
@@ -214,6 +216,8 @@ namespace rose {
     const auto cap_normal = [&] {
       new_pos.remove_piece<false>(!m_stm, to, dest_id);
       new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      new_pos.m_hash ^= hash::remove_piece(to, dest_place);
+      new_pos.m_hash ^= hash::move_piece(from, to, src_place);
       new_pos.m_50mr = 0;
       check_src_castling_rights();
       check_dest_castling_rights();
@@ -221,20 +225,25 @@ namespace rose {
 
     const auto promo = [&](auto ptype) {
       new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
+      new_pos.m_hash ^= hash::promo(from, to, m_stm, decltype(ptype)::value);
       new_pos.m_50mr = 0;
     };
 
     const auto cap_promo = [&](auto ptype) {
       new_pos.remove_piece<false>(!m_stm, to, dest_id);
       new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
+      new_pos.m_hash ^= hash::remove_piece(to, dest_place);
+      new_pos.m_hash ^= hash::promo(from, to, m_stm, decltype(ptype)::value);
       new_pos.m_50mr = 0;
       check_dest_castling_rights();
     };
 
     const auto double_push = [&] {
       new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      new_pos.m_hash ^= hash::move_piece(from, to, src_place);
       new_pos.m_50mr = 0;
       new_pos.m_enpassant = Square {narrow_cast<u8>((from.raw + to.raw) >> 1)};
+      new_pos.m_hash ^= hash::enpassant_table[new_pos.m_enpassant.file()];
     };
 
     const auto enpassant = [&] {
@@ -243,6 +252,8 @@ namespace rose {
 
       new_pos.remove_piece<true>(!m_stm, victim, victim_id);
       new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      new_pos.m_hash ^= hash::remove_piece(victim, !m_stm, PieceType::p);
+      new_pos.m_hash ^= hash::move_piece(from, to, src_place);
 
       new_pos.m_50mr = 0;
       check_src_castling_rights();
@@ -261,6 +272,9 @@ namespace rose {
       new_pos.remove_piece<true>(m_stm, rook_src, rook_id);
       new_pos.add_piece<true>(m_stm, king_dest, king_id, PieceType::k);
       new_pos.add_piece<true>(m_stm, rook_dest, rook_id, PieceType::r);
+
+      new_pos.m_hash ^= hash::move_piece(king_src, king_dest, m_stm, PieceType::k);
+      new_pos.m_hash ^= hash::move_piece(rook_src, rook_dest, m_stm, PieceType::r);
 
       new_pos.m_50mr++;
       new_pos.m_rook_info.clear(m_stm);
@@ -313,10 +327,35 @@ namespace rose {
     }
 #undef MF
 
+    new_pos.m_hash ^= hash::castle_table[m_rook_info.to_index()];
+    new_pos.m_hash ^= hash::castle_table[new_pos.m_rook_info.to_index()];
+    new_pos.m_hash ^= hash::move;
+
     new_pos.m_ply++;
     new_pos.m_stm = !m_stm;
 
+    rose_assert(new_pos.m_hash == new_pos.calc_hash_slow(),
+                "{} [{:016x}] : {} : {} [{:016x} {:016x}]",
+                *this,
+                m_hash,
+                m,
+                new_pos,
+                new_pos.m_hash,
+                new_pos.calc_hash_slow());
+
     return new_pos;
+  }
+
+  auto Position::calc_hash_slow() const -> Hash {
+    Hash result = 0;
+    for (u8 sq = 0; sq < 64; sq++)
+      result ^= hash::piece_table[m_board[Square {sq}].raw >> 4][sq];
+    if (m_enpassant.is_valid())
+      result ^= hash::enpassant_table[m_enpassant.file()];
+    result ^= hash::castle_table[m_rook_info.to_index()];
+    if (m_stm == Color::black)
+      result ^= hash::move;
+    return result;
   }
 
   auto Position::calc_pin_info() const -> std::tuple<std::array<PieceMask, 64>, Bitboard> {
@@ -557,7 +596,7 @@ namespace rose {
     }
 
     result.m_attack_table = result.calc_attacks_slow();
-    // result.m_hash = result.calcHashSlow();
+    result.m_hash = result.calc_hash_slow();
 
     return result;
   }

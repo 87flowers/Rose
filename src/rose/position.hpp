@@ -4,6 +4,7 @@
 #include "rose/board.hpp"
 #include "rose/common.hpp"
 #include "rose/config.hpp"
+#include "rose/hash.hpp"
 #include "rose/move.hpp"
 #include "rose/square.hpp"
 #include "rose/util/tokenizer.hpp"
@@ -129,6 +130,7 @@ namespace rose {
     Byteboard m_board {};
     std::array<PieceList<Square>, 2> m_piece_list_sq {};
     std::array<PieceList<PieceType>, 2> m_piece_list_ptype {};
+    u64 m_hash {};
     RookInfo m_rook_info {};
     u16 m_50mr {};
     u16 m_ply {};
@@ -206,6 +208,8 @@ namespace rose {
     }
 
     auto move(Move m) const -> Position;
+
+    auto calc_hash_slow() const -> Hash;
 
     auto calc_pin_info() const -> std::tuple<std::array<PieceMask, 64>, Bitboard>;
 
