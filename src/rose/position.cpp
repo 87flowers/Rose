@@ -5,12 +5,15 @@
 #include "rose/common.hpp"
 #include "rose/geometry.hpp"
 #include "rose/move.hpp"
+#include "rose/movegen.hpp"
+#include "rose/score.hpp"
 #include "rose/square.hpp"
 #include "rose/util/string.hpp"
 
 #include <array>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace rose {
 
@@ -41,11 +44,6 @@ namespace rose {
     const u8x64 bits_hi = ids.swizzle(hi_shift);
     return concat<u16x64>(bits_lo.zip_low(bits_hi), bits_lo.zip_high(bits_hi));
 #endif
-  }
-
-  auto Position::startpos() -> Position {
-    static const Position startpos = Position::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").value();
-    return startpos;
   }
 
   auto Position::add_attacks(Color color, Square sq, PieceId id, PieceType ptype) -> void {
@@ -179,6 +177,39 @@ namespace rose {
   auto Position::startpos() -> Position {
     static const Position startpos = Position::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").value();
     return startpos;
+  }
+
+  auto Position::has_no_legal_moves_slow() const -> bool {
+    MoveList moves;
+    MoveGen movegen {*this};
+    movegen.generate_moves(moves);
+    return moves.size() == 0;
+  }
+
+  auto Position::is_stalemate_slow() const -> bool {
+    return !is_in_check() && has_no_legal_moves_slow();
+  }
+
+  auto Position::is_fifty_move_draw(i32 ply) const -> std::optional<Score> {
+    if (fifty_move_clock() < 100)
+      return std::nullopt;
+    if (is_in_check() && has_no_legal_moves_slow()) [[unlikely]]
+      return score::mated(ply);
+    return 0;
+  }
+
+  auto Position::is_repetition(const std::vector<u64>& hash_stack, usize hash_waterline) const -> bool {
+    const int height = static_cast<int>(hash_stack.size()) - 1;
+    usize clones = 0;
+    for (int i = height - 4; i >= 0; i -= 2) {
+      if (hash_stack[i] == m_hash) {
+        const usize clone_limit = i < hash_waterline ? 2 : 1;
+        clones++;
+        if (clones >= clone_limit)
+          return true;
+      }
+    }
+    return false;
   }
 
   auto Position::move(Move m) const -> Position {

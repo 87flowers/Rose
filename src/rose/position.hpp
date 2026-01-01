@@ -6,6 +6,7 @@
 #include "rose/config.hpp"
 #include "rose/hash.hpp"
 #include "rose/move.hpp"
+#include "rose/score.hpp"
 #include "rose/square.hpp"
 #include "rose/util/tokenizer.hpp"
 
@@ -13,6 +14,7 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace rose {
 
@@ -169,6 +171,10 @@ namespace rose {
       return m_piece_list_ptype[color.to_index()];
     }
 
+    constexpr auto hash() const -> Hash {
+      return m_hash;
+    }
+
     constexpr auto rook_info() const -> RookInfo {
       return m_rook_info;
     }
@@ -206,6 +212,15 @@ namespace rose {
     auto is_valid() const -> bool {
       return attack_table(m_stm).read(king_sq(!m_stm)).is_empty();
     }
+
+    auto is_in_check() const -> bool {
+      return !attack_table(!m_stm).read(king_sq(m_stm)).is_empty();
+    }
+
+    auto has_no_legal_moves_slow() const -> bool;
+    auto is_stalemate_slow() const -> bool;
+    auto is_fifty_move_draw(i32 ply = 0) const -> std::optional<Score>;
+    auto is_repetition(const std::vector<u64>& hash_stack, usize hash_waterline) const -> bool;
 
     auto move(Move m) const -> Position;
 

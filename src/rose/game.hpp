@@ -13,7 +13,7 @@ namespace rose {
   private:
     std::vector<Position> m_position_stack;
     std::vector<Move> m_move_stack;
-    // std::vector<u64> m_hash_stack;
+    std::vector<Hash> m_hash_stack;
 
   public:
     Game() {
@@ -28,7 +28,7 @@ namespace rose {
       return m_position_stack.back();
     }
 
-    auto hash() const -> u64 {
+    auto hash() const -> Hash {
       return m_hash_stack.back();
     }
 
@@ -36,8 +36,12 @@ namespace rose {
       return m_move_stack;
     }
 
-    auto hashStack() const -> std::vector<u64> {
+    auto hash_stack() const -> std::vector<Hash> {
       return m_hash_stack;
+    }
+
+    auto is_draw_slow() const -> bool {
+      return position().is_stalemate_slow() || position().is_fifty_move_draw() == 0 || position().is_repetition(hash_stack(), hash_stack().size());
     }
 
     auto set_position(const Position& new_pos) -> void {
