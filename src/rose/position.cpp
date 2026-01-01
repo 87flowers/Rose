@@ -43,6 +43,11 @@ namespace rose {
 #endif
   }
 
+  auto Position::startpos() -> Position {
+    static const Position startpos = Position::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").value();
+    return startpos;
+  }
+
   auto Position::add_attacks(Color color, Square sq, PieceId id, PieceType ptype) -> void {
     const auto [ray_coords, ray_valid] = geometry::superpiece_rays(sq);
     const u8x64 ray_places = ray_coords.swizzle(m_board.to_vector());

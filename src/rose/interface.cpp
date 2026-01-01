@@ -110,6 +110,8 @@ namespace rose {
       game.print_game_record();
     } else if (cmd == "dumpposition") {
       game.position().dump();
+    } else if (cmd == "hashstack") {
+      game.print_hash_stack();
     } else if (cmd == "quit") {
       std::exit(0);
     } else {
