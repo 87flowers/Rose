@@ -118,6 +118,11 @@ namespace rose::geometry {
 #endif
   }
 
+  inline auto ray_fill(m8x64 x) -> m8x64 {
+    u64 y = (x.raw + 0x7E7E7E7E7E7E7E7E) & 0x8080808080808080;
+    return m8x64 {y - (y >> 7)};
+  }
+
   inline auto attackers_from_rays(u8x64 ray_places) -> m8x64 {
     constexpr u8 k = 1 << 0;
     constexpr u8 wp = 1 << 1;
