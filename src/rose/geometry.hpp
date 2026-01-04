@@ -119,8 +119,12 @@ namespace rose::geometry {
   }
 
   inline auto ray_fill(m8x64 x) -> m8x64 {
+#if LPS_AVX512
     u64 y = (x.raw + 0x7E7E7E7E7E7E7E7E) & 0x8080808080808080;
     return m8x64 {y - (y >> 7)};
+#else
+    return std::bit_cast<m8x64>(std::bit_cast<u64x8>(x).nonzeros());
+#endif
   }
 
   inline auto attackers_from_rays(u8x64 ray_places) -> m8x64 {

@@ -419,13 +419,8 @@ namespace rose {
     const m8x64 attackers = maybe_attacking & potential_attackers;
 
     // A closest blocker is pinned if it has a valid pinning attacker.
-#if LPS_AVX512
     const m8x64 has_attacker = geometry::ray_fill(attackers);
     const m8x64 pinned = potentially_pinned.andnot(enemy) & has_attacker;
-#else
-    const m8x64 no_pinner_mask = std::bit_cast<m8x64>(std::bit_cast<m64x8>(attackers).to_vector().zeros());
-    const m8x64 pinned = potentially_pinned.andnot(enemy).andnot(no_pinner_mask);
-#endif
 
     // Translate to valid move rays
     const u8x64 nonmasked_pinned_ids = geometry::lane_broadcast(pinned.mask(ray_places));
