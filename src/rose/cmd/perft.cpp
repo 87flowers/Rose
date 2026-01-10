@@ -28,7 +28,7 @@ namespace rose::perft {
       const Position new_position = position.move(m);
       const u64 child = core<false, bulk>(new_position, depth - 1);
       if constexpr (print) {
-        fmt::print("{}: {}\n", m, child);
+        fmt::print("{}: {}\n", m.to_string(MoveFormat::frc), child);
       }
       result += child;
     }

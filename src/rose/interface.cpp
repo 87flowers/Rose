@@ -89,7 +89,7 @@ namespace rose {
       const std::string_view move_str = it.next();
       if (move_str.empty())
         break;
-      const auto m = Move::parse(move_str, game.position());
+      const auto m = Move::parse(move_str, format, game.position());
       if (!m) [[unlikely]]
         return print_illegal_move(move_str);
       game.move(m.value());

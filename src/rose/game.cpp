@@ -9,12 +9,12 @@ namespace rose {
     if (m_position_stack.front() == Position::startpos()) {
       fmt::print("startpos");
     } else {
-      fmt::print("fen {}", m_position_stack.front());
+      fmt::print("fen {}", m_position_stack.front().to_string(MoveFormat::frc));
     }
     if (m_move_stack.size() > 0) {
       fmt::print(" moves");
       for (const Move m : m_move_stack) {
-        fmt::print(" {}", m);
+        fmt::print(" {}", m.to_string(MoveFormat::frc));
       }
     }
     fmt::print("\n");

@@ -3,14 +3,13 @@
 #include "rose/bitboard.hpp"
 #include "rose/board.hpp"
 #include "rose/common.hpp"
-#include "rose/config.hpp"
 #include "rose/hash.hpp"
 #include "rose/move.hpp"
 #include "rose/score.hpp"
 #include "rose/square.hpp"
 #include "rose/util/tokenizer.hpp"
 
-#include <fmt/format.h>
+#include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -126,8 +125,6 @@ namespace rose {
 
   struct Position {
   private:
-    friend class fmt::formatter<Position, char>;
-
     std::array<Wordboard, 2> m_attack_table {};
     Byteboard m_board {};
     std::array<PieceList<Square>, 2> m_piece_list_sq {};
@@ -253,76 +250,9 @@ namespace rose {
 
     auto dump() const -> void;
 
+    auto to_string(MoveFormat format) const -> std::string;
+
     constexpr auto operator==(const Position&) const -> bool = default;
   };
 
 }  // namespace rose
-
-template<>
-struct fmt::formatter<rose::Position, char> {
-  template<class ParseContext>
-  constexpr auto parse(ParseContext& ctx) -> ParseContext::iterator {
-    return ctx.begin();
-  }
-
-  template<class FmtContext>
-  auto format(const rose::Position& position, FmtContext& ctx) const -> FmtContext::iterator {
-    using namespace rose;
-
-    int blanks = 0;
-    const auto emit_blanks = [&] {
-      if (blanks != 0) {
-        ctx.advance_to(fmt::format_to(ctx.out(), "{}", blanks));
-        blanks = 0;
-      }
-    };
-
-    for (i8 rank = 7; rank >= 0; rank--) {
-      for (i8 file = 0; file < 8; file++) {
-        const Square sq = Square::from_file_and_rank(file, rank);
-        const Place p = position.m_board[sq];
-        if (p.is_empty()) {
-          blanks++;
-        } else {
-          emit_blanks();
-          ctx.advance_to(fmt::format_to(ctx.out(), "{}", p));
-        }
-      }
-      emit_blanks();
-      if (rank != 0) {
-        ctx.advance_to(fmt::format_to(ctx.out(), "/"));
-      }
-    }
-
-    ctx.advance_to(fmt::format_to(ctx.out(), " {} ", position.m_stm));
-
-    const RookInfo rook_info = position.rook_info();
-    if (rook_info.is_clear()) {
-      ctx.advance_to(fmt::format_to(ctx.out(), "-"));
-    }
-    if (rook_info.hside(Color::white).is_valid()) {
-      const bool is_classical = !config::frc && rook_info.hside(Color::white).file() == 7;
-      ctx.advance_to(fmt::format_to(ctx.out(), "{}", is_classical ? 'K' : static_cast<char>('A' + rook_info.hside(Color::white).file())));
-    }
-    if (rook_info.aside(Color::white).is_valid()) {
-      const bool is_classical = !config::frc && rook_info.aside(Color::white).file() == 0;
-      ctx.advance_to(fmt::format_to(ctx.out(), "{}", is_classical ? 'Q' : static_cast<char>('A' + rook_info.aside(Color::white).file())));
-    }
-    if (rook_info.hside(Color::black).is_valid()) {
-      const bool is_classical = !config::frc && rook_info.hside(Color::black).file() == 7;
-      ctx.advance_to(fmt::format_to(ctx.out(), "{}", is_classical ? 'k' : static_cast<char>('a' + rook_info.hside(Color::black).file())));
-    }
-    if (rook_info.aside(Color::black).is_valid()) {
-      const bool is_classical = !config::frc && rook_info.aside(Color::black).file() == 0;
-      ctx.advance_to(fmt::format_to(ctx.out(), "{}", is_classical ? 'q' : static_cast<char>('a' + rook_info.aside(Color::black).file())));
-    }
-
-    if (position.m_enpassant.is_valid()) {
-      ctx.advance_to(fmt::format_to(ctx.out(), " {} ", position.m_enpassant));
-    } else {
-      ctx.advance_to(fmt::format_to(ctx.out(), " - "));
-    }
-
-    return fmt::format_to(ctx.out(), "{} {}", position.m_50mr, position.full_move_counter());
-  }
-};

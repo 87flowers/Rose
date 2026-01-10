@@ -1,7 +1,6 @@
 #pragma once
 
 #include "rose/common.hpp"
-#include "rose/config.hpp"
 #include "rose/square.hpp"
 
 #include <array>
@@ -88,29 +87,21 @@ namespace rose {
       return static_cast<MoveFlags>(raw & 0xF000);
     }
 
-    static auto parse(std::string_view str, const Position& context) -> std::expected<Move, ParseError>;
+    static auto parse(std::string_view str, MoveFormat format, const Position& context) -> std::expected<Move, ParseError>;
+
+    constexpr auto to_string(MoveFormat format) const -> std::string {
+      const bool classical = format == MoveFormat::classical;
+      if (classical && flags() == MoveFlags::castle_aside && from().file() == 4 && to().file() == 0)
+        return fmt::format("{}c{}", from(), static_cast<char>(to().rank() + '1'));
+      if (classical && flags() == MoveFlags::castle_hside && from().file() == 4 && to().file() == 7)
+        return fmt::format("{}g{}", from(), static_cast<char>(to().rank() + '1'));
+      if (promo())
+        return fmt::format("{}{}{}", from(), to(), ptype());
+      else
+        return fmt::format("{}{}", from(), to());
+    }
 
     inline constexpr auto operator==(const Move&) const -> bool = default;
   };
 
 }  // namespace rose
-
-template<>
-struct fmt::formatter<rose::Move, char> {
-  template<class ParseContext>
-  constexpr auto parse(ParseContext& ctx) -> ParseContext::iterator {
-    return ctx.begin();
-  }
-
-  template<class FmtContext>
-  auto format(rose::Move m, FmtContext& ctx) const -> FmtContext::iterator {
-    if (!rose::config::frc && m.flags() == rose::MoveFlags::castle_aside && m.from().file() == 4 && m.to().file() == 0)
-      return fmt::format_to(ctx.out(), "{}c{}", m.from(), static_cast<char>(m.to().rank() + '1'));
-    if (!rose::config::frc && m.flags() == rose::MoveFlags::castle_hside && m.from().file() == 4 && m.to().file() == 7)
-      return fmt::format_to(ctx.out(), "{}g{}", m.from(), static_cast<char>(m.to().rank() + '1'));
-    if (m.promo())
-      return fmt::format_to(ctx.out(), "{}{}{}", m.from(), m.to(), m.ptype());
-    else
-      return fmt::format_to(ctx.out(), "{}{}", m.from(), m.to());
-  }
-};

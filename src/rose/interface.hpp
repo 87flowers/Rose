@@ -12,6 +12,7 @@ namespace rose {
   class Interface {
   private:
     Game game;
+    MoveFormat format = MoveFormat::classical;
 
     template<typename... Args>
     auto print_protocol_error(std::string_view cmd, fmt::format_string<Args...> fmt, Args&&... args) -> void;

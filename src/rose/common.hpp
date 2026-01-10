@@ -32,6 +32,11 @@ namespace rose {
   using f32 = float;
   using f64 = double;
 
+  enum class MoveFormat {
+    classical,
+    frc,
+  };
+
   enum class ParseError {
     invalid_char,
     invalid_length,

@@ -1,5 +1,4 @@
 #include "rose/cmd/perft.hpp"
-#include "rose/config.hpp"
 #include "rose/position.hpp"
 #include "rose/util/assert.hpp"
 
@@ -46,11 +45,9 @@ auto main() -> int {
     },
   }};
 
-  config::frc = true;
-
   for (const auto [fen, results] : cases) {
     const Position position = Position::parse(fen).value();
-    fmt::print("{}:\n", position);
+    fmt::print("{}:\n", position.to_string(MoveFormat::frc));
 
     for (usize depth = 0; depth < results.size(); depth++) {
       const u64 value = perft::value(position, depth);

@@ -171,27 +171,10 @@ namespace rose {
         }
       };
 
-      if (config::frc) {
-        if (rook_aside.is_valid())
-          do_castle(king_sq, rook_aside, 3, 2, MoveFlags::castle_aside);
-        if (rook_hside.is_valid())
-          do_castle(king_sq, rook_hside, 5, 6, MoveFlags::castle_hside);
-      } else {
-        switch (stm.raw) {
-        case Color::white:
-          if (rook_aside.is_valid())
-            do_castle(Square::from_file_and_rank(4, 0), Square::from_file_and_rank(0, 0), 3, 2, MoveFlags::castle_aside);
-          if (rook_hside.is_valid())
-            do_castle(Square::from_file_and_rank(4, 0), Square::from_file_and_rank(7, 0), 5, 6, MoveFlags::castle_hside);
-          break;
-        case Color::black:
-          if (rook_aside.is_valid())
-            do_castle(Square::from_file_and_rank(4, 7), Square::from_file_and_rank(0, 7), 3, 2, MoveFlags::castle_aside);
-          if (rook_hside.is_valid())
-            do_castle(Square::from_file_and_rank(4, 7), Square::from_file_and_rank(7, 7), 5, 6, MoveFlags::castle_hside);
-          break;
-        }
-      }
+      if (rook_aside.is_valid())
+        do_castle(king_sq, rook_aside, 3, 2, MoveFlags::castle_aside);
+      if (rook_hside.is_valid())
+        do_castle(king_sq, rook_hside, 5, 6, MoveFlags::castle_hside);
     }
     // Non-pawn quiets
     write_moves<MoveFlags::normal>(moves, at, srcs, nonpawn_active & empty, nonpawn_mask);

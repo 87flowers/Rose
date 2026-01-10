@@ -1,7 +1,6 @@
 #include "rose/move.hpp"
 
 #include "rose/common.hpp"
-#include "rose/config.hpp"
 #include "rose/position.hpp"
 #include "rose/square.hpp"
 
@@ -11,7 +10,9 @@
 
 namespace rose {
 
-  auto Move::parse(std::string_view str, const Position& context) -> std::expected<Move, ParseError> {
+  auto Move::parse(std::string_view str, MoveFormat format, const Position& context) -> std::expected<Move, ParseError> {
+    const bool classical = format == MoveFormat::classical;
+
     if (str.size() != 4 && str.size() != 5)
       return std::unexpected(ParseError::invalid_length);
 
@@ -44,9 +45,9 @@ namespace rose {
           return make(*from, *to, MoveFlags::castle_aside);
         if (*to == context.rook_info().hside(context.stm()))
           return make(*from, *to, MoveFlags::castle_hside);
-        if (!config::frc && from->file() == 4 && to->file() == 2)
+        if (classical && from->file() == 4 && to->file() == 2)
           return make(*from, context.rook_info().aside(context.stm()), MoveFlags::castle_aside);
-        if (!config::frc && from->file() == 4 && to->file() == 6)
+        if (classical && from->file() == 4 && to->file() == 6)
           return make(*from, context.rook_info().hside(context.stm()), MoveFlags::castle_hside);
       }
       return make(*from, *to, capture ? MoveFlags::cap_normal : MoveFlags::normal);

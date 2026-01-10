@@ -1,4 +1,3 @@
-#include "rose/config.hpp"
 #include "rose/position.hpp"
 #include "rose/util/assert.hpp"
 
@@ -16,10 +15,9 @@ auto roundtripClassical() -> void {
     "8/5p2/1kn1r1n1/1p1pP3/6K1/8/4R3/5R2 b - - 9 60",
     "r4rk1/1Bp1qppp/2np1n2/1pb1p1B1/4P1b1/P1NP1N2/1PP1QPPP/R4RK1 b - b6 1 11",
   }};
-  config::frc = false;
   for (std::string_view fen : cases) {
     const Position position = Position::parse(fen).value();
-    const std::string result = fmt::format("{}", position);
+    const std::string result = position.to_string(MoveFormat::classical);
     rose_assert(result == fen, "{} != {}", fen, result);
   }
 }
@@ -36,10 +34,9 @@ auto roundtripDfrc() -> void {
     "4k3/8/8/8/8/8/8/2R1K3 w C - 0 1",
     "2r1k3/8/8/8/8/8/8/4K3 w c - 0 1",
   }};
-  config::frc = true;
   for (std::string_view fen : cases) {
     const Position position = Position::parse(fen).value();
-    const std::string result = fmt::format("{}", position);
+    const std::string result = position.to_string(MoveFormat::frc);
     rose_assert(result == fen, "{} != {}", fen, result);
   }
 }

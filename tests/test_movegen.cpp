@@ -28,7 +28,7 @@ auto double_check() -> void {
 
     std::unordered_set<Move> should_moves;
     for (const auto m : should_movelist)
-      should_moves.emplace(Move::parse(m, position).value());
+      should_moves.emplace(Move::parse(m, MoveFormat::frc, position).value());
 
     MoveList got_movelist;
     MoveGen movegen {position};
@@ -38,7 +38,7 @@ auto double_check() -> void {
     for (const auto m : got_movelist) {
       if (position.move(m).is_valid()) {
         got_moves.insert(m);
-        fmt::print("{}\n", m);
+        fmt::print("{}\n", m.to_string(MoveFormat::frc));
       }
     }
 

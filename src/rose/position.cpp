@@ -11,6 +11,7 @@
 #include "rose/util/string.hpp"
 
 #include <array>
+#include <fmt/format.h>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -372,10 +373,10 @@ namespace rose {
 
     rose_assert(new_pos.m_hash == new_pos.calc_hash_slow(),
                 "{} [{:016x}] : {} : {} [{:016x} {:016x}]",
-                *this,
+                to_string(MoveFormat::frc),
                 m_hash,
-                m,
-                new_pos,
+                m.to_string(MoveFormat::frc),
+                new_pos.to_string(MoveFormat::frc),
                 new_pos.m_hash,
                 new_pos.calc_hash_slow());
 
@@ -632,7 +633,7 @@ namespace rose {
   }
 
   auto Position::dump() const -> void {
-    fmt::print("fen: {}\n", *this);
+    fmt::print("fen: {}\n", to_string(MoveFormat::frc));
     // m_attack_table:
     for (int c : {0, 1}) {
       fmt::print("m_attack_table[{}]:\n", c);
@@ -688,6 +689,67 @@ namespace rose {
         fmt::print("\n");
       }
     }
+  }
+
+  auto Position::to_string(MoveFormat format) const -> std::string {
+    std::string result;
+
+    int blanks = 0;
+    const auto emit_blanks = [&] {
+      if (blanks != 0) {
+        fmt::format_to(std::back_inserter(result), "{}", blanks);
+        blanks = 0;
+      }
+    };
+
+    for (i8 rank = 7; rank >= 0; rank--) {
+      for (i8 file = 0; file < 8; file++) {
+        const Square sq = Square::from_file_and_rank(file, rank);
+        const Place p = m_board[sq];
+        if (p.is_empty()) {
+          blanks++;
+        } else {
+          emit_blanks();
+          fmt::format_to(std::back_inserter(result), "{}", p);
+        }
+      }
+      emit_blanks();
+      if (rank != 0) {
+        fmt::format_to(std::back_inserter(result), "/");
+      }
+    }
+
+    fmt::format_to(std::back_inserter(result), " {} ", m_stm);
+
+    if (m_rook_info.is_clear()) {
+      fmt::format_to(std::back_inserter(result), "-");
+    }
+    if (m_rook_info.hside(Color::white).is_valid()) {
+      const bool is_classical = format == MoveFormat::classical && m_rook_info.hside(Color::white).file() == 7;
+      fmt::format_to(std::back_inserter(result), "{}", is_classical ? 'K' : static_cast<char>('A' + m_rook_info.hside(Color::white).file()));
+    }
+    if (m_rook_info.aside(Color::white).is_valid()) {
+      const bool is_classical = format == MoveFormat::classical && m_rook_info.aside(Color::white).file() == 0;
+      fmt::format_to(std::back_inserter(result), "{}", is_classical ? 'Q' : static_cast<char>('A' + m_rook_info.aside(Color::white).file()));
+    }
+    if (m_rook_info.hside(Color::black).is_valid()) {
+      const bool is_classical = format == MoveFormat::classical && m_rook_info.hside(Color::black).file() == 7;
+      fmt::format_to(std::back_inserter(result), "{}", is_classical ? 'k' : static_cast<char>('a' + m_rook_info.hside(Color::black).file()));
+    }
+    if (m_rook_info.aside(Color::black).is_valid()) {
+      const bool is_classical = format == MoveFormat::classical && m_rook_info.aside(Color::black).file() == 0;
+      fmt::format_to(std::back_inserter(result), "{}", is_classical ? 'q' : static_cast<char>('a' + m_rook_info.aside(Color::black).file()));
+    }
+
+    if (m_enpassant.is_valid()) {
+      fmt::format_to(std::back_inserter(result), " {} ", m_enpassant);
+    } else {
+      fmt::format_to(std::back_inserter(result), " - ");
+    }
+
+    fmt::format_to(std::back_inserter(result), "{} {}", m_50mr, full_move_counter());
+
+    return result;
   }
 
 }  // namespace rose
