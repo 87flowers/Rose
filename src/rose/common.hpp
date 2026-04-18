@@ -13,6 +13,8 @@ namespace rose {
 
 namespace rose {
 
+#define rose_unused(...) (void)sizeof(__VA_ARGS__)
+
   using namespace lps::prelude;
 
   using u8 = std::uint8_t;
@@ -31,6 +33,8 @@ namespace rose {
 
   using f32 = float;
   using f64 = double;
+
+  inline constexpr i32 max_search_ply = 256;
 
   enum class MoveFormat {
     classical,
