@@ -2,13 +2,16 @@
 
 #include "rose/cmd/perft.hpp"
 #include "rose/common.hpp"
+#include "rose/engine_output_uci.hpp"
 #include "rose/position.hpp"
+#include "rose/search.hpp"
 #include "rose/util/string.hpp"
 #include "rose/util/time.hpp"
 #include "rose/util/tokenizer.hpp"
 
 #include <cstdio>
 #include <fmt/format.h>
+#include <memory>
 #include <string_view>
 
 namespace rose {
@@ -66,6 +69,50 @@ namespace rose {
     }
   }
 
+  auto Interface::uci_go(Tokenizer& it, time::TimePoint start_time) -> void {
+    SearchLimit limits;
+
+#define DO_PART(section, member)                                                                                                                     \
+  limits.has_##section = true;                                                                                                                       \
+  const std::string_view value_str = it.next();                                                                                                      \
+  const auto value = parse_int(value_str);                                                                                                           \
+  if (!value)                                                                                                                                        \
+    return print_unrecognised_token("go", value_str);                                                                                                \
+  limits.member = std::max<int>(0, *value);
+
+    for (std::string_view part = it.next(); !part.empty(); part = it.next()) {
+      if (part == "wtime") {
+        DO_PART(time, wtime);
+      } else if (part == "btime") {
+        DO_PART(time, btime);
+      } else if (part == "winc") {
+        DO_PART(time, winc);
+      } else if (part == "binc") {
+        DO_PART(time, binc);
+      } else if (part == "movestogo") {
+        DO_PART(time, movestogo);
+      } else if (part == "movetime") {
+        DO_PART(time, movetime);
+      } else if (part == "nodes") {
+        DO_PART(other, hard_nodes);
+        if (!limits.soft_nodes)
+          limits.soft_nodes = limits.hard_nodes;
+      } else if (part == "softnodes") {
+        DO_PART(other, soft_nodes);
+      } else if (part == "depth") {
+        DO_PART(other, depth);
+      } else if (part == "perft") {
+        return print_protocol_error("go", "perft is a standalone command in Rose, and is not a subcommand of go");
+      } else {
+        return print_unrecognised_token("go", part);
+      }
+    }
+
+#undef DO_PART
+
+    engine.run_search(start_time, limits, game);
+  }
+
   auto Interface::uci_perft(Tokenizer& it) -> void {
     const std::string_view depth_str = it.rest().empty() ? "1" : it.next();
     const auto depth = parse_int(depth_str);
@@ -96,6 +143,12 @@ namespace rose {
     }
   }
 
+  Interface::Interface() {
+    engine.set_output(std::make_shared<EngineOutputUci>(format));
+  }
+
+  Interface::~Interface() = default;
+
   auto Interface::parse_command(std::string_view line) -> void {
     const time::TimePoint start_time = time::Clock::now();
 
@@ -104,6 +157,8 @@ namespace rose {
 
     if (cmd == "position") {
       uci_position(it);
+    } else if (cmd == "go") {
+      uci_go(it, start_time);
     } else if (cmd == "perft") {
       uci_perft(it);
     } else if (cmd == "getposition") {
