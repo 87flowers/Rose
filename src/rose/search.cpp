@@ -65,8 +65,8 @@ namespace rose {
   }
 
   auto calc_ctrl(time::TimePoint start_time, const SearchLimit& limits) -> controls::Any {
-    rose_unused(start_time, limits);
-    return controls::None {};
+    rose_unused(limits);
+    return controls::None {.start_time = start_time};
   }
 
   auto Search::thread_main() -> void {
@@ -89,18 +89,16 @@ namespace rose {
         m_hash_stack = g.hash_stack();
         m_hash_waterline = std::max<usize>(1, m_hash_stack.size()) - 1;
 
-        if (is_main_thread()) {
-          const auto ctrl = calc_ctrl(m_shared.search_start_time, m_shared.search_main_limits);
-          (void)m_shared.started_barrier.arrive();
-          std::visit(
-            [this](const auto& ctrl) {
-              this->search_root(ctrl);
-            },
-            ctrl);
-        } else {
-          (void)m_shared.started_barrier.arrive();
-          search_root<controls::None>({});
-        }
+        const auto ctrl = is_main_thread() ? calc_ctrl(m_shared.search_start_time, m_shared.search_main_limits) :
+                                             controls::None {.start_time = m_shared.search_start_time};
+
+        (void)m_shared.started_barrier.arrive();
+
+        std::visit(
+          [this](const auto& ctrl) {
+            this->search_root(ctrl);
+          },
+          ctrl);
       } break;
       }
     }
@@ -108,7 +106,6 @@ namespace rose {
 
   template<typename Controls>
   auto Search::search_root(const Controls& ctrl) -> void {
-    rose_unused(ctrl);
     static std::mt19937_64 prng_engine {};
     MoveList moves;
     MoveGen movegen {m_root};
@@ -126,7 +123,7 @@ namespace rose {
       m_shared.output->info(EngineOutput::Info {
         .depth = 1,
         .score = 0,
-        .time = time::Clock::now() - m_shared.search_start_time,
+        .time = ctrl.elapsed(),
         .nodes = 1,
         .pv = line,
       });
