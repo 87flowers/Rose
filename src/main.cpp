@@ -6,7 +6,7 @@
 #include <ranges>
 
 auto main(int argc, char** argv) -> int {
-  fmt::print("# 🌹 Rose {}{}{}\n", rose::version::version_string, rose::version::git_commit_desc.empty() ? "" : "-", rose::version::git_commit_desc);
+  fmt::print("# 🌹 Rose {}\n", rose::version::to_string());
 
   rose::Interface engine;
 

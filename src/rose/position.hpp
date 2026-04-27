@@ -196,6 +196,11 @@ namespace rose {
       return m_piece_list_sq[color.to_index()][PieceId::king()];
     }
 
+    auto place_at(Square sq) const -> Place {
+      rose_assert(sq.is_valid());
+      return m_board.mailbox[sq.raw];
+    }
+
     template<PieceType... ptypes>
     auto piece_mask_for(Color color) const -> PieceMask {
       return piece_list_type(color).piece_mask_for<ptypes...>();

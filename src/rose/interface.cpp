@@ -9,6 +9,7 @@
 #include "rose/util/string.hpp"
 #include "rose/util/time.hpp"
 #include "rose/util/tokenizer.hpp"
+#include "rose/version.hpp"
 
 #include <cstdio>
 #include <fmt/format.h>
@@ -114,6 +115,23 @@ namespace rose {
     engine.run_search(start_time, limits, game);
   }
 
+  auto Interface::uci_ucinewgame(Tokenizer&) -> void {
+    engine.reset();
+  }
+
+  auto Interface::uci_uci(Tokenizer&) -> void {
+    fmt::print("id name Rose {}\n", rose::version::to_string());
+    fmt::print("id author 87 (87flowers.com)\n");
+    // fmt::print("option name Hash type spin default 16 min 1 max 1048576\n");
+    // fmt::print("option name Threads type spin default 1 min 1 max 1024\n");
+    // fmt::print("option name UCI_Chess960 type check default false\n");
+    fmt::print("uciok\n");
+  }
+
+  auto Interface::uci_isready(Tokenizer&) -> void {
+    fmt::print("readyok\n");
+  }
+
   auto Interface::uci_perft(Tokenizer& it) -> void {
     const std::string_view depth_str = it.rest().empty() ? "1" : it.next();
     const auto depth = parse_int(depth_str);
@@ -148,6 +166,26 @@ namespace rose {
     }
   }
 
+  auto Interface::uci_d(Tokenizer&) -> void {
+    const Position& pos = game.position();
+
+    fmt::print("   +------------------------+\n");
+    for (i8 rank = 7; rank >= 0; rank--) {
+      fmt::print(" {} |", static_cast<char>('1' + rank));
+      for (i8 file = 0; file < 8; file++) {
+        const Square sq = Square::from_file_and_rank(file, rank);
+        const Place place = pos.place_at(sq);
+        fmt::print(" {} ", place);
+      }
+      fmt::print("|\n");
+    }
+    fmt::print("   +------------------------+\n");
+    fmt::print("     a  b  c  d  e  f  g  h  \n");
+    fmt::print("\n");
+    fmt::print("fen: {}\n", pos.to_string(MoveFormat::frc));
+    fmt::print("hash: {:016x}\n", game.hash());
+  }
+
   Interface::Interface() {
     engine.set_output(std::make_shared<EngineOutputUci>(format));
   }
@@ -164,10 +202,20 @@ namespace rose {
       uci_position(it);
     } else if (cmd == "go") {
       uci_go(it, start_time);
+    } else if (cmd == "ucinewgame") {
+      uci_ucinewgame(it);
+    } else if (cmd == "uci") {
+      uci_uci(it);
+    } else if (cmd == "isready") {
+      uci_isready(it);
     } else if (cmd == "perft") {
       uci_perft(it);
     } else if (cmd == "bench") {
       uci_bench(it);
+    } else if (cmd == "moves") {
+      uci_moves(it);
+    } else if (cmd == "d") {
+      uci_d(it);
     } else if (cmd == "getposition") {
       game.print_game_record();
     } else if (cmd == "dumpposition") {

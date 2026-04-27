@@ -25,6 +25,9 @@ namespace rose {
 
     auto uci_position(Tokenizer& it) -> void;
     auto uci_go(Tokenizer& it, time::TimePoint start_time) -> void;
+    auto uci_ucinewgame(Tokenizer& it) -> void;
+    auto uci_uci(Tokenizer& it) -> void;
+    auto uci_isready(Tokenizer& it) -> void;
     auto uci_perft(Tokenizer& it) -> void;
     auto uci_bench(Tokenizer& it) -> void;
     auto uci_moves(Tokenizer& it) -> void;
