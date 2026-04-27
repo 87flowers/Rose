@@ -1,5 +1,6 @@
 #include "rose/interface.hpp"
 
+#include "rose/cmd/bench.hpp"
 #include "rose/cmd/perft.hpp"
 #include "rose/common.hpp"
 #include "rose/engine_output_uci.hpp"
@@ -131,6 +132,10 @@ namespace rose {
     perft::run(game.position(), static_cast<usize>(*depth), bulk);
   }
 
+  auto Interface::uci_bench(Tokenizer&) -> void {
+    bench::run();
+  }
+
   auto Interface::uci_moves(Tokenizer& it) -> void {
     while (true) {
       const std::string_view move_str = it.next();
@@ -161,6 +166,8 @@ namespace rose {
       uci_go(it, start_time);
     } else if (cmd == "perft") {
       uci_perft(it);
+    } else if (cmd == "bench") {
+      uci_bench(it);
     } else if (cmd == "getposition") {
       game.print_game_record();
     } else if (cmd == "dumpposition") {

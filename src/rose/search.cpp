@@ -1,6 +1,7 @@
 #include "rose/search.hpp"
 
 #include "rose/common.hpp"
+#include "rose/engine_output.hpp"
 #include "rose/game.hpp"
 #include "rose/movegen.hpp"
 #include "rose/search_control.hpp"
@@ -118,8 +119,18 @@ namespace rose {
     } else {
       std::uniform_int_distribution<usize> rand {0, moves.size() - 1};
       const Move m = moves[rand(prng_engine)];
-      fmt::print("info depth 0 score 0 nodes {} pv {}\n", moves.size(), m.to_string(MoveFormat::classical));
-      fmt::print("bestmove {}\n", m.to_string(MoveFormat::classical));
+
+      Line line;
+      line.write(m);
+
+      m_shared.output->info(EngineOutput::Info {
+        .depth = 1,
+        .score = 0,
+        .time = time::Clock::now() - m_shared.search_start_time,
+        .nodes = 1,
+        .pv = line,
+      });
+      m_shared.output->bestmove(m);
     }
   }
 

@@ -6,3 +6,6 @@
 datagen-*.viriformat
 datagen-*.txt
 *.rpg
+compile_flags.txt
+perf.data
+perf.data.*
