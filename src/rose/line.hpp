@@ -32,8 +32,10 @@ namespace rose {
       if (iter != pv.end()) {
         output += iter->to_string(format);
         ++iter;
-        for (; iter != pv.end(); ++iter)
+        for (; iter != pv.end(); ++iter) {
+          output += ' ';
           output += iter->to_string(format);
+        }
       }
       return output;
     }

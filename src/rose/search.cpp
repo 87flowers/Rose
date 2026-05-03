@@ -4,17 +4,20 @@
 #include "rose/engine_output.hpp"
 #include "rose/game.hpp"
 #include "rose/movegen.hpp"
+#include "rose/score.hpp"
 #include "rose/search_control.hpp"
 #include "rose/util/assert.hpp"
 #include "rose/util/time.hpp"
 
+#include <atomic>
 #include <fmt/format.h>
 #include <memory>
-#include <random>
 #include <thread>
 #include <variant>
 
 namespace rose {
+
+  constexpr i32 max_depth = 250;
 
   auto SearchShared::reset() -> void {
     // TODO: Implement TT
@@ -64,9 +67,54 @@ namespace rose {
     });
   }
 
-  auto calc_ctrl(time::TimePoint start_time, const SearchLimit& limits) -> controls::Any {
-    rose_unused(start_time, limits);
-    return controls::None {};
+  auto calc_time(const SearchLimit& limits, Color stm) -> std::tuple<time::Duration, time::Duration> {
+    constexpr time::Milliseconds margin_ms {100};
+    constexpr time::Milliseconds zero_ms {0};
+
+    const auto remaining_time = stm == Color::white ? limits.wtime : limits.btime;
+    const auto increment = stm == Color::white ? limits.winc : limits.binc;
+
+    const time::Milliseconds remaining_time_ms {remaining_time.value_or(0)};
+    const time::Milliseconds increment_ms {increment.value_or(0)};
+    const int movestogo = limits.movestogo.value_or(20);
+
+    time::Milliseconds safe_remaining_ms = std::max(remaining_time_ms - margin_ms, zero_ms);
+
+    if (limits.movetime) [[unlikely]] {
+      const time::Milliseconds movetime_ms {*limits.movetime};
+      if (!remaining_time && !increment)
+        return {movetime_ms, movetime_ms};
+      safe_remaining_ms = std::min(safe_remaining_ms, movetime_ms);
+    }
+
+    const time::Milliseconds hard_limit = std::min(safe_remaining_ms / movestogo * 7 + increment_ms / 3, safe_remaining_ms);
+    const time::Milliseconds soft_limit = std::min(safe_remaining_ms / movestogo + increment_ms / 3, safe_remaining_ms);
+
+    return {hard_limit, soft_limit};
+  }
+
+  auto calc_ctrl(time::TimePoint start_time, const SearchLimit& limits, Color stm) -> controls::Any {
+    if (limits.has_time && !limits.has_other) {
+      controls::Time ctrl;
+
+      ctrl.start_time = start_time;
+      std::tie(ctrl.hard_time, ctrl.soft_time) = calc_time(limits, stm);
+
+      return ctrl;
+    } else if (limits.has_time || limits.has_other) {
+      controls::All ctrl;
+
+      ctrl.start_time = start_time;
+      if (limits.has_time)
+        std::tie(ctrl.hard_time, ctrl.soft_time) = calc_time(limits, stm);
+      ctrl.hard_nodes = limits.hard_nodes;
+      ctrl.soft_nodes = limits.soft_nodes;
+      ctrl.depth = limits.depth;
+
+      return ctrl;
+    } else {
+      return controls::None {start_time};
+    }
   }
 
   auto Search::thread_main() -> void {
@@ -89,18 +137,19 @@ namespace rose {
         m_hash_stack = g.hash_stack();
         m_hash_waterline = std::max<usize>(1, m_hash_stack.size()) - 1;
 
-        if (is_main_thread()) {
-          const auto ctrl = calc_ctrl(m_shared.search_start_time, m_shared.search_main_limits);
-          (void)m_shared.started_barrier.arrive();
-          std::visit(
-            [this](const auto& ctrl) {
-              this->search_root(ctrl);
-            },
-            ctrl);
-        } else {
-          (void)m_shared.started_barrier.arrive();
-          search_root<controls::None>({});
-        }
+        const auto ctrl = is_main_thread() ? calc_ctrl(m_shared.search_start_time, m_shared.search_main_limits, m_root.stm()) :
+                                             controls::None {.start_time = m_shared.search_start_time};
+
+        m_shared.stopping = false;
+        stats().reset();
+
+        (void)m_shared.started_barrier.arrive();
+
+        std::visit(
+          [this](const auto& ctrl) {
+            this->search_root(ctrl);
+          },
+          ctrl);
       } break;
       }
     }
@@ -108,29 +157,101 @@ namespace rose {
 
   template<typename Controls>
   auto Search::search_root(const Controls& ctrl) -> void {
-    rose_unused(ctrl);
-    static std::mt19937_64 prng_engine {};
+    Line last_pv;
+    Score last_score = score::none;
+    i32 last_depth = -1;
+
+    const auto print_info = [&, this]() {
+      m_shared.output->info(EngineOutput::Info {
+        .depth = last_depth,
+        .score = last_score,
+        .time = ctrl.elapsed(),
+        .nodes = m_shared.total_nodes(),
+        .pv = last_pv,
+      });
+    };
+
+    for (i32 depth = 1; depth < max_depth; depth++) {
+      Line pv {};
+      const Score score = search(ctrl, m_root, pv, 0, depth);
+
+      if (m_shared.stopping)
+        break;
+
+      last_score = score;
+      last_pv = pv;
+      last_depth = depth;
+
+      if (is_main_thread()) {
+        if (ctrl.check_soft_termination(stats(), depth))
+          break;
+        print_info();
+      }
+    }
+
+    m_shared.stop();
+
+    if (is_main_thread()) {
+      print_info();
+      m_shared.output->bestmove(last_pv.pv.empty() ? Move::none() : last_pv.pv[0]);
+    }
+  }
+
+  template<typename Controls>
+  auto Search::search(const Controls& ctrl, const Position& position, Line& pv, i32 ply, i32 depth) -> Score {
+    const bool is_root = ply == 0;
+
+    stats().nodes.fetch_add(1, std::memory_order_relaxed);
+    if (!is_root && is_main_thread() && ctrl.check_hard_termination(stats(), depth)) [[unlikely]] {
+      m_shared.stop();
+      return 0;
+    }
+
+    if (depth <= 0 || ply >= max_depth)
+      return eval(position);
+
     MoveList moves;
-    MoveGen movegen {m_root};
+    MoveGen movegen {position};
     movegen.generate_moves(moves);
 
-    if (moves.size() == 0) {
-      fmt::print("bestmove null\n");
-    } else {
-      std::uniform_int_distribution<usize> rand {0, moves.size() - 1};
-      const Move m = moves[rand(prng_engine)];
+    Score best_score = score::none;
 
-      Line line;
-      line.write(m);
+    for (Move m : moves) {
+      const Position child_position = position.move(m);
 
-      m_shared.output->info(EngineOutput::Info {
-        .depth = 1,
-        .score = 0,
-        .time = time::Clock::now() - m_shared.search_start_time,
-        .nodes = 1,
-        .pv = line,
-      });
-      m_shared.output->bestmove(m);
+      Line child_pv {};
+      const Score score = -search(ctrl, child_position, child_pv, ply + 1, depth - 1);
+
+      if (m_shared.stopping)
+        return 0;
+
+      if (score > best_score) {
+        best_score = score;
+        pv.write(m, std::move(child_pv));
+      }
+    }
+
+    if (best_score == score::none) {
+      return position.is_in_check() ? score::mated(ply) : 0;
+    }
+    return best_score;
+  }
+
+  auto Search::eval(const Position& position) -> Score {
+    const auto side = [&](Color color) -> Score {
+      const auto piece_list = position.piece_list_type(color);
+      return piece_list.piece_mask_for<PieceType::p>().popcount() * 100 +  //
+             piece_list.piece_mask_for<PieceType::n>().popcount() * 300 +  //
+             piece_list.piece_mask_for<PieceType::b>().popcount() * 300 +  //
+             piece_list.piece_mask_for<PieceType::r>().popcount() * 500 +  //
+             piece_list.piece_mask_for<PieceType::q>().popcount() * 800;
+    };
+
+    switch (position.stm().raw) {
+    case Color::white:
+      return side(Color::white) - side(Color::black);
+    case Color::black:
+      return side(Color::black) - side(Color::white);
     }
   }
 
