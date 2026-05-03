@@ -222,6 +222,9 @@ namespace rose {
       Line child_pv {};
       const Score score = -search(ctrl, child_position, child_pv, ply + 1, depth - 1);
 
+      if (m_shared.stopping)
+        return 0;
+
       if (score > best_score) {
         best_score = score;
         pv.write(m, std::move(child_pv));
