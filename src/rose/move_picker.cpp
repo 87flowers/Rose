@@ -3,35 +3,41 @@
 #include "rose/movegen.hpp"
 #include "rose/search.hpp"
 
-#include <algorithm>
-
 namespace rose {
 
   MovePicker::MovePicker(const Search& search, const Position& position) :
       m_search(search),
-      m_position(position) {
+      m_position(position),
+      m_movegen(position) {
   }
 
   auto MovePicker::next() -> Move {
     switch (m_stage) {
-    case Stage::generate_moves:
-      generate_moves();
+    case Stage::generate_noisy:
+      generate_noisy();
 
       m_stage = Stage::emit_noisy;
       m_current_index = 0;
 
       [[fallthrough]];
     case Stage::emit_noisy:
-      if (m_current_index < m_noisy.size())
-        return m_noisy[m_current_index++];
+      if (m_current_index < m_moves.size())
+        return m_moves[m_current_index++];
+
+      m_stage = Stage::generate_quiet;
+      m_current_index = 0;
+
+      [[fallthrough]];
+    case Stage::generate_quiet:
+      generate_quiet();
 
       m_stage = Stage::emit_quiet;
       m_current_index = 0;
 
       [[fallthrough]];
     case Stage::emit_quiet:
-      if (m_current_index < m_quiet.size())
-        return m_quiet[m_current_index++];
+      if (m_current_index < m_moves.size())
+        return m_moves[m_current_index++];
 
       m_stage = Stage::end;
       m_current_index = 0;
@@ -43,17 +49,15 @@ namespace rose {
     }
   }
 
-  auto MovePicker::generate_moves() -> void {
+  auto MovePicker::generate_noisy() -> void {
     m_moves.clear();
+    m_movegen.prepare();
+    m_movegen.generate_noisy(m_moves);
+  }
 
-    MoveGen movegen {m_position};
-    movegen.generate_moves(m_moves);
-
-    const auto first_quiet = std::stable_partition(m_moves.begin(), m_moves.end(), [](Move m) {
-      return m.capture();
-    });
-    m_noisy = std::span {m_moves.begin(), first_quiet};
-    m_quiet = std::span {first_quiet, m_moves.end()};
+  auto MovePicker::generate_quiet() -> void {
+    m_moves.clear();
+    m_movegen.generate_quiet(m_moves);
   }
 
 }  // namespace rose

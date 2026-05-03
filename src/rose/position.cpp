@@ -181,9 +181,7 @@ namespace rose {
   }
 
   auto Position::has_no_legal_moves_slow() const -> bool {
-    MoveList moves;
-    MoveGen movegen {*this};
-    movegen.generate_moves(moves);
+    const MoveList moves = generate_all_moves(*this);
     return moves.size() == 0;
   }
 

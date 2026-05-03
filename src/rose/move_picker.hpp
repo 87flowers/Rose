@@ -4,8 +4,6 @@
 #include "rose/move.hpp"
 #include "rose/movegen.hpp"
 
-#include <span>
-
 namespace rose {
 
   struct Search;
@@ -13,8 +11,9 @@ namespace rose {
   struct MovePicker {
   private:
     enum class Stage {
-      generate_moves,
+      generate_noisy,
       emit_noisy,
+      generate_quiet,
       emit_quiet,
       end,
     };
@@ -23,15 +22,14 @@ namespace rose {
       return m_stage == Stage::emit_quiet;
     }
 
-    Stage m_stage = Stage::generate_moves;
+    Stage m_stage = Stage::generate_noisy;
 
     const Search& m_search;
     const Position& m_position;
+    MoveGen m_movegen;
 
     usize m_current_index = 0;
     MoveList m_moves;
-    std::span<Move> m_noisy;
-    std::span<Move> m_quiet;
 
   public:
     MovePicker(const Search& search, const Position& position);
@@ -39,7 +37,8 @@ namespace rose {
     auto next() -> Move;
 
   private:
-    auto generate_moves() -> void;
+    auto generate_noisy() -> void;
+    auto generate_quiet() -> void;
   };
 
 }  // namespace rose
