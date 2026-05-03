@@ -13,6 +13,7 @@ auto main(int argc, char** argv) -> int {
   if (argc > 1) {
     for (rose::usize i : std::views::iota(1, argc)) {
       engine.parse_command(argv[i]);
+      engine.parse_command("wait");
     }
     return 0;
   }

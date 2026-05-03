@@ -11,8 +11,8 @@ namespace rose {
 }  // namespace rose
 
 namespace rose::score {
-  inline constexpr Score no_moves = std::numeric_limits<i16>::min();
-  inline constexpr Score infinity = -no_moves;
+  inline constexpr Score none = std::numeric_limits<i16>::min();
+  inline constexpr Score infinity = -none;
   inline constexpr Score min_score = -std::numeric_limits<i16>::max();
   inline constexpr Score max_score = std::numeric_limits<i16>::max();
 

@@ -222,6 +222,8 @@ namespace rose {
       game.position().dump();
     } else if (cmd == "hashstack") {
       game.print_hash_stack();
+    } else if (cmd == "wait") {
+      engine.wait();
     } else if (cmd == "quit") {
       std::exit(0);
     } else {

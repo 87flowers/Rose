@@ -5,7 +5,7 @@
 #include <atomic>
 
 namespace rose {
-  struct SearchStats {
+  struct alignas(64) SearchStats {
     std::atomic<u64> nodes {0};
 
     void reset() {
