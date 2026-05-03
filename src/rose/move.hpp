@@ -41,7 +41,7 @@ namespace rose {
 
     static constexpr auto none() -> Move {
       return Move {0};
-    };
+    }
 
     static constexpr auto make(Square from, Square to, MoveFlags flags) -> Move {
       rose_assert(from.is_valid() && to.is_valid());
@@ -51,6 +51,14 @@ namespace rose {
       result |= static_cast<u16>(to.raw) << 6;
       result |= static_cast<u16>(flags);
       return Move {result};
+    }
+
+    constexpr auto is_some() const -> bool {
+      return raw != 0;
+    }
+
+    constexpr auto is_none() const -> bool {
+      return raw == 0;
     }
 
     constexpr auto from() const -> Square {
