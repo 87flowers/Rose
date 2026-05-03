@@ -173,7 +173,7 @@ namespace rose {
 
     for (i32 depth = 1; depth < max_depth; depth++) {
       Line pv {};
-      const Score score = search(ctrl, m_root, pv, 0, depth);
+      const Score score = search(ctrl, m_root, pv, -score::infinity, score::infinity, 0, depth);
 
       if (m_shared.stopping)
         break;
@@ -198,7 +198,7 @@ namespace rose {
   }
 
   template<typename Controls>
-  auto Search::search(const Controls& ctrl, const Position& position, Line& pv, i32 ply, i32 depth) -> Score {
+  auto Search::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply, i32 depth) -> Score {
     const bool is_root = ply == 0;
 
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
@@ -220,7 +220,7 @@ namespace rose {
       const Position child_position = position.move(m);
 
       Line child_pv {};
-      const Score score = -search(ctrl, child_position, child_pv, ply + 1, depth - 1);
+      const Score score = -search(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, depth - 1);
 
       if (m_shared.stopping)
         return 0;
@@ -228,6 +228,11 @@ namespace rose {
       if (score > best_score) {
         best_score = score;
         pv.write(m, std::move(child_pv));
+
+        if (score > alpha)
+          alpha = score;
+        if (score >= beta)
+          break;
       }
     }
 
