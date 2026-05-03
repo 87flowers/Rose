@@ -1,11 +1,9 @@
 #include "rose/move_picker.hpp"
 
-#include "rose/common.hpp"
+#include "rose/movegen.hpp"
 #include "rose/search.hpp"
-#include "rose/util/static_vector.hpp"
 
 #include <algorithm>
-#include <ranges>
 
 namespace rose {
 
