@@ -17,9 +17,7 @@ namespace rose::perft {
 
     u64 result = 0;
 
-    MoveList moves;
-    MoveGen movegen {position};
-    movegen.generate_moves(moves);
+    const MoveList moves = generate_all_moves(position);
 
     if (!print && depth == 1 && bulk)
       return moves.size();

@@ -100,15 +100,13 @@ namespace rose {
     }
   }
 
-  template<bool in_check>
+  template<bool in_check, MoveGen::Mode mode>
   auto MoveGen::generate_moves_to(MoveList& moves, Square king_sq, Bitboard valid_destinations, PieceType one_checker) -> void {
     const Position& position = m_position;
     const Color stm = position.stm();
 
     const Bitboard empty = position.board().empty_bitboard();
     const Bitboard enemy = position.board().color_bitboard(!stm);
-
-    const auto [at, pinned_bb] = position.calc_pin_info();
 
     const PieceMask king_mask = PieceMask::king();
     const PieceMask pawn_mask = position.piece_mask_for<PieceType::p>(stm);
@@ -123,96 +121,102 @@ namespace rose {
 
     const u16x16 srcs = position.piece_list_sq(stm).to_vector().convert<u16>();
 
-    // Capture-with-promotion
-    write_cap_promo(moves, at, pawn_active & enemy & pawn_info.promo_zone, pawn_mask);
-    // En passant
-    if (const Square ep = position.enpassant(); ep.is_valid() && (!in_check || one_checker == PieceType::p)) {
-      const PieceMask attackers = at[ep.raw] & pawn_mask;
-      if (!attackers.is_empty()) {
-        const Square victim = Square::from_file_and_rank(ep.file(), stm == Color::white ? 4 : 3);
-        if (attackers.popcount() > 1 || victim.rank() != king_sq.rank() || [&] {
-              // Detect clearance pins
-              const Square my_pawn = position.piece_list_sq(stm)[attackers.lsb()];
-              const int direction = victim.file() < king_sq.file() ? -1 : 1;
-              for (Square test_sq {static_cast<u8>(king_sq.raw + direction)}; test_sq.rank() == king_sq.rank(); test_sq.raw += direction) {
-                const Place p = position.board()[test_sq];
-                if (p.is_empty() || test_sq == victim || test_sq == my_pawn)
-                  continue;
-                return p.color() == stm || (p.ptype() != PieceType::r && p.ptype() != PieceType::q);
-              }
-              return true;
-            }()) {
-          const u16x16 dest = u16x16::splat(static_cast<u16>(MoveFlags::enpassant) | (static_cast<u16>(ep.raw) << 6));
-          moves.write(attackers.raw, srcs | dest);
+    if constexpr (mode == Mode::all || mode == Mode::noisy) {
+      // Capture-with-promotion
+      write_cap_promo(moves, m_at, pawn_active & enemy & pawn_info.promo_zone, pawn_mask);
+      // En passant
+      if (const Square ep = position.enpassant(); ep.is_valid() && (!in_check || one_checker == PieceType::p)) {
+        const PieceMask attackers = m_at[ep.raw] & pawn_mask;
+        if (!attackers.is_empty()) {
+          const Square victim = Square::from_file_and_rank(ep.file(), stm == Color::white ? 4 : 3);
+          if (attackers.popcount() > 1 || victim.rank() != king_sq.rank() || [&] {
+                // Detect clearance pins
+                const Square my_pawn = position.piece_list_sq(stm)[attackers.lsb()];
+                const int direction = victim.file() < king_sq.file() ? -1 : 1;
+                for (Square test_sq {static_cast<u8>(king_sq.raw + direction)}; test_sq.rank() == king_sq.rank(); test_sq.raw += direction) {
+                  const Place p = position.board()[test_sq];
+                  if (p.is_empty() || test_sq == victim || test_sq == my_pawn)
+                    continue;
+                  return p.color() == stm || (p.ptype() != PieceType::r && p.ptype() != PieceType::q);
+                }
+                return true;
+              }()) {
+            const u16x16 dest = u16x16::splat(static_cast<u16>(MoveFlags::enpassant) | (static_cast<u16>(ep.raw) << 6));
+            moves.write(attackers.raw, srcs | dest);
+          }
         }
       }
+      // Pawn captures
+      write_moves<MoveFlags::cap_normal>(moves, m_at, srcs, pawn_active & enemy & pawn_info.non_promo_dest, pawn_mask);
+      // Non-pawn captures
+      write_moves<MoveFlags::cap_normal>(moves, m_at, srcs, nonpawn_active & enemy, nonpawn_mask);
+      // King captures
+      if constexpr (!in_check)
+        write_moves<MoveFlags::cap_normal>(moves, m_at, srcs, king_active & enemy & ~danger, king_mask);
     }
-    // Pawn captures
-    write_moves<MoveFlags::cap_normal>(moves, at, srcs, pawn_active & enemy & pawn_info.non_promo_dest, pawn_mask);
-    // Non-pawn captures
-    write_moves<MoveFlags::cap_normal>(moves, at, srcs, nonpawn_active & enemy, nonpawn_mask);
-    // King captures
-    if constexpr (!in_check)
-      write_moves<MoveFlags::cap_normal>(moves, at, srcs, king_active & enemy & ~danger, king_mask);
-    // Castling
-    if constexpr (!in_check) {
-      const Square rook_hside = position.rook_info().hside(stm);
-      const Square rook_aside = position.rook_info().aside(stm);
 
-      const auto do_castle = [&](Square king_sq, Square rook_sq, i8 rook_dest, i8 king_dest, MoveFlags mf) {
-        rose_assert(position.board()[rook_sq].ptype() == PieceType::r && position.board()[rook_sq].color() == stm);
-        const Bitboard king_bb = king_sq.to_bitboard();
-        const Bitboard rook_bb = rook_sq.to_bitboard();
-        const Bitboard rook_ray = backrank_ray(rook_sq, Square::from_file_and_rank(rook_dest, king_sq.rank()));
-        const Bitboard king_ray = backrank_ray(king_sq, Square::from_file_and_rank(king_dest, king_sq.rank()));
-        const Bitboard clear = empty | king_bb | rook_bb;
-        if ((~clear & rook_ray).is_empty() && ((~clear | danger) & king_ray).is_empty() && (rook_bb & pinned_bb).is_empty()) {
-          moves.push_back(Move::make(king_sq, rook_sq, mf));
+    if constexpr (mode == Mode::all || mode == Mode::quiet) {
+      // Castling
+      if constexpr (!in_check) {
+        const Square rook_hside = position.rook_info().hside(stm);
+        const Square rook_aside = position.rook_info().aside(stm);
+
+        const auto do_castle = [&](Square king_sq, Square rook_sq, i8 rook_dest, i8 king_dest, MoveFlags mf) {
+          rose_assert(position.board()[rook_sq].ptype() == PieceType::r && position.board()[rook_sq].color() == stm);
+          const Bitboard king_bb = king_sq.to_bitboard();
+          const Bitboard rook_bb = rook_sq.to_bitboard();
+          const Bitboard rook_ray = backrank_ray(rook_sq, Square::from_file_and_rank(rook_dest, king_sq.rank()));
+          const Bitboard king_ray = backrank_ray(king_sq, Square::from_file_and_rank(king_dest, king_sq.rank()));
+          const Bitboard clear = empty | king_bb | rook_bb;
+          if ((~clear & rook_ray).is_empty() && ((~clear | danger) & king_ray).is_empty() && (rook_bb & m_pinned).is_empty()) {
+            moves.push_back(Move::make(king_sq, rook_sq, mf));
+          }
+        };
+
+        if (rook_aside.is_valid())
+          do_castle(king_sq, rook_aside, 3, 2, MoveFlags::castle_aside);
+        if (rook_hside.is_valid())
+          do_castle(king_sq, rook_hside, 5, 6, MoveFlags::castle_hside);
+      }
+      // Non-pawn quiets
+      write_moves<MoveFlags::normal>(moves, m_at, srcs, nonpawn_active & empty, nonpawn_mask);
+      // King quiets
+      if constexpr (!in_check)
+        write_moves<MoveFlags::normal>(moves, m_at, srcs, king_active & empty & ~danger, king_mask);
+      // Do pawns
+      {
+        const Bitboard pinned_pawns = m_pinned & ~Bitboard::file_mask(king_sq.file());
+
+        const Bitboard bb = position.bitboard_for<PieceType::p>(stm) & ~pinned_pawns;
+        const auto pawn_empty = pawns::pawn_destination_empty(stm, empty, valid_destinations);
+        const auto pawn_moves = pawns::pawn_moves(stm);
+
+        const Bitboard pawn_normal = bb & pawn_empty.normal_move;
+        const Bitboard pawn_double = bb & pawn_empty.double_move;
+
+        // Promotions
+        {
+          const u8 mask = static_cast<u8>(pawn_normal.raw >> pawn_info.promotable_shift);
+          moves.write4(mask, pawn_moves.promotions);
         }
-      };
-
-      if (rook_aside.is_valid())
-        do_castle(king_sq, rook_aside, 3, 2, MoveFlags::castle_aside);
-      if (rook_hside.is_valid())
-        do_castle(king_sq, rook_hside, 5, 6, MoveFlags::castle_hside);
-    }
-    // Non-pawn quiets
-    write_moves<MoveFlags::normal>(moves, at, srcs, nonpawn_active & empty, nonpawn_mask);
-    // King quiets
-    if constexpr (!in_check)
-      write_moves<MoveFlags::normal>(moves, at, srcs, king_active & empty & ~danger, king_mask);
-    // Do pawns
-    {
-      const Bitboard pinned_pawns = pinned_bb & ~Bitboard::file_mask(king_sq.file());
-
-      const Bitboard bb = position.bitboard_for<PieceType::p>(stm) & ~pinned_pawns;
-      const auto pawn_empty = pawns::pawn_destination_empty(stm, empty, valid_destinations);
-      const auto pawn_moves = pawns::pawn_moves(stm);
-
-      const Bitboard pawn_normal = bb & pawn_empty.normal_move;
-      const Bitboard pawn_double = bb & pawn_empty.double_move;
-
-      // Promotions
-      {
-        const u8 mask = static_cast<u8>(pawn_normal.raw >> pawn_info.promotable_shift);
-        moves.write4(mask, pawn_moves.promotions);
-      }
-      // Relative rank 3-6
-      {
-        constexpr int normal_shift = 16;
-        const u32 mask = static_cast<u32>(pawn_normal.raw >> normal_shift);
-        moves.write(mask, pawn_moves.normal_moves);
-      }
-      // Relative rank 2
-      {
-        const u8 normal_mask = static_cast<u8>(pawn_normal.raw >> pawn_info.second_rank_shift);
-        const u8 double_mask = static_cast<u8>(pawn_double.raw >> pawn_info.second_rank_shift);
-        const u16 mask = (static_cast<u16>(double_mask) << 8) | normal_mask;
-        moves.write(mask, pawn_moves.double_moves);
+        // Relative rank 3-6
+        {
+          constexpr int normal_shift = 16;
+          const u32 mask = static_cast<u32>(pawn_normal.raw >> normal_shift);
+          moves.write(mask, pawn_moves.normal_moves);
+        }
+        // Relative rank 2
+        {
+          const u8 normal_mask = static_cast<u8>(pawn_normal.raw >> pawn_info.second_rank_shift);
+          const u8 double_mask = static_cast<u8>(pawn_double.raw >> pawn_info.second_rank_shift);
+          const u16 mask = (static_cast<u16>(double_mask) << 8) | normal_mask;
+          moves.write(mask, pawn_moves.double_moves);
+        }
       }
     }
   }
 
+  template<MoveGen::Mode mode>
   auto MoveGen::generate_king_moves_with_checkers(MoveList& moves, Square king_sq, PieceMask checkers) -> void {
     const Color stm = m_position.stm();
 
@@ -238,42 +242,56 @@ namespace rose {
     const Bitboard active = m_position.attack_table(stm).bitboard_for(king_mask) & valid_destinations;
     const Bitboard danger = m_position.attack_table(!stm).bitboard_any();
 
-    write_moves<MoveFlags::cap_normal>(moves, king_sq, active & enemy & ~danger);
-    write_moves<MoveFlags::normal>(moves, king_sq, active & empty & ~danger);
+    if constexpr (mode == Mode::all || mode == Mode::noisy)
+      write_moves<MoveFlags::cap_normal>(moves, king_sq, active & enemy & ~danger);
+    if constexpr (mode == Mode::all || mode == Mode::quiet)
+      write_moves<MoveFlags::normal>(moves, king_sq, active & empty & ~danger);
   }
 
+  template<MoveGen::Mode mode>
   auto MoveGen::generate_moves_no_checkers(MoveList& moves, Square king_sq) -> void {
-    generate_moves_to<false>(moves, king_sq, ~Bitboard {}, PieceType::none);
+    generate_moves_to<false, mode>(moves, king_sq, ~Bitboard {}, PieceType::none);
   }
 
+  template<MoveGen::Mode mode>
   auto MoveGen::generate_moves_one_checker(MoveList& moves, Square king_sq, PieceMask checkers) -> void {
     const PieceType checker_ptype = m_position.piece_list_type(!m_position.stm())[checkers.lsb()];
     const Square checker_sq = m_position.piece_list_sq(!m_position.stm())[checkers.lsb()];
     const Bitboard valid_destinations = checker_ptype == PieceType::n ? checker_sq.to_bitboard() : rays::calc_ray_to(king_sq, checker_sq);
-    generate_moves_to<true>(moves, king_sq, valid_destinations, checker_ptype);
-    generate_king_moves_with_checkers(moves, king_sq, checkers);
+    generate_moves_to<true, mode>(moves, king_sq, valid_destinations, checker_ptype);
+    generate_king_moves_with_checkers<mode>(moves, king_sq, checkers);
   }
 
+  template<MoveGen::Mode mode>
   auto MoveGen::generate_moves_two_checkers(MoveList& moves, Square king_sq, PieceMask checkers) -> void {
-    generate_king_moves_with_checkers(moves, king_sq, checkers);
+    generate_king_moves_with_checkers<mode>(moves, king_sq, checkers);
   }
 
   MoveGen::MoveGen(const Position& position) :
       m_position(position) {
   }
 
+  auto MoveGen::prepare() -> void {
+    std::tie(m_at, m_pinned) = m_position.calc_pin_info();
+  }
+
+  template<MoveGen::Mode mode>
   auto MoveGen::generate_moves(MoveList& moves) -> void {
     const Color stm = m_position.stm();
     const Square king_sq = m_position.king_sq(stm);
     const PieceMask checkers = m_position.attack_table(!stm).read(king_sq);
     switch (checkers.popcount()) {
     case 0:
-      return generate_moves_no_checkers(moves, king_sq);
+      return generate_moves_no_checkers<mode>(moves, king_sq);
     case 1:
-      return generate_moves_one_checker(moves, king_sq, checkers);
+      return generate_moves_one_checker<mode>(moves, king_sq, checkers);
     default:
-      return generate_moves_two_checkers(moves, king_sq, checkers);
+      return generate_moves_two_checkers<mode>(moves, king_sq, checkers);
     }
   }
+
+  template auto MoveGen::generate_moves<MoveGen::Mode::all>(MoveList& moves) -> void;
+  template auto MoveGen::generate_moves<MoveGen::Mode::noisy>(MoveList& moves) -> void;
+  template auto MoveGen::generate_moves<MoveGen::Mode::quiet>(MoveList& moves) -> void;
 
 }  // namespace rose

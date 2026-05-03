@@ -3,6 +3,7 @@
 #include "rose/common.hpp"
 #include "rose/engine_output.hpp"
 #include "rose/game.hpp"
+#include "rose/move_picker.hpp"
 #include "rose/movegen.hpp"
 #include "rose/score.hpp"
 #include "rose/search_control.hpp"
@@ -210,13 +211,11 @@ namespace rose {
     if (depth <= 0 || ply >= max_depth)
       return eval(position);
 
-    MoveList moves;
-    MoveGen movegen {position};
-    movegen.generate_moves(moves);
+    MovePicker moves {*this, position};
 
     Score best_score = score::none;
 
-    for (Move m : moves) {
+    for (Move m = moves.next(); m.is_some(); m = moves.next()) {
       const Position child_position = position.move(m);
 
       Line child_pv {};

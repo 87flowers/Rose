@@ -30,9 +30,7 @@ auto double_check() -> void {
     for (const auto m : should_movelist)
       should_moves.emplace(Move::parse(m, MoveFormat::frc, position).value());
 
-    MoveList got_movelist;
-    MoveGen movegen {position};
-    movegen.generate_moves(got_movelist);
+    const MoveList got_movelist = generate_all_moves(position);
 
     std::unordered_set<Move> got_moves;
     for (const auto m : got_movelist) {
