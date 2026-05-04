@@ -9,31 +9,33 @@
 
 namespace rose {
 
-  struct EngineOutputUci : public EngineOutput {
+  template<class Interface>
+  struct EngineOutputXboard : public EngineOutput {
   private:
     MoveFormat format;
+    Interface& interface;
 
   public:
-    EngineOutputUci(MoveFormat format) :
+    EngineOutputXboard(Interface& interface, MoveFormat format) :
+        interface(interface),
         format(format) {
     }
 
-    virtual ~EngineOutputUci() = default;
+    virtual ~EngineOutputXboard() = default;
 
     auto info(EngineOutput::Info args) -> void override {
-      const auto time_ms = time::cast<time::Milliseconds>(args.time);
-      const u64 nps = time::nps<u64>(args.nodes, args.time);
-      fmt::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n",
+      const auto time_cs = time::cast<time::Centiseconds>(args.time);
+      fmt::print("{}\t{}\t{}\t{}\t{}\n",
                  args.depth,
                  args.score,
-                 time_ms.count(),
+                 time_cs.count(),  // centiseconds
                  args.nodes,
-                 nps,
                  args.pv.to_string(format));
     }
 
     auto bestmove(Move m) -> void override {
-      fmt::print("bestmove {}\n", m.to_string(format));
+      interface.xboard_engine_moved(m);
+      fmt::print("move {}\n", m.to_string(format));
       std::fflush(stdout);
     }
   };

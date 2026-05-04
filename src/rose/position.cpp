@@ -10,6 +10,7 @@
 #include "rose/square.hpp"
 #include "rose/util/string.hpp"
 
+#include <algorithm>
 #include <array>
 #include <fmt/format.h>
 #include <string_view>
@@ -178,6 +179,11 @@ namespace rose {
   auto Position::startpos() -> Position {
     static const Position startpos = Position::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").value();
     return startpos;
+  }
+
+  auto Position::is_legal_slow(Move m) const -> bool {
+    const MoveList moves = generate_all_moves(*this);
+    return std::find(moves.begin(), moves.end(), m) != moves.end();
   }
 
   auto Position::has_no_legal_moves_slow() const -> bool {

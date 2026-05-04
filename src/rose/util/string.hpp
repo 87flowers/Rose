@@ -16,4 +16,6 @@ namespace rose {
   auto parse_u32(std::string_view str) -> std::optional<u32>;
   auto parse_u64(std::string_view str) -> std::optional<u64>;
 
+  auto parse_f64(std::string_view str) -> std::optional<f64>;
+
 }  // namespace rose

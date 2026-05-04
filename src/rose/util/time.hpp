@@ -10,6 +10,7 @@ namespace rose::time {
   using TimePoint = std::chrono::time_point<Clock>;
   using Duration = TimePoint::duration;
   using FloatSeconds = std::chrono::duration<f64>;
+  using Centiseconds = std::chrono::duration<i64, std::centi>;
   using Milliseconds = std::chrono::duration<i64, std::milli>;
 
   template<typename T>

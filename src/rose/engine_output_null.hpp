@@ -9,11 +9,11 @@ namespace rose {
   struct EngineOutputNull : public EngineOutput {
     virtual ~EngineOutputNull() = default;
 
-    virtual auto info(EngineOutput::Info args) -> void override {
+    auto info(EngineOutput::Info args) -> void override {
       rose_unused(args);
     }
 
-    virtual auto bestmove(Move m) -> void override {
+    auto bestmove(Move m) -> void override {
       rose_unused(m);
     }
   };

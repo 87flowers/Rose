@@ -219,6 +219,7 @@ namespace rose {
       return !attack_table(!m_stm).read(king_sq(m_stm)).is_empty();
     }
 
+    auto is_legal_slow(Move m) const -> bool;
     auto has_no_legal_moves_slow() const -> bool;
     auto is_stalemate_slow() const -> bool;
     auto is_fifty_move_draw(i32 ply = 0) const -> std::optional<Score>;

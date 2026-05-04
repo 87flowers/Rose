@@ -2,6 +2,7 @@
 
 #include "rose/common.hpp"
 
+#include <charconv>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -66,6 +67,14 @@ namespace rose {
 
   auto parse_u64(std::string_view str) -> std::optional<u64> {
     return parse_integer<u64>(str);
+  }
+
+  auto parse_f64(std::string_view str) -> std::optional<f64> {
+    f64 result;
+    const auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), result);
+    if (ec != std::errc {} || ptr != str.data() + str.size())
+      return std::nullopt;
+    return result;
   }
 
 }  // namespace rose
