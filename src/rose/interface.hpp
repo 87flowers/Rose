@@ -13,9 +13,11 @@ namespace rose {
 
   class Interface {
   private:
-    Game game;
-    MoveFormat format = MoveFormat::classical;
-    Engine engine;
+    Game m_game;
+    MoveFormat m_format = MoveFormat::classical;
+    Engine m_engine;
+
+    auto set_format(MoveFormat format) -> void;
 
     template<typename... Args>
     auto print_protocol_error(std::string_view cmd, fmt::format_string<Args...> fmt, Args&&... args) -> void;
@@ -28,6 +30,8 @@ namespace rose {
     auto uci_ucinewgame(Tokenizer& it) -> void;
     auto uci_uci(Tokenizer& it) -> void;
     auto uci_isready(Tokenizer& it) -> void;
+    auto uci_setoption(Tokenizer& it) -> void;
+    auto uci_stop(Tokenizer& it) -> void;
     auto uci_perft(Tokenizer& it) -> void;
     auto uci_bench(Tokenizer& it) -> void;
     auto uci_moves(Tokenizer& it) -> void;

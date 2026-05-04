@@ -18,6 +18,11 @@
 
 namespace rose {
 
+  auto Interface::set_format(MoveFormat format) -> void {
+    m_format = format;
+    m_engine.set_output(std::make_shared<EngineOutputUci>(m_format));
+  }
+
   template<typename... Args>
   auto Interface::print_protocol_error(std::string_view cmd, fmt::format_string<Args...> fmt, Args&&... args) -> void {
     fmt::print("info error ({}): ", cmd);
@@ -49,7 +54,7 @@ namespace rose {
       return print_protocol_error("position", "no position provided");
 
     if (pos_type == "startpos") {
-      game.set_position(Position::startpos());
+      m_game.set_position(Position::startpos());
     } else if (pos_type == "fen") {
       const std::string_view board = it.next();
       const std::string_view color = it.next();
@@ -61,7 +66,7 @@ namespace rose {
       const auto pos = Position::parse(board, color, castle, enpassant, clock_50mr, ply);
       if (!pos) [[unlikely]]
         return print_protocol_error("position", "invalid fen provided: {}", pos.error());
-      game.set_position(pos.value());
+      m_game.set_position(pos.value());
     } else [[unlikely]] {
       return print_unrecognised_token("position", pos_type);
     }
@@ -112,24 +117,60 @@ namespace rose {
 
 #undef DO_PART
 
-    engine.run_search(start_time, limits, game);
+    m_engine.run_search(start_time, limits, m_game);
   }
 
   auto Interface::uci_ucinewgame(Tokenizer&) -> void {
-    engine.reset();
+    m_engine.reset();
   }
 
   auto Interface::uci_uci(Tokenizer&) -> void {
     fmt::print("id name Rose {}\n", rose::version::to_string());
     fmt::print("id author 87 (87flowers.com)\n");
-    // fmt::print("option name Hash type spin default 16 min 1 max 1048576\n");
-    // fmt::print("option name Threads type spin default 1 min 1 max 1024\n");
-    // fmt::print("option name UCI_Chess960 type check default false\n");
+    fmt::print("option name Hash type spin default 16 min 1 max 1048576\n");
+    fmt::print("option name Threads type spin default 1 min 1 max 1024\n");
+    fmt::print("option name UCI_Chess960 type check default false\n");
     fmt::print("uciok\n");
   }
 
   auto Interface::uci_isready(Tokenizer&) -> void {
     fmt::print("readyok\n");
+  }
+
+  auto Interface::uci_setoption(Tokenizer& it) -> void {
+    if (!expect_token("setoption", it, "name"))
+      return;
+    const std::string_view name = it.next();
+
+    if (!expect_token("setoption", it, "value"))
+      return;
+    const std::string_view value = it.next();
+
+    if (name == "Hash") {
+      const auto hash = parse_int(value);
+      if (!hash || *hash <= 0)
+        return print_unrecognised_token("setoption", value);
+      m_engine.set_hash_size(*hash);
+    } else if (name == "Threads") {
+      const auto count = parse_int(value);
+      if (!count || *count <= 0)
+        return print_unrecognised_token("setoption", value);
+      m_engine.set_thread_count(*count);
+    } else if (name == "UCI_Chess960") {
+      if (value == "true") {
+        set_format(MoveFormat::frc);
+      } else if (value == "false") {
+        set_format(MoveFormat::classical);
+      } else {
+        return print_unrecognised_token("setoption", value);
+      }
+    } else {
+      return print_unrecognised_token("setoption", name);
+    }
+  }
+
+  auto Interface::uci_stop(Tokenizer& it) -> void {
+    m_engine.stop();
   }
 
   auto Interface::uci_perft(Tokenizer& it) -> void {
@@ -147,7 +188,7 @@ namespace rose {
     else
       return print_unrecognised_token("perft", bulk_str);
 
-    perft::run(game.position(), static_cast<usize>(*depth), bulk);
+    perft::run(m_game.position(), static_cast<usize>(*depth), bulk);
   }
 
   auto Interface::uci_bench(Tokenizer&) -> void {
@@ -159,15 +200,15 @@ namespace rose {
       const std::string_view move_str = it.next();
       if (move_str.empty())
         break;
-      const auto m = Move::parse(move_str, format, game.position());
+      const auto m = Move::parse(move_str, m_format, m_game.position());
       if (!m) [[unlikely]]
         return print_illegal_move(move_str);
-      game.move(m.value());
+      m_game.move(m.value());
     }
   }
 
   auto Interface::uci_d(Tokenizer&) -> void {
-    const Position& pos = game.position();
+    const Position& pos = m_game.position();
 
     fmt::print("   +------------------------+\n");
     for (i8 rank = 7; rank >= 0; rank--) {
@@ -183,11 +224,11 @@ namespace rose {
     fmt::print("     a  b  c  d  e  f  g  h  \n");
     fmt::print("\n");
     fmt::print("fen: {}\n", pos.to_string(MoveFormat::frc));
-    fmt::print("hash: {:016x}\n", game.hash());
+    fmt::print("hash: {:016x}\n", m_game.hash());
   }
 
   Interface::Interface() {
-    engine.set_output(std::make_shared<EngineOutputUci>(format));
+    set_format(m_format);
   }
 
   Interface::~Interface() = default;
@@ -208,6 +249,10 @@ namespace rose {
       uci_uci(it);
     } else if (cmd == "isready") {
       uci_isready(it);
+    } else if (cmd == "setoption") {
+      uci_setoption(it);
+    } else if (cmd == "stop") {
+      uci_stop(it);
     } else if (cmd == "perft") {
       uci_perft(it);
     } else if (cmd == "bench") {
@@ -217,13 +262,13 @@ namespace rose {
     } else if (cmd == "d") {
       uci_d(it);
     } else if (cmd == "getposition") {
-      game.print_game_record();
+      m_game.print_game_record();
     } else if (cmd == "dumpposition") {
-      game.position().dump();
+      m_game.position().dump();
     } else if (cmd == "hashstack") {
-      game.print_hash_stack();
+      m_game.print_hash_stack();
     } else if (cmd == "wait") {
-      engine.wait();
+      m_engine.wait();
     } else if (cmd == "quit") {
       std::exit(0);
     } else {
