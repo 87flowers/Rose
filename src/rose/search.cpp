@@ -5,6 +5,7 @@
 #include "rose/game.hpp"
 #include "rose/move_picker.hpp"
 #include "rose/movegen.hpp"
+#include "rose/nnue/nnue.hpp"
 #include "rose/score.hpp"
 #include "rose/search_control.hpp"
 #include "rose/util/assert.hpp"
@@ -242,21 +243,7 @@ namespace rose {
   }
 
   auto Search::eval(const Position& position) -> Score {
-    const auto side = [&](Color color) -> Score {
-      const auto piece_list = position.piece_list_type(color);
-      return piece_list.piece_mask_for<PieceType::p>().popcount() * 100 +  //
-             piece_list.piece_mask_for<PieceType::n>().popcount() * 300 +  //
-             piece_list.piece_mask_for<PieceType::b>().popcount() * 300 +  //
-             piece_list.piece_mask_for<PieceType::r>().popcount() * 500 +  //
-             piece_list.piece_mask_for<PieceType::q>().popcount() * 800;
-    };
-
-    switch (position.stm().raw) {
-    case Color::white:
-      return side(Color::white) - side(Color::black);
-    case Color::black:
-      return side(Color::black) - side(Color::white);
-    }
+    return nnue::evaluate(position);
   }
 
 }  // namespace rose
