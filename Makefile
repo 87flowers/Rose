@@ -3,11 +3,15 @@ SUFFIX :=
 ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 
 VERSION := $(file < src/rose_version.txt)
+DEFAULT_NETWORK := $(file < src/rose_network.txt)
 GIT_COMMIT_DESC := $(shell git describe --always --dirty)
 GIT_COMMIT_HASH := $(shell git show -s --format=%H)
 
+DEFAULT_NETWORK_FILE := $(ROOT_DIR)/networks/$(DEFAULT_NETWORK).rosenet
+
 EXE ?= rose
 ARCH ?= native
+EVALFILE ?= $(DEFAULT_NETWORK_FILE)
 
 CXX := clang++
 CPPFLAGS := -Isrc -MMD -MP
@@ -74,6 +78,18 @@ $(BUILD_DIR)/rel/src/rose/version.o: .FORCE
 $(BUILD_DIR)/deb/src/rose/version.o: .FORCE
 > @mkdir -p $(dir $@)
 > $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEBFLAGS) $(VERSION_FLAGS) -c src/rose/version.cpp -o $@
+
+$(BUILD_DIR)/rel/src/rose/nnue/network.o: $(EVALFILE)
+> @mkdir -p $(dir $@)
+> $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(RELFLAGS) -DROSE_NETWORK_FILE=\"$(EVALFILE)\" -c src/rose/nnue/network.cpp -o $@
+
+$(BUILD_DIR)/deb/src/rose/nnue/network.o: $(EVALFILE)
+> @mkdir -p $(dir $@)
+> $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEBFLAGS) -DROSE_NETWORK_FILE=\"$(EVALFILE)\" -c src/rose/nnue/network.cpp -o $@
+
+$(DEFAULT_NETWORK_FILE):
+> @mkdir -p $(dir $@)
+> curl -L https://github.com/87flowers/rose-nets/releases/download/$(DEFAULT_NETWORK)/$(DEFAULT_NETWORK).rosenet -o $(DEFAULT_NETWORK_FILE)
 
 update-lps:
 > @test -z "$(shell git status --porcelain)" || (echo "Working directory not clean" && exit 1)
