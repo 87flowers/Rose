@@ -9,6 +9,7 @@
 #include "rose/position.hpp"
 #include "rose/score.hpp"
 #include "rose/search_stats.hpp"
+#include "rose/tt.hpp"
 #include "rose/util/time.hpp"
 
 #include <atomic>
@@ -63,6 +64,7 @@ namespace rose {
 
     // Shared Search Data
     std::vector<SearchStats> stats;
+    tt::TT transposition_table {tt::default_hash_size_mb};
 
     auto reset() -> void;
 
@@ -122,6 +124,9 @@ namespace rose {
     auto search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply, i32 depth) -> Score;
 
     auto eval(const Position& position) -> Score;
+
+    auto tt_load(const Position& position, int ply) const -> std::optional<tt::LookupResult>;
+    auto tt_store(const Position& position, int ply, tt::LookupResult lr) -> void;
   };
 
 }  // namespace rose

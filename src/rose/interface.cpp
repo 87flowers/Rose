@@ -8,6 +8,7 @@
 #include "rose/engine_output_xboard.hpp"
 #include "rose/position.hpp"
 #include "rose/search.hpp"
+#include "rose/tt.hpp"
 #include "rose/util/string.hpp"
 #include "rose/util/time.hpp"
 #include "rose/util/tokenizer.hpp"
@@ -22,8 +23,8 @@
 
 namespace rose {
 
-  static constexpr usize default_hash = 16;
-  static constexpr usize max_hash = 1048576;
+  static constexpr usize default_hash = tt::default_hash_size_mb;
+  static constexpr usize max_hash = tt::maximum_hash_size_mb;
   static constexpr usize max_threads = 1024;
 
   auto Interface::set_format(MoveFormat format) -> void {

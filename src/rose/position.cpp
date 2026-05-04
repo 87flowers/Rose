@@ -181,9 +181,19 @@ namespace rose {
     return startpos;
   }
 
-  auto Position::is_legal_slow(Move m) const -> bool {
-    const MoveList moves = generate_all_moves(*this);
-    return std::find(moves.begin(), moves.end(), m) != moves.end();
+  auto Position::is_legal(Move m) const -> bool {
+    const Square king = king_sq(m_stm);
+
+    const Place src = m_board[m.from()];
+    const Place dst = m_board[m.to()];
+
+    if (src.is_empty() || src.color() != m_stm) {
+      return false;
+    }
+
+    const PieceMask pm = m_masked_attack_table.read(m.to());
+    const PieceType ptype = src.ptype();
+    const bool valid_attack = pm.is_set(src.id());
   }
 
   auto Position::has_no_legal_moves_slow() const -> bool {
@@ -375,6 +385,8 @@ namespace rose {
     new_pos.m_ply++;
     new_pos.m_stm = !m_stm;
 
+    std::tie(new_pos.m_masked_attack_table, new_pos.m_pinned) = new_pos.calc_pin_info_slow();
+
     rose_assert(new_pos.m_hash == new_pos.calc_hash_slow(),
                 "{} [{:016x}] : {} : {} [{:016x} {:016x}]",
                 to_string(MoveFormat::frc),
@@ -399,7 +411,7 @@ namespace rose {
     return result;
   }
 
-  auto Position::calc_pin_info() const -> std::tuple<std::array<PieceMask, 64>, Bitboard> {
+  auto Position::calc_pin_info_slow() const -> std::tuple<Wordboard, Bitboard> {
     const Square sq = king_sq(m_stm);
 
     const auto [ray_coords, ray_valid_premask] = geometry::superpiece_rays(sq);
@@ -448,7 +460,7 @@ namespace rose {
 
     const Bitboard pinned_bb {board_layout.nonzeros().to_bits()};
 
-    return {Wordboard {m_attack_table[m_stm.to_index()].raw & at_mask}.to_mailbox(), pinned_bb};
+    return {Wordboard {m_attack_table[m_stm.to_index()].raw & at_mask}, pinned_bb};
   }
 
   auto Position::calc_attacks_slow() const -> std::array<Wordboard, 2> {
@@ -675,12 +687,11 @@ namespace rose {
     fmt::print("m_stm: {}\n", m_stm);
     // calc_pin_info:
     {
-      const auto [at, pinned] = calc_pin_info();
       fmt::print("pinned-masked m_attack_table:\n");
       for (int r = 7; r >= 0; r--) {
         for (int f = 0; f < 8; f++) {
           const Square sq = Square::from_file_and_rank(f, r);
-          fmt::print("{:04x} ", at[sq.raw].raw);
+          fmt::print("{:04x} ", m_masked_attack_table.read(sq).raw);
         }
         fmt::print("\n");
       }
@@ -688,7 +699,7 @@ namespace rose {
       for (int r = 7; r >= 0; r--) {
         for (int f = 0; f < 8; f++) {
           const Square sq = Square::from_file_and_rank(f, r);
-          fmt::print("{} ", pinned.read(sq) ? 1 : 0);
+          fmt::print("{} ", m_pinned.read(sq) ? 1 : 0);
         }
         fmt::print("\n");
       }
