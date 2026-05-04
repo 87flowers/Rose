@@ -250,15 +250,15 @@ namespace rose {
       const Score score = [&] {
         const i32 new_depth = depth - 1;
 
-        if (move_count > 1) {
+        // PVS Scout Search
+        if (Node::is_pv && move_count > 1) {
           const Score scout_score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ply + 1, new_depth);
           if (score < alpha)
             return scout_score;
-
-          return -search<node::Pv>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, new_depth);
-        } else {
-          return -search<node::Pv>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, new_depth);
         }
+
+        // PVS Full-Window Search
+        return -search<typename Node::next>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, new_depth);
       }();
 
       if (m_shared.stopping)

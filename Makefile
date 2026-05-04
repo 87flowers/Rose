@@ -26,7 +26,7 @@ VERSION_FLAGS := -DROSE_VERSION=\"$(VERSION)\"
 VERSION_FLAGS += -DROSE_GIT_COMMIT_HASH=\"$(GIT_COMMIT_HASH)\"
 VERSION_FLAGS += -DROSE_GIT_COMMIT_DESC=\"$(GIT_COMMIT_DESC)\"
 
-BUILD_DIR := ./build/$(ARCH)
+BUILD_DIR := build/$(ARCH)
 
 LIB_SRCS := $(wildcard src/rose/*.cpp) $(wildcard src/rose/**/*.cpp)
 TOOL_SRCS := $(wildcard tools/*.cpp)
