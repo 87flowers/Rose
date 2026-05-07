@@ -115,6 +115,7 @@ namespace rose::tt {
     auto resize(usize mb) -> void {
       m_count = mb_to_count(mb);
       m_table = {table_alloc(m_count), &table_free};
+      clear();
     }
 
     auto clear() -> void;
