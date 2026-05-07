@@ -19,8 +19,8 @@ CPPFLAGS += -DFMT_HEADER_ONLY -Ivendor/fmt/include
 CPPFLAGS += -Ivendor/lps/include
 CXXFLAGS := -std=c++26 -march=$(ARCH)
 LDFLAGS  := -pthread
-RELFLAGS := -DNDEBUG -O3 -DROSE_NO_ASSERTS -flto=thin -DFMT_USE_FCNTL=0
-DEBFLAGS := -DNDEBUG -O2 -g -fsanitize=address,undefined -fno-omit-frame-pointer -DFMT_USE_FCNTL=0
+RELFLAGS := -DNDEBUG -O3 -DROSE_NO_ASSERTS -flto=thin
+DEBFLAGS := -DNDEBUG -O2 -g
 
 VERSION_FLAGS := -DROSE_VERSION=\"$(VERSION)\"
 VERSION_FLAGS += -DROSE_GIT_COMMIT_HASH=\"$(GIT_COMMIT_HASH)\"
