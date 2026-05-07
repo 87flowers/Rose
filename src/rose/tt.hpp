@@ -109,6 +109,7 @@ namespace rose::tt {
     explicit TT(usize mb) :
         m_count {mb_to_count(mb)},
         m_table {table_alloc(m_count), &table_free} {
+      clear();
     }
 
     auto resize(usize mb) -> void {
