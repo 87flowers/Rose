@@ -23,7 +23,7 @@ namespace rose {
       return m_stage == Stage::emit_quiet;
     }
 
-    Stage m_stage = Stage::generate_noisy;
+    Stage m_stage = Stage::tt_move;
 
     const Search& m_search;
     const Position& m_position;
