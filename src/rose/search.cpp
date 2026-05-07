@@ -8,6 +8,7 @@
 #include "rose/nnue/nnue.hpp"
 #include "rose/score.hpp"
 #include "rose/search_control.hpp"
+#include "rose/tt.hpp"
 #include "rose/util/assert.hpp"
 #include "rose/util/time.hpp"
 
@@ -22,11 +23,13 @@ namespace rose {
   constexpr i32 max_depth = 250;
 
   auto SearchShared::reset() -> void {
-    // TODO: Implement TT
+    stats.clear();
+    transposition_table.clear();
   }
 
   auto SearchShared::set_hash_size(int mb) -> void {
-    // TODO: Implement TT
+    rose_assert(mb > 0);
+    transposition_table.resize(static_cast<usize>(mb));
   }
 
   auto SearchShared::set_output(std::shared_ptr<EngineOutput> output) -> void {
@@ -212,12 +215,16 @@ namespace rose {
     if (depth <= 0 || ply >= max_depth)
       return eval(position);
 
-    MovePicker moves {*this, position};
+    const tt::LookupResult tte = tt_load(position, ply);
+
+    MovePicker moves {*this, position, tte.move};
 
     Score best_score = score::none;
+    Move best_move = Move::none();
+    tt::Bound bound = tt::Bound::upper_bound;
 
-    for (Move m = moves.next(); m.is_some(); m = moves.next()) {
-      const Position child_position = position.move(m);
+    for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
+      const Position child_position = position.move(mv);
 
       Line child_pv {};
       const Score score = -search(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, depth - 1);
@@ -227,23 +234,46 @@ namespace rose {
 
       if (score > best_score) {
         best_score = score;
-        pv.write(m, std::move(child_pv));
+        best_move = mv;
+        pv.write(mv, std::move(child_pv));
 
-        if (score > alpha)
+        if (score > alpha) {
+          bound = tt::Bound::exact;
           alpha = score;
-        if (score >= beta)
-          break;
+          if (score >= beta) {
+            bound = tt::Bound::lower_bound;
+            break;
+          }
+        }
       }
     }
 
     if (best_score == score::none) {
       return position.is_in_check() ? score::mated(ply) : 0;
     }
+
+    tt_store(position,
+             ply,
+             tt::LookupResult {
+               .depth = depth,
+               .bound = bound,
+               .score = best_score,
+               .move = best_move,
+             });
+
     return best_score;
   }
 
   auto Search::eval(const Position& position) -> Score {
     return nnue::evaluate(position);
+  }
+
+  auto Search::tt_load(const Position& position, i32 ply) -> tt::LookupResult {
+    return m_shared.transposition_table.load(position.hash(), ply);
+  }
+
+  auto Search::tt_store(const Position& position, i32 ply, tt::LookupResult lr) -> void {
+    m_shared.transposition_table.store(position.hash(), ply, lr);
   }
 
 }  // namespace rose

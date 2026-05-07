@@ -9,6 +9,7 @@
 #include "rose/position.hpp"
 #include "rose/score.hpp"
 #include "rose/search_stats.hpp"
+#include "rose/tt.hpp"
 #include "rose/util/time.hpp"
 
 #include <atomic>
@@ -41,11 +42,12 @@ namespace rose {
   };
 
   struct SearchShared {
-    explicit SearchShared(int thread_count, std::shared_ptr<EngineOutput> output) :
+    explicit SearchShared(int thread_count, usize initial_tt_size, std::shared_ptr<EngineOutput> output) :
         idle_barrier(1 + thread_count),
         started_barrier(1 + thread_count),
         output(output),
-        stats(thread_count) {
+        stats(thread_count),
+        transposition_table(initial_tt_size) {
     }
 
     std::shared_ptr<EngineOutput> output;
@@ -63,6 +65,7 @@ namespace rose {
 
     // Shared Search Data
     std::vector<SearchStats> stats;
+    tt::TT transposition_table;
 
     auto reset() -> void;
 
@@ -122,6 +125,9 @@ namespace rose {
     auto search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply, i32 depth) -> Score;
 
     auto eval(const Position& position) -> Score;
+
+    auto tt_load(const Position& position, i32 ply) -> tt::LookupResult;
+    auto tt_store(const Position& position, i32 ply, tt::LookupResult lr) -> void;
   };
 
 }  // namespace rose
