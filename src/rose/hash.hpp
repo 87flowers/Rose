@@ -13,7 +13,7 @@ namespace rose {
 namespace rose::hash {
 
   extern const std::array<std::array<Hash, 64>, 16> piece_table;
-  extern const std::array<Hash, 8> castle_table;
+  extern const std::array<Hash, 16> castle_table;
   extern const std::array<Hash, 8> enpassant_table;
 
   inline constexpr Hash move = ~Hash {0};
