@@ -228,10 +228,8 @@ namespace rose {
 
   template<typename Node, typename Controls>
   auto Search::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply, i32 depth) -> Score {
-    const bool is_root = ply == 0;
-
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
-    if (!is_root && is_main_thread() && ctrl.check_hard_termination(stats(), depth)) [[unlikely]] {
+    if (!Node::is_root && is_main_thread() && ctrl.check_hard_termination(stats(), depth)) [[unlikely]] {
       m_shared.stop();
       return 0;
     }
