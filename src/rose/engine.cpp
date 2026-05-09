@@ -5,15 +5,16 @@
 #include "rose/engine_output_null.hpp"
 #include "rose/game.hpp"
 #include "rose/search.hpp"
+#include "rose/tt.hpp"
 #include "rose/util/assert.hpp"
 
 #include <memory>
-#include <tuple>
 
 namespace rose {
 
   Engine::Engine() :
-      m_output(std::make_shared<EngineOutputNull>()) {
+      m_output(std::make_shared<EngineOutputNull>()),
+      m_tt_size(tt::default_hash_size_mb) {
     set_thread_count(1);
   }
 
@@ -33,6 +34,7 @@ namespace rose {
 
   auto Engine::set_hash_size(int mb) -> void {
     rose_assert(mb > 0);
+    m_tt_size = mb;
     m_shared->set_hash_size(mb);
   }
 
@@ -45,7 +47,7 @@ namespace rose {
       m_searches.clear();
     }
 
-    m_shared = std::make_unique<SearchShared>(thread_count, m_output);
+    m_shared = std::make_unique<SearchShared>(thread_count, m_tt_size, m_output);
 
     for (int i = 0; i < thread_count; i++)
       m_searches.emplace_back(std::make_unique<Search>(i, *m_shared));

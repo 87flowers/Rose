@@ -324,7 +324,7 @@ namespace rose::hash {
     0xea30058f3832854a,
   }};
 
-  const std::array<Hash, 8> castle_table {{
+  const std::array<Hash, 16> castle_table {{
     0xe834218d8edadd58,
     0x440d94ee9f7ebbb8,
     0xe5e5ec81f77eb56c,
@@ -333,6 +333,14 @@ namespace rose::hash {
     0x85e0f7a7f44738ce,
     0x64240bf85eb20c18,
     0x4944749eaf719b8e,
+    0x71b071d0c779407c,
+    0xe002a615cc8c99cc,
+    0x25673e58f2552bc8,
+    0xe2fd340a9b4d694a,
+    0x6a3568de55e023ab,
+    0xdb1ede0350b2fd25,
+    0x8bc74b669b5638a0,
+    0x07a4c8f2d01ad6fb,
   }};
 
 }  // namespace rose::hash

@@ -8,6 +8,7 @@
 #include "rose/engine_output_xboard.hpp"
 #include "rose/position.hpp"
 #include "rose/search.hpp"
+#include "rose/tt.hpp"
 #include "rose/util/string.hpp"
 #include "rose/util/time.hpp"
 #include "rose/util/tokenizer.hpp"
@@ -22,8 +23,6 @@
 
 namespace rose {
 
-  static constexpr usize default_hash = 16;
-  static constexpr usize max_hash = 1048576;
   static constexpr usize max_threads = 1024;
 
   auto Interface::set_format(MoveFormat format) -> void {
@@ -207,7 +206,7 @@ namespace rose {
   auto Interface::uci_uci(Tokenizer&) -> void {
     fmt::print("id name Rose {}\n", rose::version::to_string());
     fmt::print("id author 87 (87flowers.com)\n");
-    fmt::print("option name Hash type spin default {} min 1 max {}\n", default_hash, max_hash);
+    fmt::print("option name Hash type spin default {} min 1 max {}\n", tt::default_hash_size_mb, tt::maximum_hash_size_mb);
     fmt::print("option name Threads type spin default 1 min 1 max {}\n", max_threads);
     fmt::print("option name UCI_Chess960 type check default false\n");
     fmt::print("uciok\n");
@@ -370,7 +369,7 @@ namespace rose {
     fmt::print("feature memory=1 smp=1\n");
 
     // UCI-isms
-    fmt::print("feature option=\"Hash -spin {} 1 {}\"\n", default_hash, max_hash);
+    fmt::print("feature option=\"Hash -spin {} 1 {}\"\n", tt::default_hash_size_mb, tt::maximum_hash_size_mb);
     fmt::print("feature option=\"Threads -spin 1 1 {}\"\n", max_threads);
 
     fmt::print("feature done=1\n");

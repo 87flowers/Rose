@@ -19,6 +19,7 @@ namespace rose {
     std::vector<std::unique_ptr<Search>> m_searches;
     std::unique_ptr<SearchShared> m_shared;
     std::shared_ptr<EngineOutput> m_output;
+    usize m_tt_size;
 
   public:
     Engine();

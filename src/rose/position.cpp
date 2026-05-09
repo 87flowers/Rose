@@ -182,6 +182,9 @@ namespace rose {
   }
 
   auto Position::is_legal_slow(Move m) const -> bool {
+    if (m.is_none()) {
+      return false;
+    }
     const MoveList moves = generate_all_moves(*this);
     return std::find(moves.begin(), moves.end(), m) != moves.end();
   }

@@ -5,14 +5,22 @@
 
 namespace rose {
 
-  MovePicker::MovePicker(const Search& search, const Position& position) :
+  MovePicker::MovePicker(const Search& search, const Position& position, Move tt_move) :
       m_search(search),
       m_position(position),
-      m_movegen(position) {
+      m_movegen(position),
+      m_tt_move(tt_move) {
   }
 
   auto MovePicker::next() -> Move {
     switch (m_stage) {
+    case Stage::tt_move:
+      m_stage = Stage::generate_noisy;
+
+      if (m_position.is_legal_slow(m_tt_move)) {
+        return m_tt_move;
+      }
+
     case Stage::generate_noisy:
       generate_noisy();
 
@@ -21,8 +29,12 @@ namespace rose {
 
       [[fallthrough]];
     case Stage::emit_noisy:
-      if (m_current_index < m_moves.size())
-        return m_moves[m_current_index++];
+      while (m_current_index < m_moves.size()) {
+        const Move mv = m_moves[m_current_index++];
+        if (mv == m_tt_move)
+          continue;
+        return mv;
+      }
 
       m_stage = Stage::generate_quiet;
       m_current_index = 0;
@@ -36,8 +48,12 @@ namespace rose {
 
       [[fallthrough]];
     case Stage::emit_quiet:
-      if (m_current_index < m_moves.size())
-        return m_moves[m_current_index++];
+      while (m_current_index < m_moves.size()) {
+        const Move mv = m_moves[m_current_index++];
+        if (mv == m_tt_move)
+          continue;
+        return mv;
+      }
 
       m_stage = Stage::end;
       m_current_index = 0;
