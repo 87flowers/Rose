@@ -54,6 +54,8 @@ namespace rose {
   };
 
   struct Color {
+    inline static constexpr usize count = 2;
+
     enum Underlying : bool {
       white = 0,
       black = 1,
@@ -97,6 +99,8 @@ namespace rose {
   };
 
   struct PieceType {
+    inline static constexpr usize count = 8;
+
     enum Underlying : u8 {
       none = 0b000,
       k = 0b001,

@@ -2,6 +2,9 @@
 
 #include "rose/movegen.hpp"
 #include "rose/search.hpp"
+#include "rose/util/static_vector.hpp"
+
+#include <ranges>
 
 namespace rose {
 
@@ -74,6 +77,20 @@ namespace rose {
   auto MovePicker::generate_quiet() -> void {
     m_moves.clear();
     m_movegen.generate_quiet(m_moves);
+
+    StaticVector<i32, max_legal_moves> scores;
+    scores.resize(m_moves.size());
+
+    const Color stm = m_position.stm();
+
+    for (isize i = 0; i < m_moves.size(); i++) {
+      const Move mv = m_moves[i];
+      scores[i] = m_search.m_quiet_history.get(stm, mv) * 256 - i;
+    }
+
+    std::ranges::sort(std::ranges::zip_view(m_moves, scores), [](auto&& a, auto&& b) {
+      return std::get<1>(a) > std::get<1>(b);
+    });
   }
 
 }  // namespace rose

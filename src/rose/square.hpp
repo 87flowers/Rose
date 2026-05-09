@@ -12,14 +12,20 @@
 namespace rose {
 
   struct Square {
+    inline static constexpr usize count = 64;
+
     u8 raw = 0x80;
 
     static constexpr auto invalid() -> Square {
-      return { 0x80 };
+      return {0x80};
     }
 
     constexpr auto is_valid() const -> bool {
       return (raw & 0x80) == 0;
+    }
+
+    constexpr auto to_index() const -> usize {
+      return raw;
     }
 
     constexpr auto file() const -> i8 {
@@ -31,15 +37,15 @@ namespace rose {
     }
 
     constexpr auto flip_ranks() const -> Square {
-      return { narrow_cast<u8>(raw ^ 0b111000) };
+      return {narrow_cast<u8>(raw ^ 0b111000)};
     }
 
     static constexpr auto from_file_and_rank(i8 file, i8 rank) -> Square {
-      return { narrow_cast<u8>(rank * 8 + file) };
+      return {narrow_cast<u8>(rank * 8 + file)};
     }
 
     constexpr auto to_file_and_rank() const -> std::tuple<i8, i8> {
-      return { raw % 8, raw / 8 };
+      return {raw % 8, raw / 8};
     }
 
     constexpr auto to_bitboard() const -> Bitboard;
