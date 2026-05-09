@@ -149,7 +149,7 @@ namespace lps::avx2 {
       if constexpr (sizeof(T) == sizeof(u8)) {
         return static_cast<u16>(_mm_movemask_epi8(raw.raw));
       } else if constexpr (sizeof(T) == sizeof(u16)) {
-        return static_cast<u8>(_pext_u32(static_cast<u32>(_mm_movemask_epi8(raw.raw)), 0xAAAA));
+        return static_cast<u8>(_mm_movemask_epi8(_mm_packs_epi16(raw.raw, _mm_setzero_si128())));
       } else if constexpr (sizeof(T) == sizeof(u32)) {
         return static_cast<u8>(_mm_movemask_ps((__m128)raw.raw));
       } else if constexpr (sizeof(T) == sizeof(u64)) {
@@ -161,7 +161,7 @@ namespace lps::avx2 {
       if constexpr (sizeof(T) == sizeof(u8)) {
         return static_cast<u32>(_mm256_movemask_epi8(raw.raw));
       } else if constexpr (sizeof(T) == sizeof(u16)) {
-        return static_cast<u16>(_pext_u32(static_cast<u32>(_mm256_movemask_epi8(raw.raw)), 0xAAAAAAAA));
+        return static_cast<u16>(_mm_movemask_epi8(_mm_packs_epi16(_mm256_castsi256_si128(raw.raw), _mm256_extracti128_si256(raw.raw, 1))));
       } else if constexpr (sizeof(T) == sizeof(u32)) {
         return static_cast<u8>(_mm256_movemask_ps((__m256)raw.raw));
       } else if constexpr (sizeof(T) == sizeof(u64)) {
