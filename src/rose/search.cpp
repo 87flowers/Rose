@@ -62,7 +62,7 @@ namespace rose {
   }
 
   auto Search::reset() -> void {
-    // TODO: Histories etc
+    m_quiet_history.reset();
   }
 
   auto Search::launch() -> void {
@@ -219,6 +219,9 @@ namespace rose {
 
     MovePicker moves {*this, position, tte.move};
 
+    MoveList fail_low_quiets;
+    MoveList fail_low_noisies;
+
     Score best_score = score::none;
     Move best_move = Move::none();
     tt::Bound bound = tt::Bound::upper_bound;
@@ -246,10 +249,32 @@ namespace rose {
           }
         }
       }
+
+      if (mv != best_move) {
+        if (mv.capture()) {
+          fail_low_noisies.push_back(mv);
+        } else {
+          fail_low_quiets.push_back(mv);
+        }
+      }
     }
 
     if (best_score == score::none) {
       return position.is_in_check() ? score::mated(ply) : 0;
+    }
+
+    if (best_move.is_some()) {
+      const Color stm = position.stm();
+
+      const i32 quiet_bonus = 150 * depth - 75;
+      const i32 quiet_malus = 75 * depth - 30;
+
+      if (!best_move.capture()) {
+        m_quiet_history.update(stm, best_move, quiet_bonus);
+        for (const Move quiet : fail_low_quiets) {
+          m_quiet_history.update(stm, quiet, -quiet_malus);
+        }
+      }
     }
 
     tt_store(position,

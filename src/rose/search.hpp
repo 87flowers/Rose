@@ -4,6 +4,7 @@
 #include "rose/engine_output.hpp"
 #include "rose/game.hpp"
 #include "rose/hash.hpp"
+#include "rose/history.hpp"
 #include "rose/line.hpp"
 #include "rose/move.hpp"
 #include "rose/position.hpp"
@@ -88,6 +89,8 @@ namespace rose {
 
   struct Search {
   private:
+    friend struct MovePicker;
+
     int m_id;
     SearchShared& m_shared;
 
@@ -97,6 +100,8 @@ namespace rose {
     std::vector<Move> m_move_stack;
     std::vector<Hash> m_hash_stack;
     usize m_hash_waterline;
+
+    QuietHistory m_quiet_history;
 
   public:
     Search(int id, SearchShared& shared) :
