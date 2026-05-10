@@ -70,7 +70,6 @@ namespace rose {
 
   auto MovePicker::generate_noisy() -> void {
     m_moves.clear();
-    m_movegen.prepare();
     m_movegen.generate_noisy(m_moves);
   }
 

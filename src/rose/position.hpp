@@ -126,9 +126,11 @@ namespace rose {
   struct Position {
   private:
     std::array<Wordboard, 2> m_attack_table {};
+    Wordboard m_masked_attack_table {};
     Byteboard m_board {};
     std::array<PieceList<Square>, 2> m_piece_list_sq {};
     std::array<PieceList<PieceType>, 2> m_piece_list_ptype {};
+    Bitboard m_pinned {};
     u64 m_hash {};
     RookInfo m_rook_info {};
     u16 m_50mr {};
@@ -160,12 +162,20 @@ namespace rose {
       return m_attack_table[color.to_index()];
     }
 
+    constexpr auto masked_attack_table() const -> const Wordboard& {
+      return m_masked_attack_table;
+    }
+
     constexpr auto piece_list_sq(Color color) const -> PieceList<Square> {
       return m_piece_list_sq[color.to_index()];
     }
 
     constexpr auto piece_list_type(Color color) const -> PieceList<PieceType> {
       return m_piece_list_ptype[color.to_index()];
+    }
+
+    constexpr auto pinned() const -> Bitboard {
+      return m_pinned;
     }
 
     constexpr auto hash() const -> Hash {
@@ -229,7 +239,7 @@ namespace rose {
 
     auto calc_hash_slow() const -> Hash;
 
-    auto calc_pin_info() const -> std::tuple<std::array<PieceMask, 64>, Bitboard>;
+    auto calc_pin_info_slow() const -> std::tuple<Wordboard, Bitboard>;
 
     auto calc_attacks_slow() const -> std::array<Wordboard, 2>;
     auto calc_attacks_slow(Square sq) const -> std::array<PieceMask, 2>;

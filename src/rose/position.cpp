@@ -378,6 +378,8 @@ namespace rose {
     new_pos.m_ply++;
     new_pos.m_stm = !m_stm;
 
+    std::tie(new_pos.m_masked_attack_table, new_pos.m_pinned) = new_pos.calc_pin_info_slow();
+
     rose_assert(new_pos.m_hash == new_pos.calc_hash_slow(),
                 "{} [{:016x}] : {} : {} [{:016x} {:016x}]",
                 to_string(MoveFormat::frc),
@@ -402,7 +404,7 @@ namespace rose {
     return result;
   }
 
-  auto Position::calc_pin_info() const -> std::tuple<std::array<PieceMask, 64>, Bitboard> {
+  auto Position::calc_pin_info_slow() const -> std::tuple<Wordboard, Bitboard> {
     const Square sq = king_sq(m_stm);
 
     const auto [ray_coords, ray_valid_premask] = geometry::superpiece_rays(sq);
@@ -451,7 +453,7 @@ namespace rose {
 
     const Bitboard pinned_bb {board_layout.nonzeros().to_bits()};
 
-    return {Wordboard {m_attack_table[m_stm.to_index()].raw & at_mask}.to_mailbox(), pinned_bb};
+    return {Wordboard {m_attack_table[m_stm.to_index()].raw & at_mask}, pinned_bb};
   }
 
   auto Position::calc_attacks_slow() const -> std::array<Wordboard, 2> {
@@ -636,6 +638,8 @@ namespace rose {
     result.m_attack_table = result.calc_attacks_slow();
     result.m_hash = result.calc_hash_slow();
 
+    std::tie(result.m_masked_attack_table, result.m_pinned) = result.calc_pin_info_slow();
+
     return result;
   }
 
@@ -678,12 +682,11 @@ namespace rose {
     fmt::print("m_stm: {}\n", m_stm);
     // calc_pin_info:
     {
-      const auto [at, pinned] = calc_pin_info();
       fmt::print("pinned-masked m_attack_table:\n");
       for (int r = 7; r >= 0; r--) {
         for (int f = 0; f < 8; f++) {
           const Square sq = Square::from_file_and_rank(f, r);
-          fmt::print("{:04x} ", at[sq.raw].raw);
+          fmt::print("{:04x} ", m_masked_attack_table.read(sq).raw);
         }
         fmt::print("\n");
       }
@@ -691,7 +694,7 @@ namespace rose {
       for (int r = 7; r >= 0; r--) {
         for (int f = 0; f < 8; f++) {
           const Square sq = Square::from_file_and_rank(f, r);
-          fmt::print("{} ", pinned.read(sq) ? 1 : 0);
+          fmt::print("{} ", m_pinned.read(sq) ? 1 : 0);
         }
         fmt::print("\n");
       }
