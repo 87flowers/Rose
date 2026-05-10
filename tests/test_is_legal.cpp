@@ -38,9 +38,15 @@ u64 is_legal_perft(const Position& position, usize depth) {
 
 int main() {
   std::vector<std::tuple<std::string_view, std::vector<u64>>> cases {{
+    {"r2k3r/Pppp1Npp/1b3nb1/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1R1K b - - 0 2", {{1, 3}}},
+    {"r2k3r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1R1K w - - 2 2", {{1, 38, 1682}}},
+    {"r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1R1K b kq - 1 1", {{1, 46, 1753, 81638}}},
+    {"8/2p4r/K2p4/1P6/1R3p1k/8/4P1P1/8 w - - 2 2", {{1, 16, 209, 3411}}},
+    {"8/2p5/K2p4/1P5r/1R3p1k/8/4P1P1/8 b - - 1 1", {{1, 15, 240, 3653, 59028}}},
     {"8/8/3p4/1Pp4r/1K5k/5p2/4P1P1/1R6 w - c6 0 3", {{1, 7}}},
     {"8/2p5/3p4/KP5r/7k/5p2/4P1P1/1R6 w - - 0 2", {{1, 19}}},
     {"8/2p5/3p4/KP5r/5p2/6k1/4P1P1/1R6 w - - 2 2", {{1, 15}}},
+    {"8/2p5/3p4/KPr5/5p1k/8/4P1P1/1R6 w - - 2 2", {{1, 17, 280}}},
     {"8/2p5/3p4/KP5r/5p1k/8/4P1P1/1R6 b - - 1 1", {{1, 16, 265, 4199, 69665}}},
     {"r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1R1K b kq - 1 1", {{1, 46}}},
     {"8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1", {{1, 17}}},

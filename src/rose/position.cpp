@@ -237,6 +237,10 @@ namespace rose {
       const Bitboard danger = attack_table(!m_stm).bitboard_any();
       if (danger.read(m.to()))
         return false;
+      for (const PieceId c : checkers())
+        if (what_is(!m_stm, c).is_slider() && rays::king_invalid_destinations(king, where_is(!m_stm, c)).read(m.to()))
+          return false;
+
       if (m.flags() == MoveFlags::cap_normal)
         return valid_attack && !dst.is_empty() && dst.color() != m_stm;
       if (m.flags() == MoveFlags::normal)
@@ -244,9 +248,21 @@ namespace rose {
       return false;
     }
 
-    if (const PieceMask c = checkers();
-        !c.is_empty() && (c.popcount() > 1 || !(m.is_enpassant() || rays::calc_ray_to(king, where_is(!m_stm, c.lsb())).read(m.to()))))
-      return false;
+    const PieceMask checker_ids = checkers();
+
+    if (!checker_ids.is_empty()) {
+      if (checker_ids.popcount() > 1)
+        return false;
+
+      const Square checker_sq = where_is(!m_stm, checker_ids.lsb());
+      const PieceType checker_ptype = what_is(!m_stm, checker_ids.lsb());
+      const Bitboard valid_destinations = checker_ptype == PieceType::n ? checker_sq.to_bitboard() : rays::calc_ray_to(king, checker_sq);
+
+      if (m.is_enpassant() && checker_ptype != PieceType::p)
+        return false;
+      if (!m.is_enpassant() && !valid_destinations.read(m.to()))
+        return false;
+    }
 
     if (src.ptype() == PieceType::p) {
       if (m.is_castle())
@@ -255,18 +271,11 @@ namespace rose {
         return false;
 
       if (m.is_enpassant()) {
-        if (m.from().rank() == king.rank() && m_masked_attack_table.read(m.to()).popcount() == 1) {
+        if (m.from().rank() == king.rank()) {
           const Square ep_victim = Square::from_file_and_rank(m_enpassant.file(), m_stm == Color::white ? 4 : 3);
           const Bitboard potential_pinners =
             (m_board.bitboard_for<PieceType::r>(!m_stm) | m_board.bitboard_for<PieceType::q>(!m_stm)) & Bitboard::rank_mask(king.rank());
           const Bitboard occ = m_board.occupied_bitboard() ^ king.to_bitboard() ^ ep_victim.to_bitboard() ^ m.from().to_bitboard();
-          // rose_dbg("{}\n", m.to_string(MoveFormat::frc));
-          // rose_dbg("{}\n", m_stm);
-          // rose_dbg("{:016x}\n", m_board.bitboard_for<PieceType::r>(!m_stm).raw);
-          // rose_dbg("{:016x}\n", m_board.bitboard_for<PieceType::q>(!m_stm).raw);
-          // rose_dbg("{:016x}\n", Bitboard::rank_mask(king.rank()).raw);
-          // rose_dbg("{:016x}\n", potential_pinners.raw);
-          // rose_dbg("{:016x}\n", occ.raw);
           for (const Square potential_pinner : potential_pinners)
             if ((rays::calc_ray_to(king, potential_pinner) & occ).popcount() == 1)
               return false;

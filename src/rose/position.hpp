@@ -211,6 +211,10 @@ namespace rose {
       return m_board.mailbox[sq.raw];
     }
 
+    auto what_is(Color color, PieceId id) const -> PieceType {
+      return m_piece_list_ptype[color.to_index()][id];
+    }
+
     auto where_is(Color color, PieceId id) const -> Square {
       return m_piece_list_sq[color.to_index()][id];
     }
