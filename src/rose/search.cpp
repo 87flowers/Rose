@@ -227,6 +227,7 @@ namespace rose {
     tt::Bound bound = tt::Bound::upper_bound;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
+      const bool is_quiet = moves.is_quiet(mv);
       const Position child_position = position.move(mv);
 
       Line child_pv {};
@@ -251,10 +252,10 @@ namespace rose {
       }
 
       if (mv != best_move) {
-        if (mv.capture()) {
-          fail_low_noisies.push_back(mv);
-        } else {
+        if (is_quiet) {
           fail_low_quiets.push_back(mv);
+        } else {
+          fail_low_noisies.push_back(mv);
         }
       }
     }
@@ -269,7 +270,7 @@ namespace rose {
       const i32 quiet_bonus = 150 * depth - 75;
       const i32 quiet_malus = 75 * depth - 30;
 
-      if (!best_move.capture()) {
+      if (moves.is_quiet(best_move)) {
         m_quiet_history.update(stm, best_move, quiet_bonus);
         for (const Move quiet : fail_low_quiets) {
           m_quiet_history.update(stm, quiet, -quiet_malus);

@@ -38,6 +38,10 @@ namespace rose {
 
     auto next() -> Move;
 
+    auto is_quiet(Move mv) -> bool {
+      return !mv.is_capture();
+    }
+
   private:
     auto generate_noisy() -> void;
     auto generate_quiet() -> void;

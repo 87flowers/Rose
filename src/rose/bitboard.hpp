@@ -25,12 +25,21 @@ namespace rose {
       return Bitboard {static_cast<u64>(0x0101010101010101) << file};
     }
 
+    static constexpr Bitboard rank_mask(i8 rank) {
+      rose_assert(rank >= 0 && rank <= 7);
+      return Bitboard {static_cast<u64>(0xFF) << (rank * 8)};
+    }
+
     constexpr auto is_empty() const -> bool {
       return raw == 0;
     }
 
     constexpr auto lsb() const -> Square {
       return Square {static_cast<u8>(std::countr_zero(raw))};
+    }
+
+    constexpr auto popcount() const -> i32 {
+      return std::popcount(raw);
     }
 
     constexpr auto pop_lsb() -> void {

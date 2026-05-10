@@ -12,10 +12,6 @@
 
 namespace rose {
 
-  inline static constexpr auto backrank_ray(Square a, Square b) -> Bitboard {
-    return a.raw > b.raw ? Bitboard {(a.to_bitboard().raw << 1) - b.to_bitboard().raw} : Bitboard {(b.to_bitboard().raw << 1) - a.to_bitboard().raw};
-  }
-
   template<typename M, typename T>
   auto MoveList::write(M mask, T v) -> void {
     const usize count = std::popcount(mask);
@@ -164,22 +160,10 @@ namespace rose {
         const Square rook_hside = position.rook_info().hside(stm);
         const Square rook_aside = position.rook_info().aside(stm);
 
-        const auto do_castle = [&](Square king_sq, Square rook_sq, i8 rook_dest, i8 king_dest, MoveFlags mf) {
-          rose_assert(position.board()[rook_sq].ptype() == PieceType::r && position.board()[rook_sq].color() == stm);
-          const Bitboard king_bb = king_sq.to_bitboard();
-          const Bitboard rook_bb = rook_sq.to_bitboard();
-          const Bitboard rook_ray = backrank_ray(rook_sq, Square::from_file_and_rank(rook_dest, king_sq.rank()));
-          const Bitboard king_ray = backrank_ray(king_sq, Square::from_file_and_rank(king_dest, king_sq.rank()));
-          const Bitboard clear = empty | king_bb | rook_bb;
-          if ((~clear & rook_ray).is_empty() && ((~clear | danger) & king_ray).is_empty() && (rook_bb & pinned).is_empty()) {
-            moves.push_back(Move::make(king_sq, rook_sq, mf));
-          }
-        };
-
-        if (rook_aside.is_valid())
-          do_castle(king_sq, rook_aside, 3, 2, MoveFlags::castle_aside);
-        if (rook_hside.is_valid())
-          do_castle(king_sq, rook_hside, 5, 6, MoveFlags::castle_hside);
+        if (rook_aside.is_valid() && m_position.is_castle_aside_legal())
+          moves.push_back(Move::make(king_sq, rook_aside, MoveFlags::castle_aside));
+        if (rook_hside.is_valid() && m_position.is_castle_hside_legal())
+          moves.push_back(Move::make(king_sq, rook_hside, MoveFlags::castle_hside));
       }
       // Non-pawn quiets
       write_moves<MoveFlags::normal>(moves, at, srcs, nonpawn_active & empty, nonpawn_mask);
