@@ -277,7 +277,7 @@ namespace rose {
         // PVS Scout Search
         if (Node::is_pv && move_count > 1) {
           const Score scout_score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ply + 1, new_depth);
-          if (scout_score < alpha)
+          if (scout_score <= alpha)
             return scout_score;
         }
 
@@ -291,7 +291,8 @@ namespace rose {
       if (score > best_score) {
         best_score = score;
         best_move = mv;
-        pv.write(mv, std::move(child_pv));
+        if constexpr (Node::is_pv)
+          pv.write(mv, std::move(child_pv));
 
         if (score > alpha) {
           bound = tt::Bound::exact;
@@ -390,7 +391,8 @@ namespace rose {
       if (score > best_score) {
         best_score = score;
         best_move = mv;
-        pv.write(mv, std::move(child_pv));
+        if constexpr (Node::is_pv)
+          pv.write(mv, std::move(child_pv));
 
         if (score > alpha) {
           bound = tt::Bound::exact;
