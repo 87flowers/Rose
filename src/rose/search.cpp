@@ -10,6 +10,7 @@
 #include "rose/search_control.hpp"
 #include "rose/tt.hpp"
 #include "rose/util/assert.hpp"
+#include "rose/util/defer.hpp"
 #include "rose/util/time.hpp"
 
 #include <atomic>
@@ -212,6 +213,14 @@ namespace rose {
       return 0;
     }
 
+    if (!is_root) {
+      if (const auto score = position.is_fifty_move_draw(ply))
+        return *score;
+
+      if (position.is_repetition(m_hash_stack, m_hash_waterline))
+        return 0;
+    }
+
     if (depth <= 0 || ply >= max_depth)
       return eval(position);
 
@@ -228,6 +237,10 @@ namespace rose {
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       const Position child_position = position.move(mv);
+      m_hash_stack.push_back(child_position.hash());
+      rose_defer {
+        m_hash_stack.pop_back();
+      };
 
       Line child_pv {};
       const Score score = -search(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, depth - 1);
