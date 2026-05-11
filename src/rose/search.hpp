@@ -126,9 +126,9 @@ namespace rose {
     template<typename Controls>
     auto search_root(const Controls& ctrl) -> void;
 
-    template<typename Controls>
+    template<typename Node, typename Controls>
     auto search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply, i32 depth) -> Score;
-    template<typename Controls>
+    template<typename Node, typename Controls>
     auto qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply) -> Score;
 
     auto eval(const Position& position) -> Score;
