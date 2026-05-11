@@ -217,11 +217,8 @@ namespace rose {
       if (const auto score = position.is_fifty_move_draw(ply))
         return *score;
 
-      if (position.is_repetition(m_hash_stack, m_hash_waterline)) {
-        alpha = 0;
-        if (alpha >= beta)
-          return 0;
-      }
+      if (position.is_repetition(m_hash_stack, m_hash_waterline))
+        return 0;
     }
 
     if (depth <= 0 || ply >= max_depth)
