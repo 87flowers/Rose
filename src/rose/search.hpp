@@ -133,8 +133,6 @@ namespace rose {
 
     auto tt_load(const Position& position, i32 ply) -> tt::LookupResult;
     auto tt_store(const Position& position, i32 ply, tt::LookupResult lr) -> void;
-
-    auto is_draw(const Position& position, i32 ply) -> std::optional<Score>;
   };
 
 }  // namespace rose
