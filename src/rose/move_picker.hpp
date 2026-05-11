@@ -20,7 +20,7 @@ namespace rose {
     };
 
     auto is_in_quiet_stage() const -> bool {
-      return m_stage == Stage::emit_quiet;
+      return m_stage >= Stage::generate_quiet && m_stage <= Stage::emit_quiet;
     }
 
     Stage m_stage = Stage::tt_move;
@@ -30,6 +30,7 @@ namespace rose {
     MoveGen m_movegen;
     Move m_tt_move;
 
+    bool m_skip_quiet = false;
     usize m_current_index = 0;
     MoveList m_moves;
 
@@ -37,6 +38,14 @@ namespace rose {
     MovePicker(const Search& search, const Position& position, Move tt_move);
 
     auto next() -> Move;
+
+    auto skip_quiet() -> void {
+      m_skip_quiet = true;
+      if (is_in_quiet_stage()) {
+        m_stage = Stage::end;
+        m_current_index = 0;
+      }
+    }
 
   private:
     auto generate_noisy() -> void;

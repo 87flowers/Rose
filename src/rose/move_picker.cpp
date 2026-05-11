@@ -45,6 +45,12 @@ namespace rose {
 
       [[fallthrough]];
     case Stage::generate_quiet:
+      if (m_skip_quiet) {
+        m_stage = Stage::end;
+        m_current_index = 0;
+        return next();
+      }
+
       generate_quiet();
 
       m_stage = Stage::emit_quiet;

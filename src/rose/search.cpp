@@ -207,8 +207,11 @@ namespace rose {
   auto Search::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply, i32 depth) -> Score {
     const bool is_root = ply == 0;
 
+    if (depth <= 0)
+      return qsearch(ctrl, position, pv, alpha, beta, ply);
+
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
-    if (!is_root && is_main_thread() && ctrl.check_hard_termination(stats(), depth)) [[unlikely]] {
+    if (!is_root && is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
       m_shared.stop();
       return 0;
     }
@@ -221,7 +224,7 @@ namespace rose {
         return 0;
     }
 
-    if (depth <= 0 || ply >= max_depth)
+    if (ply >= max_depth)
       return eval(position);
 
     const tt::LookupResult tte = tt_load(position, ply);
@@ -298,6 +301,72 @@ namespace rose {
                .score = best_score,
                .move = best_move,
              });
+
+    return best_score;
+  }
+
+  template<typename Controls>
+  auto Search::qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply) -> Score {
+    const bool is_root = ply == 0;
+
+    stats().nodes.fetch_add(1, std::memory_order_relaxed);
+    if (!is_root && is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
+      m_shared.stop();
+      return 0;
+    }
+
+    if (!is_root) {
+      if (const auto score = position.is_fifty_move_draw(ply))
+        return *score;
+
+      if (position.is_repetition(m_hash_stack, m_hash_waterline))
+        return 0;
+    }
+
+    if (ply >= max_depth)
+      return eval(position);
+
+    const Score static_eval = eval(position);
+    if (static_eval >= beta) {
+      return static_eval;
+    }
+    alpha = std::max(alpha, static_eval);
+
+    MovePicker moves {*this, position, Move::none()};
+    moves.skip_quiet();
+
+    Score best_score = static_eval;
+    Move best_move = Move::none();
+    tt::Bound bound = tt::Bound::upper_bound;
+
+    for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
+      const Position child_position = position.move(mv);
+      m_hash_stack.push_back(child_position.hash());
+      rose_defer {
+        m_hash_stack.pop_back();
+      };
+
+      Line child_pv {};
+      const Score score = -qsearch(ctrl, child_position, child_pv, -beta, -alpha, ply + 1);
+
+      if (m_shared.stopping)
+        return 0;
+
+      if (score > best_score) {
+        best_score = score;
+        best_move = mv;
+        pv.write(mv, std::move(child_pv));
+
+        if (score > alpha) {
+          bound = tt::Bound::exact;
+          alpha = score;
+          if (score >= beta) {
+            bound = tt::Bound::lower_bound;
+            break;
+          }
+        }
+      }
+    }
 
     return best_score;
   }
