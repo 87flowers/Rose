@@ -274,7 +274,7 @@ namespace rose {
         // PVS Scout Search
         if (Node::is_pv && move_count > 1) {
           const Score scout_score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ply + 1, new_depth);
-          if (score <= alpha)
+          if (scout_score <= alpha)
             return scout_score;
         }
 
