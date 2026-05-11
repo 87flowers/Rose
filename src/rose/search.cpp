@@ -212,6 +212,10 @@ namespace rose {
       return 0;
     }
 
+    if (!is_root)
+      if (const auto score = is_draw(position, ply))
+        return *score;
+
     if (depth <= 0 || ply >= max_depth)
       return eval(position);
 
@@ -299,6 +303,14 @@ namespace rose {
 
   auto Search::tt_store(const Position& position, i32 ply, tt::LookupResult lr) -> void {
     m_shared.transposition_table.store(position.hash(), ply, lr);
+  }
+
+  auto Search::is_draw(const Position& position, i32 ply) -> std::optional<Score> {
+    if (const auto score = position.is_fifty_move_draw(ply))
+      return score;
+    if (position.is_repetition(m_hash_stack, m_hash_waterline))
+      return 0;
+    return std::nullopt;
   }
 
 }  // namespace rose
