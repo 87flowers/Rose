@@ -230,7 +230,7 @@ namespace rose {
   template<typename Node, typename Controls>
   auto Search::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply, i32 depth) -> Score {
     if (depth <= 0)
-      return qsearch(ctrl, position, pv, alpha, beta, ply);
+      return qsearch<Node>(ctrl, position, pv, alpha, beta, ply);
 
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
     if (!Node::is_root && is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
@@ -342,17 +342,15 @@ namespace rose {
     return best_score;
   }
 
-  template<typename Controls>
+  template<typename Node, typename Controls>
   auto Search::qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply) -> Score {
-    const bool is_root = ply == 0;
-
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
-    if (!is_root && is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
+    if (!Node::is_root && is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
       m_shared.stop();
       return 0;
     }
 
-    if (!is_root) {
+    if (!Node::is_root) {
       if (const auto score = position.is_fifty_move_draw(ply))
         return *score;
 
@@ -384,7 +382,7 @@ namespace rose {
       };
 
       Line child_pv {};
-      const Score score = -qsearch(ctrl, child_position, child_pv, -beta, -alpha, ply + 1);
+      const Score score = -qsearch<typename Node::next>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1);
 
       if (m_shared.stopping)
         return 0;
