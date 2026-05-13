@@ -281,12 +281,12 @@ namespace rose {
 
       // Beta Multi-Probcut
       if (static_eval >= beta && depth >= 7) {
-        const i32 r = 4;
+        const i32 r = 1 + depth / 2;
         const i32 margin = 64;
         const i32 bound = beta + margin;
         const i32 score = search<node::NonPv>(ctrl, position, pv, bound - 1, bound, ply, depth - r);
         if (score >= bound) {
-          return beta;
+          return score;
         }
       }
     }
