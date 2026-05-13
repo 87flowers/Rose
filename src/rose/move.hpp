@@ -69,24 +69,28 @@ namespace rose {
       return Square {static_cast<u8>((raw >> 6) & 0x3F)};
     }
 
-    constexpr auto promo() const -> bool {
+    constexpr auto is_promo() const -> bool {
       return raw & 0x4000;
     }
 
-    constexpr auto capture() const -> bool {
+    constexpr auto is_capture() const -> bool {
       return raw & 0x8000;
     }
 
-    constexpr auto castle() const -> bool {
+    constexpr auto is_castle() const -> bool {
       return flags() == MoveFlags::castle_aside || flags() == MoveFlags::castle_hside;
     }
 
-    constexpr auto enpassant() const -> bool {
+    constexpr auto is_enpassant() const -> bool {
       return flags() == MoveFlags::enpassant;
     }
 
+    constexpr auto is_double_push() const -> bool {
+      return flags() == MoveFlags::double_push;
+    }
+
     constexpr auto ptype() const -> PieceType {
-      rose_assert(promo());
+      rose_assert(is_promo());
       constexpr std::array<PieceType, 4> lut {PieceType::q, PieceType::n, PieceType::r, PieceType::b};
       return lut[(raw & 0x3000) >> 12];
     }
@@ -103,7 +107,7 @@ namespace rose {
         return fmt::format("{}c{}", from(), static_cast<char>(to().rank() + '1'));
       if (classical && flags() == MoveFlags::castle_hside && from().file() == 4 && to().file() == 7)
         return fmt::format("{}g{}", from(), static_cast<char>(to().rank() + '1'));
-      if (promo())
+      if (is_promo())
         return fmt::format("{}{}{}", from(), to(), ptype());
       else
         return fmt::format("{}{}", from(), to());
