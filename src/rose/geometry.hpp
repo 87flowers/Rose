@@ -98,7 +98,8 @@ namespace rose::geometry {
   }
 
   auto superpiece_attacks(u8x64 ray_places, m8x64 ray_valid) -> m8x64;
-  auto superpiece_attacks(m8x64 ray_places, m8x64 ray_valid) -> m8x64;
+  auto superpiece_attacks(m8x64 occupied, m8x64 ray_valid) -> m8x64;
+  auto superpiece_attacks(u64 occupied, u64 ray_valid) -> u64;
 
   inline auto superpiece_attacks(u8x64 ray_places, m8x64 ray_valid) -> m8x64 {
 #if LPS_AVX512
@@ -110,12 +111,16 @@ namespace rose::geometry {
 
   inline auto superpiece_attacks(m8x64 occupied, m8x64 ray_valid) -> m8x64 {
 #if LPS_AVX512
-    const u64 o = occupied.raw | 0x8181818181818181;
-    const u64 x = o ^ (o - 0x0303030303030303);
-    return m8x64 {x} & ray_valid;
+    return m8x64 {superpiece_attacks(occupied.raw, ray_valid.raw)};
 #else
     return superpiece_attacks(occupied.to_vector().convert<u8>(), ray_valid);
 #endif
+  }
+
+  inline auto superpiece_attacks(u64 occupied, u64 ray_valid) -> u64 {
+    const u64 o = occupied | 0x8181818181818181;
+    const u64 x = o ^ (o - 0x0303030303030303);
+    return x & ray_valid;
   }
 
   inline auto ray_fill(m8x64 x) -> m8x64 {

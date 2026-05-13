@@ -13,9 +13,10 @@ namespace rose {
     enum class Stage {
       tt_move,
       generate_noisy,
-      emit_noisy,
+      emit_good_noisy,
       generate_quiet,
       emit_quiet,
+      emit_bad_noisy,
       end,
     };
 
@@ -33,6 +34,7 @@ namespace rose {
     bool m_skip_quiet = false;
     usize m_current_index = 0;
     MoveList m_moves;
+    MoveList m_bad_noisies;
 
   public:
     MovePicker(const Search& search, const Position& position, Move tt_move);
@@ -42,7 +44,7 @@ namespace rose {
     auto skip_quiet() -> void {
       m_skip_quiet = true;
       if (is_in_quiet_stage()) {
-        m_stage = Stage::end;
+        m_stage = Stage::emit_bad_noisy;
         m_current_index = 0;
       }
     }
