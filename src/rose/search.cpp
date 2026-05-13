@@ -269,6 +269,15 @@ namespace rose {
       }
     }
 
+    if constexpr (!Node::is_pv) {
+      // Reduced futility pruning
+      if (depth <= 6) {
+        const i32 static_eval = eval(position);
+        if (static_eval - 128 * depth >= beta)
+          return static_eval;
+      }
+    }
+
     MovePicker moves {*this, position, tte.move};
 
     MoveList fail_low_quiets;
