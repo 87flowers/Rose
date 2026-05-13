@@ -27,6 +27,10 @@ namespace rose::tt {
     auto is_none() const -> bool {
       return bound == Bound::none;
     }
+
+    auto is_some() const -> bool {
+      return !is_none();
+    }
   };
 
   struct Entry {

@@ -228,6 +228,21 @@ namespace rose {
       return eval(position);
 
     const tt::LookupResult tte = tt_load(position, ply);
+    if (!is_root && tte.is_some() && tte.depth > depth && [&] {
+          switch (tte.bound) {
+          case tt::Bound::none:
+            return false;
+          case tt::Bound::lower_bound:
+            return tte.score >= beta;
+          case tt::Bound::exact:
+            return true;
+          case tt::Bound::upper_bound:
+            return tte.score <= alpha;
+          }
+        }()) {
+      pv.write(tte.move);
+      return tte.score;
+    }
 
     MovePicker moves {*this, position, tte.move};
 
