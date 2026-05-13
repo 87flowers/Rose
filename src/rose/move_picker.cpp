@@ -81,32 +81,15 @@ namespace rose {
     m_movegen.generate_noisy(m_moves);
 
     const Color stm = m_position.stm();
-    const Bitboard danger = m_position.attack_table(!stm).bitboard_any();
-
-    const auto danger_start = std::stable_partition(m_moves.begin(), m_moves.end(), [danger](Move mv) {
-      return !danger.read(mv.to());
-    });
-
-    const usize no_danger_size = danger_start - m_moves.begin();
-    const usize danger_size = m_moves.end() - danger_start;
 
     StaticVector<i32, max_legal_moves> scores;
 
-    scores.resize(no_danger_size);
-    for (isize i = 0; i < no_danger_size; i++) {
+    scores.resize(m_moves.size());
+    for (isize i = 0; i < m_moves.size(); i++) {
       const Move mv = m_moves[i];
-      scores[i] = m_position.board()[mv.to()].ptype().to_sort_value() * 0x10000 - i;
-    }
-    std::ranges::sort(std::ranges::zip_view(std::ranges::subrange(m_moves.begin(), danger_start), scores), [](auto&& a, auto&& b) {
-      return std::get<1>(a) > std::get<1>(b);
-    });
-
-    scores.resize(danger_size);
-    for (isize i = 0; i < danger_size; i++) {
-      const Move mv = *(danger_start + i);
       scores[i] = m_position.board()[mv.to()].ptype().to_sort_value() * 0x10000 - m_position.board()[mv.from()].ptype().to_sort_value() * 0x100 - i;
     }
-    std::ranges::sort(std::ranges::zip_view(std::ranges::subrange(danger_start, m_moves.end()), scores), [](auto&& a, auto&& b) {
+    std::ranges::sort(std::ranges::zip_view(m_moves, scores), [](auto&& a, auto&& b) {
       return std::get<1>(a) > std::get<1>(b);
     });
   }
