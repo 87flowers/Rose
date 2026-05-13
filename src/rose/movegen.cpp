@@ -108,6 +108,8 @@ namespace rose {
     const Bitboard empty = position.board().empty_bitboard();
     const Bitboard enemy = position.board().color_bitboard(!stm);
 
+    const auto [at, pinned] = m_position.pin_info();
+
     const PieceMask king_mask = PieceMask::king();
     const PieceMask pawn_mask = position.piece_mask_for<PieceType::p>(stm);
     const PieceMask nonpawn_mask = ~pawn_mask & ~king_mask;
@@ -123,10 +125,10 @@ namespace rose {
 
     if constexpr (mode == Mode::all || mode == Mode::noisy) {
       // Capture-with-promotion
-      write_cap_promo(moves, m_at, pawn_active & enemy & pawn_info.promo_zone, pawn_mask);
+      write_cap_promo(moves, at, pawn_active & enemy & pawn_info.promo_zone, pawn_mask);
       // En passant
       if (const Square ep = position.enpassant(); ep.is_valid() && (!in_check || one_checker == PieceType::p)) {
-        const PieceMask attackers = m_at[ep.raw] & pawn_mask;
+        const PieceMask attackers = at[ep.raw] & pawn_mask;
         if (!attackers.is_empty()) {
           const Square victim = Square::from_file_and_rank(ep.file(), stm == Color::white ? 4 : 3);
           if (attackers.popcount() > 1 || victim.rank() != king_sq.rank() || [&] {
@@ -147,12 +149,12 @@ namespace rose {
         }
       }
       // Pawn captures
-      write_moves<MoveFlags::cap_normal>(moves, m_at, srcs, pawn_active & enemy & pawn_info.non_promo_dest, pawn_mask);
+      write_moves<MoveFlags::cap_normal>(moves, at, srcs, pawn_active & enemy & pawn_info.non_promo_dest, pawn_mask);
       // Non-pawn captures
-      write_moves<MoveFlags::cap_normal>(moves, m_at, srcs, nonpawn_active & enemy, nonpawn_mask);
+      write_moves<MoveFlags::cap_normal>(moves, at, srcs, nonpawn_active & enemy, nonpawn_mask);
       // King captures
       if constexpr (!in_check)
-        write_moves<MoveFlags::cap_normal>(moves, m_at, srcs, king_active & enemy & ~danger, king_mask);
+        write_moves<MoveFlags::cap_normal>(moves, at, srcs, king_active & enemy & ~danger, king_mask);
     }
 
     if constexpr (mode == Mode::all || mode == Mode::quiet) {
@@ -168,7 +170,7 @@ namespace rose {
           const Bitboard rook_ray = backrank_ray(rook_sq, Square::from_file_and_rank(rook_dest, king_sq.rank()));
           const Bitboard king_ray = backrank_ray(king_sq, Square::from_file_and_rank(king_dest, king_sq.rank()));
           const Bitboard clear = empty | king_bb | rook_bb;
-          if ((~clear & rook_ray).is_empty() && ((~clear | danger) & king_ray).is_empty() && (rook_bb & m_pinned).is_empty()) {
+          if ((~clear & rook_ray).is_empty() && ((~clear | danger) & king_ray).is_empty() && (rook_bb & pinned).is_empty()) {
             moves.push_back(Move::make(king_sq, rook_sq, mf));
           }
         };
@@ -179,13 +181,13 @@ namespace rose {
           do_castle(king_sq, rook_hside, 5, 6, MoveFlags::castle_hside);
       }
       // Non-pawn quiets
-      write_moves<MoveFlags::normal>(moves, m_at, srcs, nonpawn_active & empty, nonpawn_mask);
+      write_moves<MoveFlags::normal>(moves, at, srcs, nonpawn_active & empty, nonpawn_mask);
       // King quiets
       if constexpr (!in_check)
-        write_moves<MoveFlags::normal>(moves, m_at, srcs, king_active & empty & ~danger, king_mask);
+        write_moves<MoveFlags::normal>(moves, at, srcs, king_active & empty & ~danger, king_mask);
       // Do pawns
       {
-        const Bitboard pinned_pawns = m_pinned & ~Bitboard::file_mask(king_sq.file());
+        const Bitboard pinned_pawns = pinned & ~Bitboard::file_mask(king_sq.file());
 
         const Bitboard bb = position.bitboard_for<PieceType::p>(stm) & ~pinned_pawns;
         const auto pawn_empty = pawns::pawn_destination_empty(stm, empty, valid_destinations);
@@ -269,10 +271,6 @@ namespace rose {
 
   MoveGen::MoveGen(const Position& position) :
       m_position(position) {
-  }
-
-  auto MoveGen::prepare() -> void {
-    std::tie(m_at, m_pinned) = m_position.calc_pin_info();
   }
 
   template<MoveGen::Mode mode>

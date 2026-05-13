@@ -222,6 +222,9 @@ namespace rose {
 
   auto Position::move(Move m) const -> Position {
     Position new_pos = *this;
+    new_pos.m_valid_pin_info = false;
+    new_pos.m_cached_pinned = {};
+    new_pos.m_cached_masked_attack_table = {};
 
     const Square from = m.from();
     const Square to = m.to();
@@ -402,7 +405,15 @@ namespace rose {
     return result;
   }
 
-  auto Position::calc_pin_info() const -> std::tuple<std::array<PieceMask, 64>, Bitboard> {
+  auto Position::pin_info() const -> std::tuple<const std::array<PieceMask, 64>&, Bitboard> {
+    if (!m_valid_pin_info) {
+      m_valid_pin_info = true;
+      std::tie(m_cached_masked_attack_table, m_cached_pinned) = calc_pin_info_slow();
+    }
+    return std::tie(m_cached_masked_attack_table, m_cached_pinned);
+  }
+
+  auto Position::calc_pin_info_slow() const -> std::tuple<std::array<PieceMask, 64>, Bitboard> {
     const Square sq = king_sq(m_stm);
 
     const auto [ray_coords, ray_valid_premask] = geometry::superpiece_rays(sq);
@@ -678,7 +689,7 @@ namespace rose {
     fmt::print("m_stm: {}\n", m_stm);
     // calc_pin_info:
     {
-      const auto [at, pinned] = calc_pin_info();
+      const auto [at, pinned] = calc_pin_info_slow();
       fmt::print("pinned-masked m_attack_table:\n");
       for (int r = 7; r >= 0; r--) {
         for (int f = 0; f < 8; f++) {

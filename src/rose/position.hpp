@@ -136,6 +136,10 @@ namespace rose {
     Square m_enpassant = Square::invalid();
     Color m_stm {};
 
+    mutable std::array<PieceMask, 64> m_cached_masked_attack_table {};
+    mutable Bitboard m_cached_pinned {};
+    mutable bool m_valid_pin_info = false;
+
     auto add_attacks(Color color, Square sq, PieceId id, PieceType ptype) -> void;
     auto remove_attacks(Color color, PieceId id) -> void;
     auto toggle_sliders_single(Square sq) -> void;
@@ -229,7 +233,8 @@ namespace rose {
 
     auto calc_hash_slow() const -> Hash;
 
-    auto calc_pin_info() const -> std::tuple<std::array<PieceMask, 64>, Bitboard>;
+    auto pin_info() const -> std::tuple<const std::array<PieceMask, 64>&, Bitboard>;
+    auto calc_pin_info_slow() const -> std::tuple<std::array<PieceMask, 64>, Bitboard>;
 
     auto calc_attacks_slow() const -> std::array<Wordboard, 2>;
     auto calc_attacks_slow(Square sq) const -> std::array<PieceMask, 2>;
