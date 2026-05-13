@@ -229,6 +229,9 @@ namespace rose {
 
   template<typename Node, typename Controls>
   auto Search::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply, i32 depth) -> Score {
+    if (m_shared.stopping)
+      return 0;
+
     if (depth <= 0)
       return qsearch<Node>(ctrl, position, pv, alpha, beta, ply);
 
@@ -339,6 +342,9 @@ namespace rose {
 
   template<typename Node, typename Controls>
   auto Search::qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply) -> Score {
+    if (m_shared.stopping)
+      return 0;
+
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
     if (!Node::is_root && is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
       m_shared.stop();
