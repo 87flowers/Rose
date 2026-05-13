@@ -253,11 +253,11 @@ namespace rose {
 
       if (score > best_score) {
         best_score = score;
-        best_move = mv;
         pv.write(mv, std::move(child_pv));
 
         if (score > alpha) {
           bound = tt::Bound::exact;
+          best_move = mv;
           alpha = score;
           if (score >= beta) {
             bound = tt::Bound::lower_bound;
