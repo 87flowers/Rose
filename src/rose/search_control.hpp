@@ -96,7 +96,7 @@ namespace rose::controls {
     }
 
     auto check_hard_termination(const SearchStats& stats) const -> bool {
-      if (hard_time && *hard_time <= elapsed())
+      if (hard_time && stats.nodes.load(std::memory_order::relaxed) % 1024 == 0 && *hard_time <= elapsed())
         return true;
       if (hard_nodes && *hard_nodes <= stats.nodes.load(std::memory_order::relaxed))
         return true;
