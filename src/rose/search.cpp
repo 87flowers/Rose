@@ -269,7 +269,9 @@ namespace rose {
       }
     }
 
-    if constexpr (!Node::is_pv) {
+    const bool is_in_check = position.is_in_check();
+
+    if (!Node::is_pv && !is_in_check) {
       // Reduced futility pruning
       if (depth <= 6) {
         const i32 static_eval = eval(position);
