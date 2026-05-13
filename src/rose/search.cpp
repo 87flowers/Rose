@@ -267,7 +267,7 @@ namespace rose {
       }
 
       if (mv != best_move) {
-        if (mv.capture()) {
+        if (mv.is_capture()) {
           fail_low_noisies.push_back(mv);
         } else {
           fail_low_quiets.push_back(mv);
@@ -285,7 +285,7 @@ namespace rose {
       const i32 quiet_bonus = 150 * depth - 75;
       const i32 quiet_malus = 75 * depth - 30;
 
-      if (!best_move.capture()) {
+      if (!best_move.is_capture()) {
         m_quiet_history.update(stm, best_move, quiet_bonus);
         for (const Move quiet : fail_low_quiets) {
           m_quiet_history.update(stm, quiet, -quiet_malus);

@@ -21,7 +21,7 @@ namespace rose {
     case Stage::tt_move:
       m_stage = Stage::generate_noisy;
 
-      if (m_position.is_legal_slow(m_tt_move)) {
+      if (m_position.is_legal(m_tt_move)) {
         return m_tt_move;
       }
 

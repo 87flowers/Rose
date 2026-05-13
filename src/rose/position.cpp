@@ -6,6 +6,7 @@
 #include "rose/geometry.hpp"
 #include "rose/move.hpp"
 #include "rose/movegen.hpp"
+#include "rose/rays.hpp"
 #include "rose/score.hpp"
 #include "rose/square.hpp"
 #include "rose/util/string.hpp"
@@ -18,6 +19,29 @@
 #include <vector>
 
 namespace rose {
+
+  static inline auto backrank_ray(Square a, Square b) -> Bitboard {
+    return a.raw > b.raw ? Bitboard {(a.to_bitboard().raw << 1) - b.to_bitboard().raw} : Bitboard {(b.to_bitboard().raw << 1) - a.to_bitboard().raw};
+  }
+
+  static inline auto is_castle_legal(const Position& pos, Square rook, i8 rook_dest, i8 king_dest) -> bool {
+    const Color stm = pos.stm();
+    const Square king = pos.king_sq(stm);
+
+    const Bitboard empty = pos.board().empty_bitboard();
+    const Bitboard danger = pos.attack_table(!stm).bitboard_any();
+    const auto [_, pinned] = pos.pin_info();
+
+    const Bitboard king_bb = king.to_bitboard();
+    const Bitboard rook_bb = rook.to_bitboard();
+    const Bitboard rook_ray = backrank_ray(rook, Square::from_file_and_rank(rook_dest, king.rank()));
+    const Bitboard king_ray = backrank_ray(king, Square::from_file_and_rank(king_dest, king.rank()));
+
+    const Bitboard clear = empty | king_bb | rook_bb;
+
+    rose_assert(pos.board()[rook].ptype() == PieceType::r && pos.board()[rook].color() == stm);
+    return ((~clear & rook_ray).is_empty() && ((~clear | danger) & king_ray).is_empty() && (rook_bb & pinned).is_empty());
+  }
 
 #if !defined(LPS_AVX512) || !LPS_AVX512
   template<class T, class U>
@@ -181,12 +205,107 @@ namespace rose {
     return startpos;
   }
 
-  auto Position::is_legal_slow(Move m) const -> bool {
+  auto Position::is_castle_aside_legal() const -> bool {
+    return is_castle_legal(*this, m_rook_info.aside(m_stm), 3, 2);
+  }
+
+  auto Position::is_castle_hside_legal() const -> bool {
+    return is_castle_legal(*this, m_rook_info.hside(m_stm), 5, 6);
+  }
+
+  auto Position::is_legal(Move m) const -> bool {
     if (m.is_none()) {
       return false;
     }
-    const MoveList moves = generate_all_moves(*this);
-    return std::find(moves.begin(), moves.end(), m) != moves.end();
+
+    const Square king = king_sq(m_stm);
+
+    const Place src = m_board[m.from()];
+    const Place dst = m_board[m.to()];
+
+    const auto [at, pinned] = pin_info();
+
+    const bool valid_attack = at[m.to().to_index()].is_set(src.id());
+
+    if (src.is_empty() || src.color() != m_stm)
+      return false;
+
+    if (src.ptype() == PieceType::k) {
+      if (m.flags() == MoveFlags::castle_aside && m.to() == m_rook_info.aside(m_stm) && is_castle_aside_legal())
+        return true;
+      if (m.flags() == MoveFlags::castle_hside && m.to() == m_rook_info.hside(m_stm) && is_castle_hside_legal())
+        return true;
+
+      const Bitboard danger = attack_table(!m_stm).bitboard_any();
+      if (danger.read(m.to()))
+        return false;
+      for (const PieceId c : checkers())
+        if (what_is(!m_stm, c).is_slider() && rays::king_invalid_destinations(king, where_is(!m_stm, c)).read(m.to()))
+          return false;
+
+      if (m.flags() == MoveFlags::cap_normal)
+        return valid_attack && !dst.is_empty() && dst.color() != m_stm;
+      if (m.flags() == MoveFlags::normal)
+        return valid_attack && dst.is_empty();
+      return false;
+    }
+
+    const PieceMask checker_ids = checkers();
+
+    if (!checker_ids.is_empty()) {
+      if (checker_ids.popcount() > 1)
+        return false;
+
+      const Square checker_sq = where_is(!m_stm, checker_ids.lsb());
+      const PieceType checker_ptype = what_is(!m_stm, checker_ids.lsb());
+      const Bitboard valid_destinations = checker_ptype == PieceType::n ? checker_sq.to_bitboard() : rays::calc_ray_to(king, checker_sq);
+
+      if (m.is_enpassant() && checker_ptype != PieceType::p)
+        return false;
+      if (!m.is_enpassant() && !valid_destinations.read(m.to()))
+        return false;
+    }
+
+    if (src.ptype() == PieceType::p) {
+      if (m.is_castle())
+        return false;
+      if (m.is_promo() != (m.to().relative_rank(m_stm) == 7))
+        return false;
+
+      if (m.is_enpassant()) {
+        if (m.from().rank() == king.rank()) {
+          const Square ep_victim = Square::from_file_and_rank(m_enpassant.file(), m_stm == Color::white ? 4 : 3);
+          const Bitboard potential_pinners =
+            (m_board.bitboard_for<PieceType::r>(!m_stm) | m_board.bitboard_for<PieceType::q>(!m_stm)) & Bitboard::rank_mask(king.rank());
+          const Bitboard occ = m_board.occupied_bitboard() ^ king.to_bitboard() ^ ep_victim.to_bitboard() ^ m.from().to_bitboard();
+          for (const Square potential_pinner : potential_pinners)
+            if ((rays::calc_ray_to(king, potential_pinner) & occ).popcount() == 1)
+              return false;
+        }
+        return m.to() == m_enpassant && valid_attack;
+      }
+
+      const Bitboard pinned_quiet_pawns = pinned & ~Bitboard::file_mask(king.file());
+      const i32 rank_delta = m.to().relative_rank(m_stm) - m.from().relative_rank(m_stm);
+      const bool same_file = m.to().file() == m.from().file();
+
+      if (m.is_double_push()) {
+        const Square between {narrow_cast<u8>((m.from().raw + m.to().raw) >> 1)};
+        return rank_delta == 2 && same_file && dst.is_empty() && m_board[between].is_empty() && m.from().relative_rank(m_stm) == 1 &&
+               !pinned_quiet_pawns.read(m.from());
+      }
+
+      if (m.is_capture())
+        return valid_attack && !dst.is_empty() && dst.color() != m_stm;
+      return rank_delta == 1 && same_file && dst.is_empty() && !pinned_quiet_pawns.read(m.from());
+    }
+
+    if (m.flags() == MoveFlags::cap_normal)
+      return valid_attack && !dst.is_empty() && dst.color() != m_stm;
+    if (m.flags() == MoveFlags::normal)
+      return valid_attack && dst.is_empty();
+
+    return false;
   }
 
   auto Position::has_no_legal_moves_slow() const -> bool {
