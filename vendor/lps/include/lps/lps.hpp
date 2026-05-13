@@ -2,7 +2,7 @@
 
 #include "lps/stdint.hpp"
 
-#if defined(__AVX512F__) && __AVX512F__
+#if defined(__AVX512F__) && __AVX512F__ && defined(__AVX512VBMI2__) && __AVX512VBMI2__
 
 #define LPS_AVX512 1
 
