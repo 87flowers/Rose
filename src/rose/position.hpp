@@ -212,6 +212,14 @@ namespace rose {
       return place_at(sq).ptype();
     }
 
+    auto what_is(Color color, PieceId id) const -> PieceType {
+      return m_piece_list_ptype[color.to_index()][id];
+    }
+
+    auto where_is(Color color, PieceId id) const -> Square {
+      return m_piece_list_sq[color.to_index()][id];
+    }
+
     template<PieceType... ptypes>
     auto piece_mask_for(Color color) const -> PieceMask {
       return piece_list_type(color).piece_mask_for<ptypes...>();
@@ -226,11 +234,18 @@ namespace rose {
       return attack_table(m_stm).read(king_sq(!m_stm)).is_empty();
     }
 
-    auto is_in_check() const -> bool {
-      return !attack_table(!m_stm).read(king_sq(m_stm)).is_empty();
+    auto checkers() const -> PieceMask {
+      return attack_table(!m_stm).read(king_sq(m_stm));
     }
 
-    auto is_legal_slow(Move m) const -> bool;
+    auto is_in_check() const -> bool {
+      return !checkers().is_empty();
+    }
+
+    auto is_castle_aside_legal() const -> bool;
+    auto is_castle_hside_legal() const -> bool;
+    auto is_legal(Move m) const -> bool;
+
     auto has_no_legal_moves_slow() const -> bool;
     auto is_stalemate_slow() const -> bool;
     auto is_fifty_move_draw(i32 ply = 0) const -> std::optional<Score>;

@@ -334,7 +334,7 @@ retry:
       u16 move_bits = 0;
       move_bits |= static_cast<u16>(move.from().raw);
       move_bits |= static_cast<u16>(move.to().raw) << 6;
-      if (move.promo()) {
+      if (move.is_promo()) {
         move_bits |= [&] {
           switch (move.ptype().raw) {
           case PieceType::n:
@@ -351,11 +351,11 @@ retry:
           }
         }();
       }
-      if (move.enpassant())
+      if (move.is_enpassant())
         move_bits |= 1 << 14;
-      if (move.castle())
+      if (move.is_castle())
         move_bits |= 2 << 14;
-      if (move.promo())
+      if (move.is_promo())
         move_bits |= 3 << 14;
 
       push<u16>(output, move_bits);

@@ -363,7 +363,7 @@ namespace rose {
         const PieceType ptype = position.ptype_at(mv.from());
 
         i32 history = 0;
-        if (!mv.noisy()) {
+        if (!mv.is_noisy()) {
           history += m_sd.quiet_history.get(stm, mv);
           for (i32 i : {1, 2})
             if (ss[-i].conthist)
@@ -374,30 +374,30 @@ namespace rose {
 
       if (!score::is_loss(best_score) && !is_in_check && !is_root) {
         // Late Move Pruning
-        if (!mv.noisy() && searched_moves >= (4 + depth * depth) / (2 - improving)) {
+        if (!mv.is_noisy() && searched_moves >= (4 + depth * depth) / (2 - improving)) {
           moves.skip_quiet();
           continue;
         }
 
         // Futility Pruning
-        if (!mv.noisy() && depth <= 6 && std::abs(alpha) < 2000 && static_eval + 256 + depth * 100 <= alpha) {
+        if (!mv.is_noisy() && depth <= 6 && std::abs(alpha) < 2000 && static_eval + 256 + depth * 100 <= alpha) {
           moves.skip_quiet();
           continue;
         }
 
         // History Pruning
-        if (!mv.noisy() && depth <= 4 && history < -1024 * depth * depth) {
+        if (!mv.is_noisy() && depth <= 4 && history < -1024 * depth * depth) {
           moves.skip_quiet();
           continue;
         }
 
         // Quiet SEE Pruning
-        if (!mv.noisy() && depth <= 11 && !see::see(position, mv, 32 - 48 * depth - 32 * history / 1024)) {
+        if (!mv.is_noisy() && depth <= 11 && !see::see(position, mv, 32 - 48 * depth - 32 * history / 1024)) {
           continue;
         }
 
         // Noisy SEE Pruning
-        if (mv.noisy() && depth <= 11 && !see::see(position, mv, -64 * depth)) {
+        if (mv.is_noisy() && depth <= 11 && !see::see(position, mv, -64 * depth)) {
           continue;
         }
       }
@@ -446,7 +446,7 @@ namespace rose {
 
         i32 reduction;
 
-        if (mv.noisy()) {
+        if (mv.is_noisy()) {
           reduction = 1024 + 192 * log2_depth * log2_searched_moves;
         } else {
           reduction = 2176 + 256 * log2_depth * log2_searched_moves;
@@ -467,7 +467,7 @@ namespace rose {
           score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, research_depth);
 
           // Post-LMR continuation history update
-          if (!mv.noisy() && (score <= alpha || score >= beta)) {
+          if (!mv.is_noisy() && (score <= alpha || score >= beta)) {
             const i32 cont_bonus = std::min(150 * depth - 75, 1536);
             const i32 cont_malus = std::min(75 * depth - 30, 1024);
 
@@ -508,7 +508,7 @@ namespace rose {
       }
 
       if (mv != best_move) {
-        if (mv.noisy()) {
+        if (mv.is_noisy()) {
           fail_low_noisies.push_back(mv);
         } else {
           fail_low_quiets.push_back(mv);
@@ -532,7 +532,7 @@ namespace rose {
       const i32 cont_bonus = std::min(150 * depth - 75, 1536);
       const i32 cont_malus = std::min(75 * depth - 30, 1024);
 
-      if (best_move.noisy()) {
+      if (best_move.is_noisy()) {
         m_sd.noisy_history.update(stm, position.ptype_at(best_move.from()), best_move, noisy_bonus);
         for (const Move noisy : fail_low_noisies) {
           m_sd.noisy_history.update(stm, position.ptype_at(noisy.from()), noisy, -noisy_malus);
