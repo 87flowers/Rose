@@ -14,6 +14,7 @@
 #include "rose/util/time.hpp"
 
 #include <atomic>
+#include <bit>
 #include <fmt/format.h>
 #include <memory>
 #include <thread>
@@ -289,7 +290,20 @@ namespace rose {
 
       Line child_pv {};
       Score score = score::none;
-      if (!Node::is_pv || (Node::is_pv && move_count > 1)) {
+      if (depth >= 3 && move_count >= 3) {
+        const i32 log2_depth = std::bit_width(static_cast<u32>(depth)) - 1;
+        const i32 log2_move_count = std::bit_width(static_cast<u32>(move_count)) - 1;
+
+        i32 reduction = 3072 + 256 * log2_depth * log2_move_count;
+
+        const i32 lmr_depth = std::clamp(depth - reduction / 1024, 0, depth - 1);
+
+        score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ply + 1, lmr_depth);
+
+        if (score > alpha && lmr_depth < depth - 1) {
+          score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ply + 1, depth - 1);
+        }
+      } else if (!Node::is_pv || move_count > 1) {
         score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ply + 1, depth - 1);
       }
       if (Node::is_pv && (move_count == 1 || score > alpha)) {
