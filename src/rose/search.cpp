@@ -289,6 +289,17 @@ namespace rose {
           return beta;
         }
       }
+
+      // Alpha Multi-Probcut
+      if (static_eval < alpha && depth >= 7) {
+        const i32 r = 1 + depth / 2;
+        const i32 margin = 128 + depth * 10;
+        const i32 bound = alpha - margin;
+        const i32 score = search<node::NonPv>(ctrl, position, pv, bound, bound + 1, ply, depth - r);
+        if (score <= bound) {
+          return alpha;
+        }
+      }
     }
 
     MovePicker moves {*this, position, tte.move};
