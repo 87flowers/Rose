@@ -22,8 +22,6 @@ namespace rose {
   struct MoveGen {
   private:
     const Position& m_position;
-    std::array<PieceMask, 64> m_at;
-    Bitboard m_pinned;
 
     enum class Mode {
       all,
@@ -55,8 +53,6 @@ namespace rose {
   public:
     explicit MoveGen(const Position& position);
 
-    auto prepare() -> void;
-
     auto generate_all(MoveList& moves) -> void {
       generate_moves<Mode::all>(moves);
     }
@@ -73,7 +69,6 @@ namespace rose {
   inline auto generate_all_moves(const Position& position) -> MoveList {
     MoveList moves;
     MoveGen movegen {position};
-    movegen.prepare();
     movegen.generate_all(moves);
     return moves;
   }
