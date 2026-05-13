@@ -42,6 +42,9 @@ namespace rose::tt {
     const auto [index, fragment] = split_hash(m_count, hash);
     Entry& entry = m_table.get()[index];
 
+    if (entry.fragment() == fragment && lr.move.is_none())
+      lr.move = entry.move();
+
     entry = Entry {fragment, ply, lr};
   }
 
