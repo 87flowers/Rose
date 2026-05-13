@@ -272,11 +272,22 @@ namespace rose {
     const bool is_in_check = position.is_in_check();
 
     if (!Node::is_pv && !is_in_check) {
+      const i32 static_eval = eval(position);
+
       // Reduced futility pruning
-      if (depth <= 6) {
-        const i32 static_eval = eval(position);
-        if (static_eval - 128 * depth >= beta)
-          return static_eval;
+      if (depth <= 6 && static_eval - 128 * depth >= beta) {
+        return static_eval;
+      }
+
+      // Beta Multi-Probcut
+      if (static_eval >= beta && depth >= 7) {
+        const i32 r = 4;
+        const i32 margin = 64;
+        const i32 bound = beta + margin;
+        const i32 score = search<node::NonPv>(ctrl, position, pv, bound - 1, bound, ply, depth - r);
+        if (score >= bound) {
+          return beta;
+        }
       }
     }
 
