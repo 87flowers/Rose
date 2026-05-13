@@ -11,10 +11,10 @@ namespace rose {
 }  // namespace rose
 
 namespace rose::score {
-  inline constexpr Score none = std::numeric_limits<i16>::min();
-  inline constexpr Score infinity = -none;
-  inline constexpr Score min_score = -std::numeric_limits<i16>::max();
-  inline constexpr Score max_score = std::numeric_limits<i16>::max();
+  inline constexpr Score none = -32768;
+  inline constexpr Score infinity = 32767;
+  inline constexpr Score min_score = -32766;
+  inline constexpr Score max_score = 32766;
 
   inline constexpr Score max_mate_ply = 256;
   inline constexpr Score min_normal_score = min_score + max_mate_ply + 1;
