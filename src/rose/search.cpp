@@ -301,9 +301,9 @@ namespace rose {
 
     const bool is_in_check = position.is_in_check();
 
-    if (!Node::is_pv && !is_in_check) {
-      const i32 static_eval = eval(position);
+    const i32 static_eval = is_in_check ? score::none : eval(position);
 
+    if (!Node::is_pv && !is_in_check) {
       // Reverse Futility Pruning
       if (depth <= 6 && static_eval - 128 * depth >= beta) {
         return static_eval;
@@ -332,6 +332,14 @@ namespace rose {
     u32 move_count = 0;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
+      if (!score::is_loss(best_score) && !is_in_check) {
+        // Futility Pruning
+        if (!mv.capture() && depth <= 6 && std::abs(alpha) < 2000 && static_eval + 256 + depth * 100 <= alpha) {
+          moves.skip_quiet();
+          continue;
+        }
+      }
+
       move_count++;
 
       const Position child_position = position.move(mv);
