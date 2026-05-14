@@ -21,6 +21,8 @@
 
 namespace rose {
 
+  constexpr i32 max_depth = 250;
+
   struct SearchLimit {
     bool has_time = false;
     std::optional<int> wtime;
@@ -87,6 +89,11 @@ namespace rose {
     }
   };
 
+  struct SearchStack {
+    Move move = Move::none();
+    ContinuationHistorySubtable* conthist = nullptr;
+  };
+
   struct Search {
   private:
     friend struct MovePicker;
@@ -101,7 +108,12 @@ namespace rose {
     std::vector<Hash> m_hash_stack;
     usize m_hash_waterline;
 
+    inline static constexpr usize search_stack_offset = 8;
+    inline static constexpr usize search_stack_safety = 8;
+    std::array<SearchStack, max_depth + search_stack_offset + search_stack_safety> m_search_stack;
+
     QuietHistory m_quiet_history;
+    ContinuationHistory m_continuation_history;
 
   public:
     Search(int id, SearchShared& shared) :
@@ -127,14 +139,17 @@ namespace rose {
     auto search_root(const Controls& ctrl) -> void;
 
     template<typename Node, typename Controls>
-    auto search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply, i32 depth) -> Score;
+    auto search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply, i32 depth) -> Score;
     template<typename Node, typename Controls>
-    auto qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply) -> Score;
+    auto qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply) -> Score;
 
     auto eval(const Position& position) -> Score;
 
     auto tt_load(const Position& position, i32 ply) -> tt::LookupResult;
     auto tt_store(const Position& position, i32 ply, tt::LookupResult lr) -> void;
+
+    auto make_move(SearchStack* ss, const Position& child_position, Move mv) -> void;
+    auto unmake_move(SearchStack* ss) -> void;
   };
 
 }  // namespace rose

@@ -10,9 +10,10 @@
 
 namespace rose {
 
-  MovePicker::MovePicker(const Search& search, const Position& position, Move tt_move) :
+  MovePicker::MovePicker(const Search& search, const Position& position, const SearchStack* ss, Move tt_move) :
       m_search(search),
       m_position(position),
+      m_ss(ss),
       m_movegen(position),
       m_tt_move(tt_move) {
   }
@@ -121,7 +122,14 @@ namespace rose {
 
     for (isize i = 0; i < m_moves.size(); i++) {
       const Move mv = m_moves[i];
-      scores[i] = m_search.m_quiet_history.get(stm, mv) * 256 - i;
+      const PieceType ptype = m_position.place_at(mv.from()).ptype();
+
+      i32 score = 0;
+      score += m_search.m_quiet_history.get(stm, mv);
+      if (m_ss[-1].conthist)
+        score += m_ss[-1].conthist->get(stm, ptype, mv);
+
+      scores[i] = score * 256 - i;
     }
 
     std::ranges::sort(std::ranges::zip_view(m_moves, scores), [](auto&& a, auto&& b) {

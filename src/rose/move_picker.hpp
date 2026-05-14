@@ -3,6 +3,7 @@
 #include "rose/common.hpp"
 #include "rose/move.hpp"
 #include "rose/movegen.hpp"
+#include "rose/search.hpp"
 
 namespace rose {
 
@@ -28,6 +29,7 @@ namespace rose {
 
     const Search& m_search;
     const Position& m_position;
+    const SearchStack* m_ss;
     MoveGen m_movegen;
     Move m_tt_move;
 
@@ -37,7 +39,7 @@ namespace rose {
     MoveList m_bad_noisies;
 
   public:
-    MovePicker(const Search& search, const Position& position, Move tt_move);
+    MovePicker(const Search& search, const Position& position, const SearchStack* ss, Move tt_move);
 
     auto next() -> Move;
 
