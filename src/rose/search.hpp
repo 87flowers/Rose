@@ -21,6 +21,8 @@
 
 namespace rose {
 
+  constexpr i32 max_depth = 250;
+
   struct SearchLimit {
     bool has_time = false;
     std::optional<int> wtime;
@@ -87,6 +89,8 @@ namespace rose {
     }
   };
 
+  struct SearchStack {};
+
   struct Search {
   private:
     friend struct MovePicker;
@@ -100,6 +104,10 @@ namespace rose {
     std::vector<Move> m_move_stack;
     std::vector<Hash> m_hash_stack;
     usize m_hash_waterline;
+
+    inline static constexpr usize search_stack_offset = 8;
+    inline static constexpr usize search_stack_safety = 8;
+    std::array<SearchStack, max_depth + search_stack_offset + search_stack_safety> m_search_stack;
 
     QuietHistory m_quiet_history;
 
@@ -127,9 +135,9 @@ namespace rose {
     auto search_root(const Controls& ctrl) -> void;
 
     template<typename Node, typename Controls>
-    auto search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply, i32 depth) -> Score;
+    auto search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply, i32 depth) -> Score;
     template<typename Node, typename Controls>
-    auto qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply) -> Score;
+    auto qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply) -> Score;
 
     auto eval(const Position& position) -> Score;
 

@@ -22,8 +22,6 @@
 
 namespace rose {
 
-  constexpr i32 max_depth = 250;
-
   namespace node {
     struct Root;
     struct Pv;
@@ -215,8 +213,10 @@ namespace rose {
       }
 
       while (true) {
+        m_search_stack = {};
+
         pv.clear();
-        score = search<node::Root>(ctrl, m_root, pv, alpha, beta, 0, depth);
+        score = search<node::Root>(ctrl, m_root, pv, alpha, beta, &m_search_stack[search_stack_offset], 0, depth);
 
         if (score <= alpha) {
           alpha = std::max(score - delta, -score::infinity);
@@ -255,9 +255,10 @@ namespace rose {
   }
 
   template<typename Node, typename Controls>
-  auto Search::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply, i32 depth) -> Score {
+  auto Search::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply, i32 depth)
+    -> Score {
     if (depth <= 0)
-      return qsearch<Node>(ctrl, position, pv, alpha, beta, ply);
+      return qsearch<Node>(ctrl, position, pv, alpha, beta, ss, ply);
 
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
     if (!Node::is_root && is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
@@ -312,7 +313,7 @@ namespace rose {
         const i32 r = 1 + depth / 2;
         const i32 margin = 128 + depth * 10;
         const i32 bound = beta + margin;
-        const i32 score = search<node::NonPv>(ctrl, position, pv, bound - 1, bound, ply, depth - r);
+        const i32 score = search<node::NonPv>(ctrl, position, pv, bound - 1, bound, ss, ply, depth - r);
         if (score >= bound) {
           return beta;
         }
@@ -338,6 +339,7 @@ namespace rose {
         m_hash_stack.pop_back();
       };
 
+      const i32 new_depth = depth - 1;
       Line child_pv {};
       Score score = score::none;
 
@@ -346,23 +348,23 @@ namespace rose {
         const i32 log2_depth = std::bit_width(static_cast<u32>(depth)) - 1;
         const i32 log2_move_count = std::bit_width(static_cast<u32>(move_count)) - 1;
 
-        i32 reduction = 3072 + 256 * log2_depth * log2_move_count;
+        i32 reduction = 2048 + 256 * log2_depth * log2_move_count;
 
-        const i32 lmr_depth = std::clamp(depth - reduction / 1024, 0, depth - 1);
+        const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
 
-        score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ply + 1, lmr_depth);
+        score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, lmr_depth);
 
-        if (score > alpha && lmr_depth < depth - 1) {
-          score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ply + 1, depth - 1);
+        if (score > alpha && lmr_depth < new_depth) {
+          score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, new_depth);
         }
       }
       // PVS Scout Search
       else if (!Node::is_pv || move_count > 1) {
-        score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ply + 1, depth - 1);
+        score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, new_depth);
       }
       // PVS Full Window Search
       if (Node::is_pv && (move_count == 1 || score > alpha)) {
-        score = -search<node::Pv>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, depth - 1);
+        score = -search<node::Pv>(ctrl, child_position, child_pv, -beta, -alpha, ss + 1, ply + 1, new_depth);
       }
 
       if (m_shared.stopping)
@@ -426,7 +428,7 @@ namespace rose {
   }
 
   template<typename Node, typename Controls>
-  auto Search::qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply) -> Score {
+  auto Search::qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply) -> Score {
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
     if (!Node::is_root && is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
       m_shared.stop();
@@ -468,7 +470,7 @@ namespace rose {
       };
 
       Line child_pv {};
-      const Score score = -qsearch<typename Node::next>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1);
+      const Score score = -qsearch<typename Node::next>(ctrl, child_position, child_pv, -beta, -alpha, ss + 1, ply + 1);
 
       if (m_shared.stopping)
         return 0;
