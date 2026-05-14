@@ -126,8 +126,9 @@ namespace rose {
 
       i32 score = 0;
       score += m_search.m_quiet_history.get(stm, mv);
-      if (m_ss[-1].conthist)
-        score += m_ss[-1].conthist->get(stm, ptype, mv);
+      for (i32 i : {1, 2})
+        if (m_ss[-i].conthist)
+          score += m_ss[-i].conthist->get(stm, ptype, mv);
 
       scores[i] = score * 256 - i;
     }
