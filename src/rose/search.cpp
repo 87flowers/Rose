@@ -206,23 +206,27 @@ namespace rose {
       Line pv {};
       Score alpha = -score::infinity;
       Score beta = score::infinity;
+      Score delta = 25;
       Score score = score::none;
 
       if (depth >= 4) {
-        alpha = last_score - 25;
-        beta = last_score + 25;
+        alpha = last_score - delta;
+        beta = last_score + delta;
       }
 
       while (true) {
         pv.clear();
         score = search<node::Root>(ctrl, m_root, pv, alpha, beta, 0, depth);
 
-        if (score <= alpha || score >= beta) {
-          alpha = -score::infinity;
-          beta = score::infinity;
+        if (score <= alpha) {
+          alpha = std::max(score - delta, -score::infinity);
+        } else if (score >= beta) {
+          beta = std::min(score + delta, score::infinity);
         } else {
           break;
         }
+
+        delta += delta;
 
         if (m_shared.stopping)
           break;
