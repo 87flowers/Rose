@@ -320,7 +320,7 @@ namespace rose {
       }
     }
 
-    MovePicker moves {*this, position, tte.move};
+    MovePicker moves {*this, position, ss, tte.move};
 
     MoveList fail_low_quiets;
     MoveList fail_low_noisies;
@@ -334,9 +334,9 @@ namespace rose {
       move_count++;
 
       const Position child_position = position.move(mv);
-      m_hash_stack.push_back(child_position.hash());
+      make_move(ss, child_position, mv);
       rose_defer {
-        m_hash_stack.pop_back();
+        unmake_move(ss);
       };
 
       const i32 new_depth = depth - 1;
@@ -407,10 +407,17 @@ namespace rose {
       const i32 quiet_bonus = 150 * depth - 75;
       const i32 quiet_malus = 75 * depth - 30;
 
+      const i32 cont_bonus = 150 * depth - 75;
+      const i32 cont_malus = 75 * depth - 30;
+
       if (!best_move.capture()) {
         m_quiet_history.update(stm, best_move, quiet_bonus);
+        if (ss[-1].conthist)
+          ss[-1].conthist->update(stm, position.place_at(best_move.from()).ptype(), best_move, cont_bonus);
         for (const Move quiet : fail_low_quiets) {
           m_quiet_history.update(stm, quiet, -quiet_malus);
+          if (ss[-1].conthist)
+            ss[-1].conthist->update(stm, position.place_at(quiet.from()).ptype(), quiet, -cont_malus);
         }
       }
     }
@@ -455,7 +462,7 @@ namespace rose {
     }
     alpha = std::max(alpha, static_eval);
 
-    MovePicker moves {*this, position, Move::none()};
+    MovePicker moves {*this, position, ss, Move::none()};
     moves.skip_quiet();
 
     Score best_score = static_eval;
@@ -464,9 +471,9 @@ namespace rose {
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       const Position child_position = position.move(mv);
-      m_hash_stack.push_back(child_position.hash());
+      make_move(ss, child_position, mv);
       rose_defer {
-        m_hash_stack.pop_back();
+        unmake_move(ss);
       };
 
       Line child_pv {};
@@ -506,6 +513,18 @@ namespace rose {
 
   auto Search::tt_store(const Position& position, i32 ply, tt::LookupResult lr) -> void {
     m_shared.transposition_table.store(position.hash(), ply, lr);
+  }
+
+  auto Search::make_move(SearchStack* ss, const Position& child_position, Move mv) -> void {
+    m_hash_stack.push_back(child_position.hash());
+    ss->move = mv;
+    ss->conthist = m_continuation_history.get_subtable(!child_position.stm(), child_position.place_at(mv.to()).ptype(), mv);
+  }
+
+  auto Search::unmake_move(SearchStack* ss) -> void {
+    m_hash_stack.pop_back();
+    ss->move = Move::none();
+    ss->conthist = nullptr;
   }
 
 }  // namespace rose

@@ -89,7 +89,10 @@ namespace rose {
     }
   };
 
-  struct SearchStack {};
+  struct SearchStack {
+    Move move = Move::none();
+    ContinuationHistorySubtable* conthist = nullptr;
+  };
 
   struct Search {
   private:
@@ -110,6 +113,7 @@ namespace rose {
     std::array<SearchStack, max_depth + search_stack_offset + search_stack_safety> m_search_stack;
 
     QuietHistory m_quiet_history;
+    ContinuationHistory m_continuation_history;
 
   public:
     Search(int id, SearchShared& shared) :
@@ -143,6 +147,9 @@ namespace rose {
 
     auto tt_load(const Position& position, i32 ply) -> tt::LookupResult;
     auto tt_store(const Position& position, i32 ply, tt::LookupResult lr) -> void;
+
+    auto make_move(SearchStack* ss, const Position& child_position, Move mv) -> void;
+    auto unmake_move(SearchStack* ss) -> void;
   };
 
 }  // namespace rose
