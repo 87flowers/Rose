@@ -297,9 +297,9 @@ namespace rose {
       return tte.score;
     }
 
-    if (!Node::is_pv && !is_in_check && !excluded) {
-      const i32 static_eval = eval(position);
+    const i32 static_eval = is_in_check ? score::none : eval(position);
 
+    if (!Node::is_pv && !is_in_check && !excluded) {
       // Reduced futility pruning
       if (depth <= 6 && static_eval - 128 * depth >= beta) {
         return static_eval;
@@ -334,7 +334,8 @@ namespace rose {
       move_count++;
 
       i32 extension = 0;
-      if (!Node::is_root && depth >= 10 && mv == tte.move && !excluded && tte.depth >= depth - 4 && tte.bound != tt::Bound::upper_bound) {
+      if (!Node::is_root && depth >= 10 && (is_in_check || static_eval <= alpha) && tte.score >= alpha && mv == tte.move && !excluded &&
+          tte.depth >= depth - 4 && tte.bound != tt::Bound::upper_bound) {
         const Score singular_beta = std::max(score::min_score, tte.score - 2 * depth);
         const i32 singular_depth = depth / 2;
 
