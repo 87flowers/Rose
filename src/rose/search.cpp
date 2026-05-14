@@ -204,7 +204,29 @@ namespace rose {
 
     for (i32 depth = 1; depth < max_depth; depth++) {
       Line pv {};
-      const Score score = search<node::Root>(ctrl, m_root, pv, -score::infinity, score::infinity, 0, depth);
+      Score alpha = -score::infinity;
+      Score beta = score::infinity;
+      Score score = score::none;
+
+      if (depth >= 4) {
+        alpha = last_score - 25;
+        beta = last_score + 25;
+      }
+
+      while (true) {
+        pv.clear();
+        score = search<node::Root>(ctrl, m_root, pv, alpha, beta, 0, depth);
+
+        if (score <= alpha || score >= beta) {
+          alpha = -score::infinity;
+          beta = score::infinity;
+        } else {
+          break;
+        }
+
+        if (m_shared.stopping)
+          break;
+      }
 
       if (m_shared.stopping)
         break;
