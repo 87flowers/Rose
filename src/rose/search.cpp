@@ -22,8 +22,6 @@
 
 namespace rose {
 
-  constexpr i32 max_depth = 250;
-
   namespace node {
     struct Root;
     struct Pv;
@@ -215,8 +213,10 @@ namespace rose {
       }
 
       while (true) {
+        m_search_stack = {};
+
         pv.clear();
-        score = search<node::Root>(ctrl, m_root, pv, alpha, beta, 0, depth);
+        score = search<node::Root>(ctrl, m_root, pv, alpha, beta, &m_search_stack[search_stack_offset], 0, depth);
 
         if (score <= alpha) {
           alpha = std::max(score - delta, -score::infinity);
@@ -255,9 +255,10 @@ namespace rose {
   }
 
   template<typename Node, typename Controls>
-  auto Search::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply, i32 depth) -> Score {
+  auto Search::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply, i32 depth)
+    -> Score {
     if (depth <= 0)
-      return qsearch<Node>(ctrl, position, pv, alpha, beta, ply);
+      return qsearch<Node>(ctrl, position, pv, alpha, beta, ss, ply);
 
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
     if (!Node::is_root && is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
@@ -276,28 +277,27 @@ namespace rose {
     if (ply >= max_depth)
       return eval(position);
 
+    const bool is_in_check = position.is_in_check();
+    const bool excluded = ss->excluded.is_some();
+
     const tt::LookupResult tte = tt_load(position, ply);
 
-    if constexpr (!Node::is_pv) {
-      if (tte.is_some() && tte.depth >= depth && [&] {
-            switch (tte.bound) {
-            case tt::Bound::none:
-              return false;
-            case tt::Bound::lower_bound:
-              return tte.score >= beta;
-            case tt::Bound::exact:
-              return true;
-            case tt::Bound::upper_bound:
-              return tte.score <= alpha;
-            }
-          }()) {
-        return tte.score;
-      }
+    if (!Node::is_pv && !excluded && tte.is_some() && tte.depth >= depth && [&] {
+          switch (tte.bound) {
+          case tt::Bound::none:
+            return false;
+          case tt::Bound::lower_bound:
+            return tte.score >= beta;
+          case tt::Bound::exact:
+            return true;
+          case tt::Bound::upper_bound:
+            return tte.score <= alpha;
+          }
+        }()) {
+      return tte.score;
     }
 
-    const bool is_in_check = position.is_in_check();
-
-    if (!Node::is_pv && !is_in_check) {
+    if (!Node::is_pv && !is_in_check && !excluded) {
       const i32 static_eval = eval(position);
 
       // Reduced futility pruning
@@ -310,7 +310,7 @@ namespace rose {
         const i32 r = 1 + depth / 2;
         const i32 margin = 128 + depth * 10;
         const i32 bound = beta + margin;
-        const i32 score = search<node::NonPv>(ctrl, position, pv, bound - 1, bound, ply, depth - r);
+        const i32 score = search<node::NonPv>(ctrl, position, pv, bound - 1, bound, ss, ply, depth - r);
         if (score >= bound) {
           return beta;
         }
@@ -328,7 +328,24 @@ namespace rose {
     u32 move_count = 0;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
+      if (mv == ss->excluded)
+        continue;
+
       move_count++;
+
+      i32 extension = 0;
+      if (!Node::is_root && depth >= 10 && mv == tte.move && !excluded && tte.depth >= depth - 4 && tte.bound != tt::Bound::upper_bound) {
+        const Score singular_beta = std::max(score::min_score, tte.score - 2 * depth);
+        const i32 singular_depth = depth / 2;
+
+        ss->excluded = mv;
+        const Score singular_score = search<node::NonPv>(ctrl, position, pv, singular_beta - 1, singular_beta, ss, ply, singular_depth);
+        ss->excluded = Move::none();
+
+        if (singular_score < singular_beta) {
+          extension = 1;
+        }
+      }
 
       const Position child_position = position.move(mv);
       m_hash_stack.push_back(child_position.hash());
@@ -336,26 +353,27 @@ namespace rose {
         m_hash_stack.pop_back();
       };
 
+      const i32 new_depth = depth + extension - 1;
       Line child_pv {};
       Score score = score::none;
       if (depth >= 3 && move_count >= 3) {
         const i32 log2_depth = std::bit_width(static_cast<u32>(depth)) - 1;
         const i32 log2_move_count = std::bit_width(static_cast<u32>(move_count)) - 1;
 
-        i32 reduction = 3072 + 256 * log2_depth * log2_move_count;
+        i32 reduction = 2048 + 256 * log2_depth * log2_move_count;
 
-        const i32 lmr_depth = std::clamp(depth - reduction / 1024, 0, depth - 1);
+        const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
 
-        score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ply + 1, lmr_depth);
+        score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, lmr_depth);
 
-        if (score > alpha && lmr_depth < depth - 1) {
-          score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ply + 1, depth - 1);
+        if (score > alpha && lmr_depth < new_depth) {
+          score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, new_depth);
         }
       } else if (!Node::is_pv || move_count > 1) {
-        score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ply + 1, depth - 1);
+        score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, new_depth);
       }
       if (Node::is_pv && (move_count == 1 || score > alpha)) {
-        score = -search<node::Pv>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, depth - 1);
+        score = -search<node::Pv>(ctrl, child_position, child_pv, -beta, -alpha, ss + 1, ply + 1, new_depth);
       }
 
       if (m_shared.stopping)
@@ -419,7 +437,7 @@ namespace rose {
   }
 
   template<typename Node, typename Controls>
-  auto Search::qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, i32 ply) -> Score {
+  auto Search::qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply) -> Score {
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
     if (!Node::is_root && is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
       m_shared.stop();
@@ -458,7 +476,7 @@ namespace rose {
       };
 
       Line child_pv {};
-      const Score score = -qsearch<typename Node::next>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1);
+      const Score score = -qsearch<typename Node::next>(ctrl, child_position, child_pv, -beta, -alpha, ss + 1, ply + 1);
 
       if (m_shared.stopping)
         return 0;
