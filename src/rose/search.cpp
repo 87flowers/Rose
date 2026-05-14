@@ -340,7 +340,7 @@ namespace rose {
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (!score::is_loss(best_score) && !is_in_check) {
         // Late Move Pruning
-        if (!mv.capture() && move_count >= 4 + depth * depth / (2 - improving)) {
+        if (!mv.capture() && move_count >= (4 + depth * depth) / (2 - improving)) {
           moves.skip_quiet();
           continue;
         }
