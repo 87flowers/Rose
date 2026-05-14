@@ -87,6 +87,7 @@ namespace rose {
 
   auto Search::reset() -> void {
     m_quiet_history.reset();
+    m_continuation_history.reset();
   }
 
   auto Search::launch() -> void {
