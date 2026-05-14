@@ -125,12 +125,14 @@ namespace rose {
       empty = 0,
 
       color_mask = 0x80,
+      ptype_mask = 0x70,
 
       white = 0x00,
       black = 0x80,
     };
 
-    inline static constexpr u8 slider_bit = 0b100 << 4;
+    inline static constexpr u8 ptype_shift = 4;
+    inline static constexpr u8 slider_bit = 0b100 << ptype_shift;
 
     Underlying raw = empty;
 
@@ -141,7 +143,7 @@ namespace rose {
     }
 
     static constexpr auto make(Color color, PieceType pt, PieceId id) -> Place {
-      return static_cast<Underlying>(color.to_msb8() | (pt.raw << 4) | id.raw);
+      return static_cast<Underlying>(color.to_msb8() | (pt.raw << ptype_shift) | id.raw);
     }
 
     constexpr auto is_empty() const -> bool {
@@ -153,7 +155,7 @@ namespace rose {
     }
 
     constexpr auto ptype() const -> PieceType {
-      return static_cast<PieceType::Underlying>((raw >> 4) & 0x7);
+      return static_cast<PieceType::Underlying>((raw & ptype_mask) >> ptype_shift);
     }
 
     constexpr auto id() const -> PieceId {

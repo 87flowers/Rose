@@ -2,6 +2,7 @@
 
 #include "rose/movegen.hpp"
 #include "rose/search.hpp"
+#include "rose/see.hpp"
 #include "rose/util/static_vector.hpp"
 
 #include <algorithm>
@@ -28,13 +29,17 @@ namespace rose {
     case Stage::generate_noisy:
       generate_noisy();
 
-      m_stage = Stage::emit_noisy;
+      m_stage = Stage::emit_good_noisy;
       m_current_index = 0;
 
       [[fallthrough]];
-    case Stage::emit_noisy:
+    case Stage::emit_good_noisy:
       while (m_current_index < m_moves.size()) {
         const Move mv = m_moves[m_current_index++];
+        if (!see::see(m_position, mv, -150)) {
+          m_bad_noisies.push_back(mv);
+          continue;
+        }
         if (mv == m_tt_move)
           continue;
         return mv;
@@ -46,7 +51,7 @@ namespace rose {
       [[fallthrough]];
     case Stage::generate_quiet:
       if (m_skip_quiet) {
-        m_stage = Stage::end;
+        m_stage = Stage::emit_bad_noisy;
         m_current_index = 0;
         return next();
       }
@@ -60,6 +65,18 @@ namespace rose {
     case Stage::emit_quiet:
       while (m_current_index < m_moves.size()) {
         const Move mv = m_moves[m_current_index++];
+        if (mv == m_tt_move)
+          continue;
+        return mv;
+      }
+
+      m_stage = Stage::emit_bad_noisy;
+      m_current_index = 0;
+
+      [[fallthrough]];
+    case Stage::emit_bad_noisy:
+      while (m_current_index < m_bad_noisies.size()) {
+        const Move mv = m_bad_noisies[m_current_index++];
         if (mv == m_tt_move)
           continue;
         return mv;
