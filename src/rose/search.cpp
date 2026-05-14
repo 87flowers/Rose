@@ -333,8 +333,8 @@ namespace rose {
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (!score::is_loss(best_score) && !is_in_check) {
-        // Futility Pruning
-        if (!mv.capture() && depth <= 6 && std::abs(alpha) < 2000 && static_eval + 256 + depth * 100 <= alpha) {
+        // Late Move Pruning
+        if (!mv.capture() && move_count >= 4 + depth * depth) {
           moves.skip_quiet();
           continue;
         }
