@@ -279,29 +279,28 @@ namespace rose {
     if (ply >= max_depth)
       return eval(position);
 
+    const bool excluded = ss->excluded.is_some();
+    const bool is_in_check = position.is_in_check();
+
     const tt::LookupResult tte = tt_load(position, ply);
 
     // Transposition Table Cutoffs
-    if constexpr (!Node::is_pv) {
-      if (tte.is_some() && tte.depth >= depth && [&] {
-            switch (tte.bound) {
-            case tt::Bound::none:
-              return false;
-            case tt::Bound::lower_bound:
-              return tte.score >= beta;
-            case tt::Bound::exact:
-              return true;
-            case tt::Bound::upper_bound:
-              return tte.score <= alpha;
-            }
-          }()) {
-        return tte.score;
-      }
+    if (!Node::is_pv && !excluded && tte.is_some() && tte.depth >= depth && [&] {
+          switch (tte.bound) {
+          case tt::Bound::none:
+            return false;
+          case tt::Bound::lower_bound:
+            return tte.score >= beta;
+          case tt::Bound::exact:
+            return true;
+          case tt::Bound::upper_bound:
+            return tte.score <= alpha;
+          }
+        }()) {
+      return tte.score;
     }
 
-    const bool is_in_check = position.is_in_check();
-
-    const i32 static_eval = is_in_check ? score::none : eval(position);
+    const i32 static_eval = is_in_check ? score::none : excluded ? ss->static_eval : eval(position);
     ss->static_eval = static_eval;
 
     const bool improving = is_in_check                       ? false :
@@ -309,7 +308,7 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
-    if (!Node::is_pv && !is_in_check) {
+    if (!Node::is_pv && !is_in_check && !excluded) {
       // Reverse Futility Pruning
       if (depth <= 6 && static_eval - 128 * depth >= beta) {
         return static_eval;
@@ -338,6 +337,9 @@ namespace rose {
     u32 move_count = 0;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
+      if (mv == ss->excluded)
+        continue;
+
       if (!score::is_loss(best_score) && !is_in_check) {
         // Late Move Pruning
         if (!mv.capture() && move_count >= (4 + depth * depth) / (2 - improving)) {
@@ -354,13 +356,27 @@ namespace rose {
 
       move_count++;
 
+      i32 extension = 0;
+      if (!Node::is_root && depth >= 9 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound != tt::Bound::upper_bound) {
+        const Score singular_beta = std::max(score::min_score, tte.score - 2 * depth);
+        const i32 singular_depth = depth / 2;
+
+        ss->excluded = mv;
+        const Score singular_score = search<node::NonPv>(ctrl, position, pv, singular_beta - 1, singular_beta, ss, ply, singular_depth);
+        ss->excluded = Move::none();
+
+        if (singular_score < singular_beta) {
+          extension = 1;
+        }
+      }
+
       const Position child_position = position.move(mv);
       make_move(ss, child_position, mv);
       rose_defer {
         unmake_move(ss);
       };
 
-      const i32 new_depth = depth - 1;
+      const i32 new_depth = depth + extension - 1;
       Line child_pv {};
       Score score = score::none;
 
@@ -419,6 +435,8 @@ namespace rose {
     }
 
     if (best_score == score::none) {
+      if (excluded)
+        return score::min_score;
       return position.is_in_check() ? score::mated(ply) : 0;
     }
 
@@ -445,14 +463,16 @@ namespace rose {
       }
     }
 
-    tt_store(position,
-             ply,
-             tt::LookupResult {
-               .depth = depth,
-               .bound = bound,
-               .score = best_score,
-               .move = best_move,
-             });
+    if (!excluded) {
+      tt_store(position,
+               ply,
+               tt::LookupResult {
+                 .depth = depth,
+                 .bound = bound,
+                 .score = best_score,
+                 .move = best_move,
+               });
+    }
 
     return best_score;
   }
