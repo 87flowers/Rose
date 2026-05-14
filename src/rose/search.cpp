@@ -265,6 +265,7 @@ namespace rose {
       return 0;
     }
 
+    // Repetition Detection
     if (!Node::is_root) {
       if (const auto score = position.is_fifty_move_draw(ply))
         return *score;
@@ -278,6 +279,7 @@ namespace rose {
 
     const tt::LookupResult tte = tt_load(position, ply);
 
+    // Transposition Table Cutoffs
     if constexpr (!Node::is_pv) {
       if (tte.is_some() && tte.depth >= depth && [&] {
             switch (tte.bound) {
@@ -300,7 +302,7 @@ namespace rose {
     if (!Node::is_pv && !is_in_check) {
       const i32 static_eval = eval(position);
 
-      // Reduced futility pruning
+      // Reverse Futility Pruning
       if (depth <= 6 && static_eval - 128 * depth >= beta) {
         return static_eval;
       }
@@ -338,6 +340,8 @@ namespace rose {
 
       Line child_pv {};
       Score score = score::none;
+
+      // Late Move Reductions
       if (depth >= 3 && move_count >= 3) {
         const i32 log2_depth = std::bit_width(static_cast<u32>(depth)) - 1;
         const i32 log2_move_count = std::bit_width(static_cast<u32>(move_count)) - 1;
@@ -351,9 +355,12 @@ namespace rose {
         if (score > alpha && lmr_depth < depth - 1) {
           score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ply + 1, depth - 1);
         }
-      } else if (!Node::is_pv || move_count > 1) {
+      }
+      // PVS Scout Search
+      else if (!Node::is_pv || move_count > 1) {
         score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ply + 1, depth - 1);
       }
+      // PVS Full Window Search
       if (Node::is_pv && (move_count == 1 || score > alpha)) {
         score = -search<node::Pv>(ctrl, child_position, child_pv, -beta, -alpha, ply + 1, depth - 1);
       }
@@ -426,6 +433,7 @@ namespace rose {
       return 0;
     }
 
+    // Repetition Detection
     if (!Node::is_root) {
       if (const auto score = position.is_fifty_move_draw(ply))
         return *score;
@@ -438,6 +446,8 @@ namespace rose {
       return eval(position);
 
     const Score static_eval = eval(position);
+
+    // Standpat
     if (static_eval >= beta) {
       return static_eval;
     }
