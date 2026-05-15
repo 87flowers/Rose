@@ -8,6 +8,7 @@
 #include "rose/nnue/nnue.hpp"
 #include "rose/score.hpp"
 #include "rose/search_control.hpp"
+#include "rose/see.hpp"
 #include "rose/tt.hpp"
 #include "rose/util/assert.hpp"
 #include "rose/util/defer.hpp"
@@ -497,6 +498,8 @@ namespace rose {
     if (ply >= max_depth)
       return eval(position);
 
+    const bool is_in_check = position.is_in_check();
+
     const Score static_eval = eval(position);
 
     // Standpat
@@ -513,6 +516,12 @@ namespace rose {
     tt::Bound bound = tt::Bound::upper_bound;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
+      if (!score::is_loss(best_score) && !is_in_check) {
+        // QS SEE Pruning
+        if (!see::see(position, mv, 0))
+          continue;
+      }
+
       const Position child_position = position.move(mv);
       make_move(ss, child_position, mv);
       rose_defer {
