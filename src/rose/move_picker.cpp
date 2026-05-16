@@ -109,7 +109,7 @@ namespace rose {
       const PieceType victim = m_position.ptype_at(mv.to());
       const PieceType attacker = m_position.ptype_at(mv.from());
 
-      i32 score;
+      i32 score = 0;
       score += victim_score[victim.to_index()] * 8;
       score += m_search.m_noisy_history.get(stm, attacker, mv);
 
