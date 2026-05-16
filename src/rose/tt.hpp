@@ -2,6 +2,7 @@
 
 #include "rose/common.hpp"
 #include "rose/move.hpp"
+#include "rose/node_type.hpp"
 #include "rose/score.hpp"
 
 #include <memory>
@@ -11,25 +12,18 @@ namespace rose::tt {
   inline constexpr usize default_hash_size_mb = 64;
   inline constexpr usize maximum_hash_size_mb = 1048576;
 
-  enum class Bound {
-    none = 0b00,
-    lower_bound = 0b01,
-    exact = 0b10,
-    upper_bound = 0b11,
-  };
-
   struct LookupResult {
     i32 depth = 0;
-    Bound bound = Bound::none;
+    NodeType bound = NodeType::none;
     i32 score = 0;
     Move move = Move::none();
 
     auto is_none() const -> bool {
-      return bound == Bound::none;
+      return bound == NodeType::none;
     }
 
     auto is_some() const -> bool {
-      return bound != Bound::none;
+      return bound != NodeType::none;
     }
   };
 
@@ -52,7 +46,7 @@ namespace rose::tt {
     constexpr Entry(u64 fragment, i32 ply, LookupResult lr) {
       const i32 tt_score = score::adjust_plys_to_mate(lr.score, -ply);
       const i32 tt_depth = std::clamp(lr.depth, 0, 255);
-      const u64 tt_bound = std::to_underlying(lr.bound);
+      const u64 tt_bound = std::to_underlying(lr.bound.raw);
 
       rose_assert((fragment & fragment_mask) == fragment);
 
@@ -68,8 +62,8 @@ namespace rose::tt {
       return raw & fragment_mask;
     }
 
-    constexpr inline auto bound() const -> Bound {
-      return static_cast<Bound>((raw >> bounds_shift) & 3);
+    constexpr inline auto bound() const -> NodeType {
+      return static_cast<NodeType::Underlying>((raw >> bounds_shift) & 3);
     }
 
     constexpr inline auto depth() const -> u8 {
