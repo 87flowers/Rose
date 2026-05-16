@@ -59,20 +59,7 @@ namespace rose::tt {
     fmt::print("entry frag:  {:06x}{}\n", entry.fragment(), entry.fragment() != fragment ? " [mismatch!]" : "");
     fmt::print("entry depth: {}\n", entry.depth());
     fmt::print("entry score: {}\n", entry.score(0));
-    fmt::print("entry bound: {}\n", [&]() -> const char* {
-      switch (entry.bound()) {
-      case Bound::none:
-        return "none";
-      case Bound::lower_bound:
-        return "lower_bound";
-      case Bound::exact:
-        return "exact";
-      case Bound::upper_bound:
-        return "upper_bound";
-      default:
-        return "unknown";
-      }
-    }());
+    fmt::print("entry bound: {}\n", entry.bound());
     fmt::print("entry move:  {}\n", entry.move().to_string(MoveFormat::frc));
   }
 

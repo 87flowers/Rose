@@ -6,6 +6,7 @@
 #include "rose/move_picker.hpp"
 #include "rose/movegen.hpp"
 #include "rose/nnue/nnue.hpp"
+#include "rose/node_type.hpp"
 #include "rose/score.hpp"
 #include "rose/search_control.hpp"
 #include "rose/see.hpp"
@@ -22,30 +23,6 @@
 #include <variant>
 
 namespace rose {
-
-  namespace node {
-    struct Root;
-    struct Pv;
-    struct NonPv;
-
-    struct Root {
-      inline static constexpr bool is_root = true;
-      inline static constexpr bool is_pv = true;
-      using next = Pv;
-    };
-
-    struct Pv {
-      inline static constexpr bool is_root = false;
-      inline static constexpr bool is_pv = true;
-      using next = Pv;
-    };
-
-    struct NonPv {
-      inline static constexpr bool is_root = false;
-      inline static constexpr bool is_pv = false;
-      using next = NonPv;
-    };
-  }  // namespace node
 
   auto SearchShared::reset() -> void {
     stats.clear();
@@ -218,7 +195,7 @@ namespace rose {
         m_search_stack = {};
 
         pv.clear();
-        score = search<node::Root>(ctrl, m_root, pv, alpha, beta, &m_search_stack[search_stack_offset], 0, depth);
+        score = search<NodeType::pv, true>(ctrl, m_root, pv, alpha, beta, &m_search_stack[search_stack_offset], 0, depth);
 
         if (score <= alpha) {
           alpha = std::max(score - delta, -score::infinity);
@@ -256,20 +233,20 @@ namespace rose {
     }
   }
 
-  template<typename Node, typename Controls>
+  template<NodeType expected, bool is_root, typename Controls>
   auto Search::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply, i32 depth)
     -> Score {
     if (depth <= 0)
-      return qsearch<Node>(ctrl, position, pv, alpha, beta, ss, ply);
+      return qsearch<expected>(ctrl, position, pv, alpha, beta, ss, ply);
 
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
-    if (!Node::is_root && is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
+    if (!is_root && is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
       m_shared.stop();
       return 0;
     }
 
     // Repetition Detection
-    if (!Node::is_root) {
+    if (!is_root) {
       if (const auto score = position.is_fifty_move_draw(ply))
         return *score;
 
@@ -281,7 +258,7 @@ namespace rose {
       return eval(position);
 
     // Mate distance pruning
-    if (!Node::is_root) {
+    if (!is_root) {
       alpha = std::max(alpha, score::mated(ply));
       beta = std::min(beta, score::mating(ply + 1));
       if (alpha >= beta)
@@ -294,15 +271,15 @@ namespace rose {
     const tt::LookupResult tte = tt_load(position, ply);
 
     // Transposition Table Cutoffs
-    if (!Node::is_pv && !excluded && tte.is_some() && tte.depth >= depth && [&] {
-          switch (tte.bound) {
-          case tt::Bound::none:
+    if (expected != NodeType::pv && !excluded && tte.is_some() && tte.depth >= depth && [&] {
+          switch (tte.bound.raw) {
+          case NodeType::none:
             return false;
-          case tt::Bound::lower_bound:
+          case NodeType::cut:
             return tte.score >= beta;
-          case tt::Bound::exact:
+          case NodeType::pv:
             return true;
-          case tt::Bound::upper_bound:
+          case NodeType::all:
             return tte.score <= alpha;
           }
         }()) {
@@ -317,7 +294,7 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
-    if (!Node::is_pv && !is_in_check && !excluded) {
+    if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Reverse Futility Pruning
       if (depth <= 6 && static_eval - 128 * depth >= beta) {
         return static_eval;
@@ -328,7 +305,7 @@ namespace rose {
         const i32 r = 1 + depth / 2;
         const i32 margin = 128 + depth * 10;
         const i32 bound = beta + margin;
-        const i32 score = search<node::NonPv>(ctrl, position, pv, bound - 1, bound, ss, ply, depth - r);
+        const i32 score = search<expected.narrow()>(ctrl, position, pv, bound - 1, bound, ss, ply, depth - r);
         if (score >= bound) {
           return beta;
         }
@@ -342,7 +319,7 @@ namespace rose {
 
     Score best_score = score::none;
     Move best_move = Move::none();
-    tt::Bound bound = tt::Bound::upper_bound;
+    NodeType actual_node_type = NodeType::all;
     u32 move_count = 0;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
@@ -367,12 +344,12 @@ namespace rose {
 
       i32 extension = 0;
       // Singular Extensions
-      if (!Node::is_root && depth >= 9 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound != tt::Bound::upper_bound) {
+      if (!is_root && depth >= 9 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
         const Score singular_beta = std::max(score::min_score, tte.score - 2 * depth);
         const i32 singular_depth = depth / 2;
 
         ss->excluded = mv;
-        const Score singular_score = search<node::NonPv>(ctrl, position, pv, singular_beta - 1, singular_beta, ss, ply, singular_depth);
+        const Score singular_score = search<expected.narrow()>(ctrl, position, pv, singular_beta - 1, singular_beta, ss, ply, singular_depth);
         ss->excluded = Move::none();
 
         // Multicut
@@ -384,7 +361,7 @@ namespace rose {
           // Single extension
           extension = 1;
           // Double extension
-          extension += !Node::is_pv && singular_score <= singular_beta - 20;
+          extension += expected != NodeType::pv && singular_score <= singular_beta - 20;
         }
       }
 
@@ -407,19 +384,19 @@ namespace rose {
 
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
 
-        score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, lmr_depth);
+        score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, lmr_depth);
 
         if (score > alpha && lmr_depth < new_depth) {
-          score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, new_depth);
+          score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, new_depth);
         }
       }
       // PVS Scout Search
-      else if (!Node::is_pv || move_count > 1) {
-        score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, new_depth);
+      else if (expected != NodeType::pv || move_count > 1) {
+        score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, new_depth);
       }
       // PVS Full Window Search
-      if (Node::is_pv && (move_count == 1 || score > alpha)) {
-        score = -search<node::Pv>(ctrl, child_position, child_pv, -beta, -alpha, ss + 1, ply + 1, new_depth);
+      if (expected == NodeType::pv && (move_count == 1 || score > alpha)) {
+        score = -search<NodeType::pv>(ctrl, child_position, child_pv, -beta, -alpha, ss + 1, ply + 1, new_depth);
       }
 
       if (m_shared.stopping)
@@ -429,15 +406,15 @@ namespace rose {
         best_score = score;
 
         if (score > alpha) {
-          bound = tt::Bound::exact;
+          actual_node_type = NodeType::pv;
           alpha = score;
           best_move = mv;
 
-          if constexpr (Node::is_pv)
+          if constexpr (expected == NodeType::pv)
             pv.write(mv, std::move(child_pv));
 
           if (score >= beta) {
-            bound = tt::Bound::lower_bound;
+            actual_node_type = NodeType::cut;
             break;
           }
         }
@@ -486,7 +463,7 @@ namespace rose {
                ply,
                tt::LookupResult {
                  .depth = depth,
-                 .bound = bound,
+                 .bound = actual_node_type,
                  .score = best_score,
                  .move = best_move,
                });
@@ -495,16 +472,16 @@ namespace rose {
     return best_score;
   }
 
-  template<typename Node, typename Controls>
+  template<NodeType leaf_expected, typename Controls>
   auto Search::qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply) -> Score {
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
-    if (!Node::is_root && is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
+    if (is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
       m_shared.stop();
       return 0;
     }
 
     // Repetition Detection
-    if (!Node::is_root) {
+    {
       if (const auto score = position.is_fifty_move_draw(ply))
         return *score;
 
@@ -530,7 +507,7 @@ namespace rose {
 
     Score best_score = static_eval;
     Move best_move = Move::none();
-    tt::Bound bound = tt::Bound::upper_bound;
+    NodeType actual_node_type = NodeType::all;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (!score::is_loss(best_score) && !is_in_check) {
@@ -546,7 +523,7 @@ namespace rose {
       };
 
       Line child_pv {};
-      const Score score = -qsearch<typename Node::next>(ctrl, child_position, child_pv, -beta, -alpha, ss + 1, ply + 1);
+      const Score score = -qsearch<leaf_expected>(ctrl, child_position, child_pv, -beta, -alpha, ss + 1, ply + 1);
 
       if (m_shared.stopping)
         return 0;
@@ -555,14 +532,14 @@ namespace rose {
         best_score = score;
 
         if (score > alpha) {
-          bound = tt::Bound::exact;
+          actual_node_type = NodeType::pv;
           alpha = score;
           best_move = mv;
-          if constexpr (Node::is_pv)
+          if constexpr (leaf_expected == NodeType::pv)
             pv.write(mv, std::move(child_pv));
 
           if (score >= beta) {
-            bound = tt::Bound::lower_bound;
+            actual_node_type = NodeType::cut;
             break;
           }
         }

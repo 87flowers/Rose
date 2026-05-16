@@ -7,6 +7,7 @@
 #include "rose/history.hpp"
 #include "rose/line.hpp"
 #include "rose/move.hpp"
+#include "rose/node_type.hpp"
 #include "rose/position.hpp"
 #include "rose/score.hpp"
 #include "rose/search_stats.hpp"
@@ -140,9 +141,9 @@ namespace rose {
     template<typename Controls>
     auto search_root(const Controls& ctrl) -> void;
 
-    template<typename Node, typename Controls>
+    template<NodeType expected, bool is_root = false, typename Controls>
     auto search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply, i32 depth) -> Score;
-    template<typename Node, typename Controls>
+    template<NodeType leaf_expected, typename Controls>
     auto qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply) -> Score;
 
     auto eval(const Position& position) -> Score;
