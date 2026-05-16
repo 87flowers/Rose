@@ -116,6 +116,7 @@ namespace rose {
     std::array<SearchStack, max_depth + search_stack_offset + search_stack_safety> m_search_stack;
 
     QuietHistory m_quiet_history;
+    NoisyHistory m_noisy_history;
     ContinuationHistory m_continuation_history;
 
   public:
