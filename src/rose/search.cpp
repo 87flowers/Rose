@@ -449,9 +449,9 @@ namespace rose {
       const i32 cont_malus = 75 * depth - 30;
 
       if (best_move.capture()) {
-        m_noisy_history.update(stm, position.ptype_at(best_move.from()), position.ptype_at(best_move.to()), best_move, noisy_bonus);
+        m_noisy_history.update(stm, position.ptype_at(best_move.to()), best_move, noisy_bonus);
         for (const Move noisy : fail_low_noisies) {
-          m_noisy_history.update(stm, position.ptype_at(noisy.from()), position.ptype_at(noisy.to()), noisy, -noisy_malus);
+          m_noisy_history.update(stm, position.ptype_at(noisy.to()), noisy, -noisy_malus);
         }
       } else {
         m_quiet_history.update(stm, best_move, quiet_bonus);
