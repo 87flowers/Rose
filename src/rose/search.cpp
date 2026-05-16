@@ -344,6 +344,7 @@ namespace rose {
     Move best_move = Move::none();
     tt::Bound bound = tt::Bound::upper_bound;
     u32 move_count = 0;
+    u32 alpha_raises = 0;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (mv == ss->excluded)
@@ -398,6 +399,8 @@ namespace rose {
 
         i32 reduction = 2048 + 256 * log2_depth * log2_move_count;
 
+        reduction += 512 * std::bit_width(alpha_raises);
+
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
 
         score = -search<node::NonPv>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, lmr_depth);
@@ -422,6 +425,8 @@ namespace rose {
         best_score = score;
 
         if (score > alpha) {
+          alpha_raises++;
+
           bound = tt::Bound::exact;
           alpha = score;
           best_move = mv;
