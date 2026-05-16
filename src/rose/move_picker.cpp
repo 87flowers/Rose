@@ -102,14 +102,14 @@ namespace rose {
 
     const Color stm = m_position.stm();
 
-    constexpr std::array<i32, 8> victim_score {{0, 100000, 1000, 3000, 0, 3000, 5000, 9000}};
+    constexpr std::array<i32, 8> victim_score {{0, 10000, 100, 300, 0, 300, 500, 900}};
 
     for (isize i = 0; i < m_moves.size(); i++) {
       const Move mv = m_moves[i];
       const PieceType victim = m_position.ptype_at(mv.to());
 
       i32 score;
-      score += victim_score[victim.to_index()];
+      score += victim_score[victim.to_index()] * 8;
       score += m_search.m_noisy_history.get(stm, mv, victim);
 
       scores[i] = score * 256 - i;
