@@ -516,13 +516,23 @@ namespace rose {
     Score best_score = static_eval;
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
+    i32 move_count = 0;
+    i32 actual_move_count = 0;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
+      move_count++;
+
       if (!score::is_loss(best_score) && !is_in_check) {
+        // QS Late Move Pruning
+        if (actual_move_count >= 3)
+          break;
+
         // QS SEE Pruning
         if (!see::see(position, mv, 0))
           continue;
       }
+
+      actual_move_count++;
 
       const Position child_position = position.move(mv);
       make_move(ss, child_position, mv);
