@@ -375,8 +375,15 @@ namespace rose {
         const Score singular_score = search<node::NonPv>(ctrl, position, pv, singular_beta - 1, singular_beta, ss, ply, singular_depth);
         ss->excluded = Move::none();
 
+        // Multicut
+        if (singular_score >= singular_beta && singular_beta >= beta) {
+          return singular_beta;
+        }
+
         if (singular_score < singular_beta) {
+          // Single extension
           extension = 1;
+          // Double extension
           extension += !Node::is_pv && singular_score <= singular_beta - 20;
         }
       }
