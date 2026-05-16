@@ -9,7 +9,7 @@
 namespace rose::tt {
 
   inline constexpr usize default_hash_size_mb = 64;
-  inline constexpr usize maximum_hash_size_mb = 64;
+  inline constexpr usize maximum_hash_size_mb = 1048576;
 
   enum class Bound {
     none = 0b00,
