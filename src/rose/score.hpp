@@ -61,9 +61,9 @@ namespace rose::score {
   inline constexpr auto adjust_plys_to_mate(Score score, i32 adjustment) -> Score {
     rose_assert(score >= min_score && score <= max_score);
     if (score < min_normal_score) {
-      return score::mated(score::plys_to_mate(score) + adjustment);
+      return score::mated(std::max(0, score::plys_to_mate(score) + adjustment));
     } else if (score > max_normal_score) {
-      return score::mating(score::plys_to_mate(score) + adjustment);
+      return score::mating(std::max(0, score::plys_to_mate(score) + adjustment));
     } else {
       return score;
     }
