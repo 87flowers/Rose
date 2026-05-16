@@ -41,20 +41,20 @@ namespace rose {
   private:
     constexpr static i32 entry_max = 8192;
 
-    multi_array<i16, Color::count, Square::count, Square::count, PieceType::count> m_table {};
+    multi_array<i16, Color::count, PieceType::count, Square::count> m_table {};
 
   public:
     auto reset() -> void {
       m_table = {};
     }
 
-    auto update(Color stm, Move mv, PieceType captured, i32 bonus) -> void {
-      i16& entry = m_table[stm.to_index()][mv.from().to_index()][mv.to().to_index()][captured.to_index()];
+    auto update(Color stm, PieceType attacker, Move mv, i32 bonus) -> void {
+      i16& entry = m_table[stm.to_index()][attacker.to_index()][mv.to().to_index()];
       gravity_formula<entry_max>(entry, bonus);
     }
 
-    auto get(Color stm, Move mv, PieceType captured) const -> i32 {
-      return m_table[stm.to_index()][mv.from().to_index()][mv.to().to_index()][captured.to_index()];
+    auto get(Color stm, PieceType attacker, Move mv) const -> i32 {
+      return m_table[stm.to_index()][attacker.to_index()][mv.to().to_index()];
     }
   };
 

@@ -107,10 +107,11 @@ namespace rose {
     for (isize i = 0; i < m_moves.size(); i++) {
       const Move mv = m_moves[i];
       const PieceType victim = m_position.ptype_at(mv.to());
+      const PieceType attacker = m_position.ptype_at(mv.from());
 
       i32 score;
       score += victim_score[victim.to_index()] * 8;
-      score += m_search.m_noisy_history.get(stm, mv, victim);
+      score += m_search.m_noisy_history.get(stm, attacker, mv);
 
       scores[i] = score * 256 - i;
     }
