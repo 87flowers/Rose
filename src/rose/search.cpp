@@ -502,7 +502,7 @@ namespace rose {
 
     const bool is_in_check = position.is_in_check();
 
-    const Score static_eval = eval(position);
+    const Score static_eval = is_in_check ? score::mated(ply) : eval(position);
 
     // Standpat
     if (static_eval >= beta) {
