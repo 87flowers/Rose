@@ -492,6 +492,14 @@ namespace rose {
     if (ply >= max_depth)
       return eval(position);
 
+    // Mate distance pruning
+    {
+      alpha = std::max(alpha, score::mated(ply));
+      beta = std::min(beta, score::mating(ply + 1));
+      if (alpha >= beta)
+        return alpha;
+    }
+
     const bool is_in_check = position.is_in_check();
 
     const Score static_eval = eval(position);
