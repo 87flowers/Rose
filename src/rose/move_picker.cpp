@@ -111,7 +111,7 @@ namespace rose {
 
       i32 score = 0;
       score += victim_score[victim.to_index()] * 8;
-      score += m_search.m_noisy_history.get(stm, attacker, mv);
+      score += m_search.m_noisy_history.get(stm, attacker, victim, mv);
 
       scores[i] = score * 256 - i;
     }
