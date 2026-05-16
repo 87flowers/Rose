@@ -301,7 +301,7 @@ namespace rose {
       }
 
       // Beta Multi-Probcut
-      if (static_eval >= beta && depth >= 7) {
+      if (static_eval >= beta && depth >= 4) {
         const i32 r = 1 + depth / 2;
         const i32 margin = 128 + depth * 10;
         const i32 bound = beta + margin;
