@@ -205,6 +205,10 @@ namespace rose {
       return m_board.mailbox[sq.raw];
     }
 
+    auto ptype_at(Square sq) const -> PieceType {
+      return place_at(sq).ptype();
+    }
+
     template<PieceType... ptypes>
     auto piece_mask_for(Color color) const -> PieceMask {
       return piece_list_type(color).piece_mask_for<ptypes...>();

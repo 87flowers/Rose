@@ -65,6 +65,7 @@ namespace rose {
 
   auto Search::reset() -> void {
     m_quiet_history.reset();
+    m_noisy_history.reset();
     m_continuation_history.reset();
   }
 
@@ -438,13 +439,21 @@ namespace rose {
     if (best_move.is_some()) {
       const Color stm = position.stm();
 
+      const i32 noisy_bonus = 150 * depth - 75;
+      const i32 noisy_malus = 75 * depth - 30;
+
       const i32 quiet_bonus = 150 * depth - 75;
       const i32 quiet_malus = 75 * depth - 30;
 
       const i32 cont_bonus = 150 * depth - 75;
       const i32 cont_malus = 75 * depth - 30;
 
-      if (!best_move.capture()) {
+      if (best_move.capture()) {
+        m_noisy_history.update(stm, position.ptype_at(best_move.from()), best_move, noisy_bonus);
+        for (const Move noisy : fail_low_noisies) {
+          m_noisy_history.update(stm, position.ptype_at(noisy.from()), noisy, -noisy_malus);
+        }
+      } else {
         m_quiet_history.update(stm, best_move, quiet_bonus);
         for (i32 i : {1, 2})
           if (ss[-i].conthist)

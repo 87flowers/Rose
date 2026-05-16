@@ -97,15 +97,25 @@ namespace rose {
     m_moves.clear();
     m_movegen.generate_noisy(m_moves);
 
+    StaticVector<i32, max_legal_moves> scores;
+    scores.resize(m_moves.size());
+
     const Color stm = m_position.stm();
 
-    StaticVector<i32, max_legal_moves> scores;
+    constexpr std::array<i32, 8> victim_score {{0, 10000, 100, 300, 0, 350, 500, 900}};
 
-    scores.resize(m_moves.size());
     for (isize i = 0; i < m_moves.size(); i++) {
       const Move mv = m_moves[i];
-      scores[i] = m_position.board()[mv.to()].ptype().to_sort_value() * 0x10000 - m_position.board()[mv.from()].ptype().to_sort_value() * 0x100 - i;
+      const PieceType victim = m_position.ptype_at(mv.to());
+      const PieceType attacker = m_position.ptype_at(mv.from());
+
+      i32 score = 0;
+      score += victim_score[victim.to_index()] * 8;
+      score += m_search.m_noisy_history.get(stm, attacker, mv);
+
+      scores[i] = score * 256 - i;
     }
+
     std::ranges::sort(std::ranges::zip_view(m_moves, scores), [](auto&& a, auto&& b) {
       return std::get<1>(a) > std::get<1>(b);
     });
