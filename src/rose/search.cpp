@@ -388,6 +388,7 @@ namespace rose {
         const i32 log2_move_count = std::bit_width(static_cast<u32>(move_count)) - 1;
 
         i32 reduction = 2048 + 256 * log2_depth * log2_move_count;
+        reduction -= 1024 * child_position.is_in_check();
 
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
 
