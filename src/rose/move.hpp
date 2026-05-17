@@ -99,6 +99,8 @@ namespace rose {
 
     constexpr auto to_string(MoveFormat format) const -> std::string {
       const bool classical = format == MoveFormat::classical;
+      if (is_none())
+        return fmt::format("(none)", from(), to());
       if (classical && flags() == MoveFlags::castle_aside && from().file() == 4 && to().file() == 0)
         return fmt::format("{}c{}", from(), static_cast<char>(to().rank() + '1'));
       if (classical && flags() == MoveFlags::castle_hside && from().file() == 4 && to().file() == 7)
