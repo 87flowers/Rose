@@ -383,6 +383,10 @@ namespace rose {
 
         i32 reduction = 2048 + 256 * log2_depth * log2_move_count;
 
+        if (mv.capture()) {
+          reduction -= 512;
+        }
+
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
 
         score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, lmr_depth);
