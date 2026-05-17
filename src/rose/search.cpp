@@ -374,8 +374,8 @@ namespace rose {
       };
 
       // Check Extension
-      if (extension <= 0 && child_position.is_in_check()) {
-        extension = 1;
+      if (child_position.is_in_check()) {
+        extension += 1;
       }
 
       const i32 new_depth = depth + extension - 1;
