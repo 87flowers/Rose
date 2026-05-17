@@ -511,6 +511,24 @@ namespace rose {
 
     const bool is_in_check = position.is_in_check();
 
+    const tt::LookupResult tte = tt_load(position, ply);
+
+    // Transposition Table Cutoffs
+    if (leaf_expected != NodeType::pv && tte.is_some() && [&] {
+          switch (tte.bound.raw) {
+          case NodeType::none:
+            return false;
+          case NodeType::cut:
+            return tte.score >= beta;
+          case NodeType::pv:
+            return true;
+          case NodeType::all:
+            return tte.score <= alpha;
+          }
+        }()) {
+      return tte.score;
+    }
+
     const Score static_eval = is_in_check ? score::mated(ply) : eval(position);
 
     // Standpat
