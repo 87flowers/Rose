@@ -185,35 +185,43 @@ namespace rose {
       // King quiets
       if constexpr (!in_check)
         write_moves<MoveFlags::normal>(moves, at, srcs, king_active & empty & ~danger, king_mask);
-      // Do pawns
+    }
+
+    // Do pawns
+    {
+      const Bitboard pinned_pawns = pinned & ~Bitboard::file_mask(king_sq.file());
+
+      const Bitboard bb = position.bitboard_for<PieceType::p>(stm) & ~pinned_pawns;
+      const auto pawn_empty = pawns::pawn_destination_empty(stm, empty, valid_destinations);
+      const auto pawn_moves = pawns::pawn_moves(stm);
+
+      const Bitboard pawn_normal = bb & pawn_empty.normal_move;
+      const Bitboard pawn_double = bb & pawn_empty.double_move;
+
+      // Promotions
       {
-        const Bitboard pinned_pawns = pinned & ~Bitboard::file_mask(king_sq.file());
-
-        const Bitboard bb = position.bitboard_for<PieceType::p>(stm) & ~pinned_pawns;
-        const auto pawn_empty = pawns::pawn_destination_empty(stm, empty, valid_destinations);
-        const auto pawn_moves = pawns::pawn_moves(stm);
-
-        const Bitboard pawn_normal = bb & pawn_empty.normal_move;
-        const Bitboard pawn_double = bb & pawn_empty.double_move;
-
-        // Promotions
-        {
-          const u8 mask = static_cast<u8>(pawn_normal.raw >> pawn_info.promotable_shift);
-          moves.write4(mask, pawn_moves.promotions);
+        const u8 mask = static_cast<u8>(pawn_normal.raw >> pawn_info.promotable_shift);
+        if constexpr (mode == Mode::all || mode == Mode::noisy) {
+          moves.write(mask, pawn_moves.promotions_base | u16x8::splat(static_cast<u16>(MoveFlags::promo_q)));
         }
-        // Relative rank 3-6
-        {
-          constexpr int normal_shift = 16;
-          const u32 mask = static_cast<u32>(pawn_normal.raw >> normal_shift);
-          moves.write(mask, pawn_moves.normal_moves);
+        if constexpr (mode == Mode::all || mode == Mode::quiet) {
+          moves.write(mask, pawn_moves.promotions_base | u16x8::splat(static_cast<u16>(MoveFlags::promo_n)));
+          moves.write(mask, pawn_moves.promotions_base | u16x8::splat(static_cast<u16>(MoveFlags::promo_r)));
+          moves.write(mask, pawn_moves.promotions_base | u16x8::splat(static_cast<u16>(MoveFlags::promo_b)));
         }
-        // Relative rank 2
-        {
-          const u8 normal_mask = static_cast<u8>(pawn_normal.raw >> pawn_info.second_rank_shift);
-          const u8 double_mask = static_cast<u8>(pawn_double.raw >> pawn_info.second_rank_shift);
-          const u16 mask = (static_cast<u16>(double_mask) << 8) | normal_mask;
-          moves.write(mask, pawn_moves.double_moves);
-        }
+      }
+      // Relative rank 3-6
+      if constexpr (mode == Mode::all || mode == Mode::quiet) {
+        constexpr int normal_shift = 16;
+        const u32 mask = static_cast<u32>(pawn_normal.raw >> normal_shift);
+        moves.write(mask, pawn_moves.normal_moves);
+      }
+      // Relative rank 2
+      if constexpr (mode == Mode::all || mode == Mode::quiet) {
+        const u8 normal_mask = static_cast<u8>(pawn_normal.raw >> pawn_info.second_rank_shift);
+        const u8 double_mask = static_cast<u8>(pawn_double.raw >> pawn_info.second_rank_shift);
+        const u16 mask = (static_cast<u16>(double_mask) << 8) | normal_mask;
+        moves.write(mask, pawn_moves.double_moves);
       }
     }
   }

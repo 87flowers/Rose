@@ -77,6 +77,11 @@ namespace rose {
       return raw & 0x8000;
     }
 
+    constexpr auto noisy() const -> bool {
+      // equivalent to: return capture() || flags() == MoveFlags::promo_q;
+      return (raw ^ 0x3000) >= 0x7000;
+    }
+
     constexpr auto castle() const -> bool {
       return flags() == MoveFlags::castle_aside || flags() == MoveFlags::castle_hside;
     }
