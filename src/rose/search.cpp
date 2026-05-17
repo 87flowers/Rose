@@ -581,6 +581,15 @@ namespace rose {
       }
     }
 
+    tt_store(position,
+             ply,
+             tt::LookupResult {
+               .depth = 0,
+               .bound = actual_node_type,
+               .score = best_score,
+               .move = best_move,
+             });
+
     return best_score;
   }
 
