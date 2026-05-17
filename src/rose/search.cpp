@@ -237,6 +237,9 @@ namespace rose {
   template<NodeType expected, bool is_root, typename Controls>
   auto Search::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply, i32 depth)
     -> Score {
+    if (!is_root)
+      m_shared.transposition_table.prefetch(position.hash());
+
     if (depth <= 0)
       return qsearch<expected>(ctrl, position, pv, alpha, beta, ss, ply);
 
@@ -483,6 +486,8 @@ namespace rose {
 
   template<NodeType leaf_expected, typename Controls>
   auto Search::qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply) -> Score {
+    m_shared.transposition_table.prefetch(position.hash());
+
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
     if (is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
       m_shared.stop();

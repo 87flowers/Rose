@@ -6,6 +6,7 @@
 #include "rose/score.hpp"
 
 #include <memory>
+#include <tuple>
 
 namespace rose::tt {
 
@@ -95,6 +96,13 @@ namespace rose::tt {
     return mb * 1024 * 1024 / sizeof(Entry);
   }
 
+  constexpr inline auto split_hash(usize count, u64 hash) -> std::tuple<usize, u64> {
+    const u128 mul = static_cast<u128>(hash) * count;
+    const usize index = static_cast<usize>(mul >> 64);
+    const u64 fragment = (static_cast<u64>(mul) >> (64 - Entry::fragment_width)) & Entry::fragment_mask;
+    return {index, fragment};
+  }
+
   struct TT {
   private:
     static auto table_alloc(std::size_t m_count) -> Entry*;
@@ -118,8 +126,30 @@ namespace rose::tt {
 
     auto clear() -> void;
 
-    auto load(u64 hash, int ply) const -> LookupResult;
-    auto store(u64 hash, int ply, LookupResult lr) -> void;
+    auto prefetch(u64 hash) const -> void {
+      const auto [index, _] = split_hash(m_count, hash);
+      __builtin_prefetch(&m_table.get()[index], 0, 1);
+    }
+
+    auto load(u64 hash, int ply) const -> LookupResult {
+      const auto [index, fragment] = split_hash(m_count, hash);
+      const Entry& entry = m_table.get()[index];
+
+      if (entry.fragment() == fragment) {
+        return entry.toResult(ply);
+      }
+      return {};
+    }
+
+    auto store(u64 hash, int ply, LookupResult lr) -> void {
+      const auto [index, fragment] = split_hash(m_count, hash);
+      Entry& entry = m_table.get()[index];
+
+      if (entry.fragment() == fragment && lr.move.is_none())
+        lr.move = entry.move();
+
+      entry = Entry {fragment, ply, lr};
+    }
 
     auto print(u64 hash) const -> void;
   };
