@@ -344,6 +344,7 @@ namespace rose {
       move_count++;
 
       i32 extension = 0;
+
       // Singular Extensions
       if (!is_root && depth >= 9 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
         const Score singular_beta = std::max(score::min_score, tte.score - 2 * depth);
@@ -371,6 +372,11 @@ namespace rose {
       rose_defer {
         unmake_move(ss);
       };
+
+      // Check Extension
+      if (extension <= 0 && child_position.is_in_check()) {
+        extension = 1;
+      }
 
       const i32 new_depth = depth + extension - 1;
       Line child_pv {};
