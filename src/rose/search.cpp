@@ -535,16 +535,33 @@ namespace rose {
 
     const Score static_eval = is_in_check ? score::mated(ply) : eval(position);
 
-    // Standpat
-    if (static_eval >= beta) {
+    Score best_score = static_eval;
+
+    // Use search score if available from TT
+    if (!is_in_check && tte.is_some() && !score::is_theoretical(tte.score) && [&] {
+          switch (tte.bound.raw) {
+          case NodeType::none:
+            return false;
+          case NodeType::all:
+            return tte.score < static_eval;
+          case NodeType::pv:
+            return true;
+          case NodeType::cut:
+            return tte.score > static_eval;
+          }
+        }()) {
+      best_score = tte.score;
+    }
+
+    // Stand pat
+    if (best_score >= beta) {
       return static_eval;
     }
-    alpha = std::max(alpha, static_eval);
+    alpha = std::max(alpha, best_score);
 
     MovePicker moves {*this, position, ss, Move::none()};
     moves.skip_quiet();
 
-    Score best_score = static_eval;
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
 
