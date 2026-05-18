@@ -313,15 +313,15 @@ namespace rose {
       }
     }
 
-    MovePicker moves {*this, position, ss, tte.move};
-
-    MoveList fail_low_quiets;
-    MoveList fail_low_noisies;
-
     Score best_score = score::none;
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
     u32 move_count = 0;
+
+    MoveList fail_low_quiets;
+    MoveList fail_low_noisies;
+
+    MovePicker moves {*this, position, ss, tte.move};
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (mv == ss->excluded)
@@ -536,6 +536,8 @@ namespace rose {
     const Score static_eval = is_in_check ? score::mated(ply) : eval(position);
 
     Score best_score = static_eval;
+    Move best_move = Move::none();
+    NodeType actual_node_type = NodeType::all;
 
     // Use search score if available from TT
     if (!is_in_check && tte.is_some() && !score::is_theoretical(tte.score) && [&] {
@@ -561,9 +563,6 @@ namespace rose {
 
     MovePicker moves {*this, position, ss, Move::none()};
     moves.skip_quiet();
-
-    Move best_move = Move::none();
-    NodeType actual_node_type = NodeType::all;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (!score::is_loss(best_score) && !is_in_check) {
