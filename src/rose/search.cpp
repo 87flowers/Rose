@@ -329,13 +329,13 @@ namespace rose {
 
       if (!score::is_loss(best_score) && !is_in_check) {
         // Late Move Pruning
-        if (!mv.capture() && move_count >= (4 + depth * depth) / (2 - improving)) {
+        if (!mv.noisy() && move_count >= (4 + depth * depth) / (2 - improving)) {
           moves.skip_quiet();
           continue;
         }
 
         // Futility Pruning
-        if (!mv.capture() && depth <= 6 && std::abs(alpha) < 2000 && static_eval + 256 + depth * 100 <= alpha) {
+        if (!mv.noisy() && depth <= 6 && std::abs(alpha) < 2000 && static_eval + 256 + depth * 100 <= alpha) {
           moves.skip_quiet();
           continue;
         }
@@ -426,7 +426,7 @@ namespace rose {
       }
 
       if (mv != best_move) {
-        if (mv.capture()) {
+        if (mv.noisy()) {
           fail_low_noisies.push_back(mv);
         } else {
           fail_low_quiets.push_back(mv);
@@ -452,7 +452,7 @@ namespace rose {
       const i32 cont_bonus = 150 * depth - 75;
       const i32 cont_malus = 75 * depth - 30;
 
-      if (best_move.capture()) {
+      if (best_move.noisy()) {
         m_noisy_history.update(stm, position.ptype_at(best_move.from()), best_move, noisy_bonus);
         for (const Move noisy : fail_low_noisies) {
           m_noisy_history.update(stm, position.ptype_at(noisy.from()), noisy, -noisy_malus);

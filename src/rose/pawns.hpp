@@ -44,7 +44,7 @@ namespace rose::pawns {
   struct Moves {
     u16x32 normal_moves;
     u16x16 double_moves;
-    u16x32 promotions;
+    u16x8 promotions_base;
   };
 
   auto pawn_moves(Color stm) -> Moves {
@@ -68,21 +68,15 @@ namespace rose::pawns {
       }
       return std::array<u16x16, 2> {u16x16 {double_moves[0]}, u16x16 {double_moves[1]}};
     }();
-    constexpr std::array<u16x32, 2> promotions = [] consteval {
-      std::array<std::array<u16, 32>, 2> promotions;
+    constexpr std::array<u16x8, 2> promotions = [] consteval {
+      std::array<std::array<u16, 8>, 2> promotions;
       for (u8 i = 0; i < 8; i++) {
         const u8 wsrc = 48 + i;
-        promotions[0][i * 4 + 0] = Move::make(Square {wsrc}, Square {narrow_cast<u8>(wsrc + 8)}, MoveFlags::promo_q).raw;
-        promotions[0][i * 4 + 1] = Move::make(Square {wsrc}, Square {narrow_cast<u8>(wsrc + 8)}, MoveFlags::promo_n).raw;
-        promotions[0][i * 4 + 2] = Move::make(Square {wsrc}, Square {narrow_cast<u8>(wsrc + 8)}, MoveFlags::promo_r).raw;
-        promotions[0][i * 4 + 3] = Move::make(Square {wsrc}, Square {narrow_cast<u8>(wsrc + 8)}, MoveFlags::promo_b).raw;
+        promotions[0][i] = Move::make(Square {wsrc}, Square {narrow_cast<u8>(wsrc + 8)}, MoveFlags::promo_q).raw;
         const u8 bsrc = 8 + i;
-        promotions[1][i * 4 + 0] = Move::make(Square {bsrc}, Square {narrow_cast<u8>(bsrc - 8)}, MoveFlags::promo_q).raw;
-        promotions[1][i * 4 + 1] = Move::make(Square {bsrc}, Square {narrow_cast<u8>(bsrc - 8)}, MoveFlags::promo_n).raw;
-        promotions[1][i * 4 + 2] = Move::make(Square {bsrc}, Square {narrow_cast<u8>(bsrc - 8)}, MoveFlags::promo_r).raw;
-        promotions[1][i * 4 + 3] = Move::make(Square {bsrc}, Square {narrow_cast<u8>(bsrc - 8)}, MoveFlags::promo_b).raw;
+        promotions[1][i] = Move::make(Square {bsrc}, Square {narrow_cast<u8>(bsrc - 8)}, MoveFlags::promo_q).raw;
       }
-      return std::array<u16x32, 2> {u16x32 {promotions[0]}, u16x32 {promotions[1]}};
+      return std::array<u16x8, 2> {u16x8 {promotions[0]}, u16x8 {promotions[1]}};
     }();
 
     const int j = stm.to_index();
