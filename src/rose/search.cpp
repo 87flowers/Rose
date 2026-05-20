@@ -311,6 +311,14 @@ namespace rose {
           return beta;
         }
       }
+
+      // Razoring
+      if (depth <= 4 && static_eval + 600 * depth < alpha) {
+        const Score razor_score = qsearch<expected.narrow()>(ctrl, position, pv, alpha, beta, ss, ply);
+        if (razor_score <= alpha) {
+          return razor_score;
+        }
+      }
     }
 
     MovePicker moves {*this, position, ss, tte.move};
