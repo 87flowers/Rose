@@ -142,7 +142,13 @@ namespace rose {
     template<typename Controls>
     auto search_root(const Controls& ctrl) -> void;
 
-    template<NodeType expected, bool is_root = false, typename Controls>
+    enum class SpecialNode {
+      none,
+      root,
+      probcut,
+    };
+
+    template<NodeType expected, SpecialNode special = SpecialNode::none, typename Controls>
     auto search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply, i32 depth) -> Score;
     template<NodeType leaf_expected, typename Controls>
     auto qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply) -> Score;

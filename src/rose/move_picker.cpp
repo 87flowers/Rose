@@ -51,8 +51,8 @@ namespace rose {
 
       [[fallthrough]];
     case Stage::generate_quiet:
-      if (m_skip_quiet) {
-        m_stage = Stage::emit_bad_noisy;
+      if (m_skip != SkipMode::none) {
+        m_stage = m_skip == SkipMode::quiet ? Stage::emit_bad_noisy : Stage::end;
         m_current_index = 0;
         return next();
       }

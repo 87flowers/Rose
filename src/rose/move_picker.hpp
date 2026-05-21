@@ -21,6 +21,12 @@ namespace rose {
       end,
     };
 
+    enum class SkipMode {
+      none,
+      quiet,
+      quiet_and_bad_noisy,
+    };
+
     auto is_in_quiet_stage() const -> bool {
       return m_stage >= Stage::generate_quiet && m_stage <= Stage::emit_quiet;
     }
@@ -33,7 +39,7 @@ namespace rose {
     MoveGen m_movegen;
     Move m_tt_move;
 
-    bool m_skip_quiet = false;
+    SkipMode m_skip = SkipMode::none;
     usize m_current_index = 0;
     MoveList m_moves;
     MoveList m_bad_noisies;
@@ -44,9 +50,19 @@ namespace rose {
     auto next() -> Move;
 
     auto skip_quiet() -> void {
-      m_skip_quiet = true;
+      rose_assert(m_skip == SkipMode::none);
+      m_skip = SkipMode::quiet;
       if (is_in_quiet_stage()) {
         m_stage = Stage::emit_bad_noisy;
+        m_current_index = 0;
+      }
+    }
+
+    auto skip_quiet_and_bad_noisy() -> void {
+      rose_assert(m_skip == SkipMode::none);
+      m_skip = SkipMode::quiet_and_bad_noisy;
+      if (m_stage >= Stage::generate_quiet) {
+        m_stage = Stage::end;
         m_current_index = 0;
       }
     }

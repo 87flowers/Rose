@@ -196,7 +196,7 @@ namespace rose {
         m_search_stack = {};
 
         pv.clear();
-        score = search<NodeType::pv, true>(ctrl, m_root, pv, alpha, beta, &m_search_stack[search_stack_offset], 0, depth);
+        score = search<NodeType::pv, SpecialNode::root>(ctrl, m_root, pv, alpha, beta, &m_search_stack[search_stack_offset], 0, depth);
 
         if (score <= alpha) {
           alpha = std::max(score - delta, -score::infinity);
@@ -234,9 +234,11 @@ namespace rose {
     }
   }
 
-  template<NodeType expected, bool is_root, typename Controls>
+  template<NodeType expected, Search::SpecialNode special, typename Controls>
   auto Search::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply, i32 depth)
     -> Score {
+    constexpr bool is_root = special == SpecialNode::root;
+
     if (depth <= 0)
       return qsearch<expected>(ctrl, position, pv, alpha, beta, ss, ply);
 
@@ -266,13 +268,13 @@ namespace rose {
         return alpha;
     }
 
-    const bool excluded = ss->excluded.is_some();
+    const bool skip_prunes = ss->excluded.is_some() || special == SpecialNode::probcut;
     const bool is_in_check = position.is_in_check();
 
     const tt::LookupResult tte = tt_load(position, ply);
 
     // Transposition Table Cutoffs
-    if (expected != NodeType::pv && !excluded && tte.is_some() && tte.depth >= depth && [&] {
+    if (expected != NodeType::pv && !skip_prunes && tte.is_some() && tte.depth >= depth && [&] {
           switch (tte.bound.raw) {
           case NodeType::none:
             return false;
@@ -287,7 +289,7 @@ namespace rose {
       return tte.score;
     }
 
-    const i32 static_eval = is_in_check ? score::none : excluded ? ss->static_eval : eval(position);
+    const i32 static_eval = is_in_check ? score::none : skip_prunes ? ss->static_eval : eval(position);
     ss->static_eval = static_eval;
 
     const bool improving = is_in_check                       ? false :
@@ -295,7 +297,7 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
-    if (expected != NodeType::pv && !is_in_check && !excluded) {
+    if (expected != NodeType::pv && !is_in_check && !skip_prunes) {
       // Reverse Futility Pruning
       if (depth <= 6 && static_eval - 128 * depth >= beta) {
         return static_eval;
@@ -308,9 +310,22 @@ namespace rose {
           return razor_score;
         }
       }
+
+      // Probcut
+      if (depth >= 4 && !score::is_theoretical(beta) && !(tte.score != score::none && tte.score < beta + 256)) {
+        const Score bound = beta + 256;
+        if (!score::is_theoretical(bound)) {
+          const Score probcut_score = search<expected.narrow(), SpecialNode::probcut>(ctrl, position, pv, -bound, -bound + 1, ss, ply, depth - 4);
+          if (probcut_score >= bound && !score::is_theoretical(probcut_score))
+            return probcut_score - 256;
+        }
+      }
     }
 
     MovePicker moves {*this, position, ss, tte.move};
+
+    if (special == SpecialNode::probcut)
+      moves.skip_quiet_and_bad_noisy();
 
     MoveList fail_low_quiets;
     MoveList fail_low_noisies;
@@ -324,7 +339,7 @@ namespace rose {
       if (mv == ss->excluded)
         continue;
 
-      if (!score::is_loss(best_score) && !is_in_check) {
+      if (!score::is_loss(best_score) && !is_in_check && special != SpecialNode::probcut) {
         // Late Move Pruning
         if (!mv.noisy() && move_count >= (4 + depth * depth) / (2 - improving)) {
           moves.skip_quiet();
@@ -342,7 +357,7 @@ namespace rose {
 
       i32 extension = 0;
       // Singular Extensions
-      if (!is_root && depth >= 9 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
+      if (!is_root && depth >= 9 && mv == tte.move && !skip_prunes && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
         const Score singular_beta = std::max(score::min_score, tte.score - 2 * depth);
         const i32 singular_depth = depth / 2;
 
@@ -432,7 +447,7 @@ namespace rose {
     }
 
     if (best_score == score::none) {
-      if (excluded)
+      if (ss->excluded.is_some())
         return score::min_score;
       return position.is_in_check() ? score::mated(ply) : 0;
     }
@@ -468,7 +483,7 @@ namespace rose {
       }
     }
 
-    if (!excluded) {
+    if (!skip_prunes) {
       tt_store(position,
                ply,
                tt::LookupResult {
