@@ -315,7 +315,7 @@ namespace rose {
       if (depth >= 4 && !score::is_theoretical(beta) && !(tte.score != score::none && tte.score < beta + 256)) {
         const Score bound = beta + 256;
         if (!score::is_theoretical(bound)) {
-          const Score probcut_score = search<expected.narrow(), SpecialNode::probcut>(ctrl, position, pv, -bound, -bound + 1, ss, ply, depth - 4);
+          const Score probcut_score = search<expected.narrow(), SpecialNode::probcut>(ctrl, position, pv, bound - 1, bound, ss, ply, depth - 4);
           if (probcut_score >= bound && !score::is_theoretical(probcut_score))
             return probcut_score - 256;
         }
