@@ -301,17 +301,6 @@ namespace rose {
         return static_eval;
       }
 
-      // Beta Multi-Probcut
-      if (static_eval >= beta && depth >= 7) {
-        const i32 r = 1 + depth / 2;
-        const i32 margin = 128 + depth * 10;
-        const i32 bound = beta + margin;
-        const i32 score = search<expected.narrow()>(ctrl, position, pv, bound - 1, bound, ss, ply, depth - r);
-        if (score >= bound) {
-          return beta;
-        }
-      }
-
       // Razoring
       if (depth <= 4 && static_eval + 600 * depth < alpha) {
         const Score razor_score = qsearch<expected.narrow()>(ctrl, position, pv, alpha, beta, ss, ply);
