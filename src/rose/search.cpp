@@ -308,6 +308,11 @@ namespace rose {
           return razor_score;
         }
       }
+
+      // TT Probcut
+      if (!score::is_theoretical(tte.score) && tte.score >= beta + 300 && tte.bound.is_pv_or_cut() && tte.depth >= depth - 4) {
+        return (tte.score + beta) / 2;
+      }
     }
 
     MovePicker moves {*this, position, ss, tte.move};
