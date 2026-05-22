@@ -311,7 +311,7 @@ namespace rose {
 
       // TT Probcut
       if (!score::is_theoretical(tte.score) && tte.score >= beta + 300 && tte.bound == NodeType::cut && tte.depth >= depth - 4) {
-        return tte.score;
+        return beta + 300;
       }
     }
 
