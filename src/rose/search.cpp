@@ -308,6 +308,30 @@ namespace rose {
           return razor_score;
         }
       }
+
+      // Null move reductions
+      if (depth >= 4 && m_nmr_ply != ply && ss[-1].move.is_some() && static_eval >= beta) {
+        const i32 reduction = 4;
+
+        const Position null_position = position.null_move();
+        make_null_move(ss, null_position);
+        const Score null_score = -search<NodeType::all>(ctrl, null_position, pv, -beta, -beta + 1, ss + 1, ply + 1, depth - reduction);
+        unmake_move(ss);
+
+        if (m_shared.stopping)
+          return 0;
+
+        if (null_score >= beta) {
+          if (m_nmr_ply.has_value()) {
+            return null_score;
+          } else {
+            m_nmr_ply = ply;
+            const Score score = search<expected>(ctrl, position, pv, alpha, beta, ss, ply, depth - 2);
+            m_nmr_ply = std::nullopt;
+            return score;
+          }
+        }
+      }
     }
 
     MovePicker moves {*this, position, ss, tte.move};
@@ -601,6 +625,12 @@ namespace rose {
     m_hash_stack.push_back(child_position.hash());
     ss->move = mv;
     ss->conthist = m_continuation_history.get_subtable(!child_position.stm(), child_position.place_at(mv.to()).ptype(), mv);
+  }
+
+  auto Search::make_null_move(SearchStack* ss, const Position& child_position) -> void {
+    m_hash_stack.push_back(child_position.hash());
+    ss->move = Move::none();
+    ss->conthist = nullptr;
   }
 
   auto Search::unmake_move(SearchStack* ss) -> void {

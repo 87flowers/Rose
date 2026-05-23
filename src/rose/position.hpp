@@ -234,6 +234,7 @@ namespace rose {
     auto is_repetition(const std::vector<u64>& hash_stack, usize hash_waterline) const -> bool;
 
     auto move(Move m) const -> Position;
+    auto null_move() const -> Position;
 
     auto calc_hash_slow() const -> Hash;
 

@@ -119,6 +119,8 @@ namespace rose {
     NoisyHistory m_noisy_history;
     ContinuationHistory m_continuation_history;
 
+    std::optional<i32> m_nmr_ply;
+
   public:
     Search(int id, SearchShared& shared) :
         m_id(id),
@@ -153,6 +155,7 @@ namespace rose {
     auto tt_store(const Position& position, i32 ply, tt::LookupResult lr) -> void;
 
     auto make_move(SearchStack* ss, const Position& child_position, Move mv) -> void;
+    auto make_null_move(SearchStack* ss, const Position& child_position) -> void;
     auto unmake_move(SearchStack* ss) -> void;
   };
 

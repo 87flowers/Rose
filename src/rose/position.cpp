@@ -226,17 +226,17 @@ namespace rose {
     new_pos.m_cached_pinned = {};
     new_pos.m_cached_masked_attack_table = {};
 
+    if (new_pos.m_enpassant.is_valid()) {
+      new_pos.m_hash ^= hash::enpassant_table[new_pos.m_enpassant.file()];
+      new_pos.m_enpassant = Square::invalid();
+    }
+
     const Square from = m.from();
     const Square to = m.to();
     const Place src_place = m_board[from];
     const Place dest_place = m_board[to];
     const PieceId src_id = src_place.id();
     const PieceId dest_id = dest_place.id();
-
-    if (new_pos.m_enpassant.is_valid()) {
-      new_pos.m_hash ^= hash::enpassant_table[new_pos.m_enpassant.file()];
-      new_pos.m_enpassant = Square::invalid();
-    }
 
     const auto check_src_castling_rights = [&] {
       new_pos.m_rook_info.unset(m_stm, from);
@@ -386,6 +386,35 @@ namespace rose {
                 to_string(MoveFormat::frc),
                 m_hash,
                 m.to_string(MoveFormat::frc),
+                new_pos.to_string(MoveFormat::frc),
+                new_pos.m_hash,
+                new_pos.calc_hash_slow());
+
+    return new_pos;
+  }
+
+  auto Position::null_move() const -> Position {
+    Position new_pos = *this;
+    new_pos.m_valid_pin_info = false;
+    new_pos.m_cached_pinned = {};
+    new_pos.m_cached_masked_attack_table = {};
+
+    if (new_pos.m_enpassant.is_valid()) {
+      new_pos.m_hash ^= hash::enpassant_table[new_pos.m_enpassant.file()];
+      new_pos.m_enpassant = Square::invalid();
+    }
+
+    new_pos.m_50mr++;
+
+    new_pos.m_hash ^= hash::move;
+
+    new_pos.m_ply++;
+    new_pos.m_stm = !m_stm;
+
+    rose_assert(new_pos.m_hash == new_pos.calc_hash_slow(),
+                "{} [{:016x}] : {} : (null move) [{:016x} {:016x}]",
+                to_string(MoveFormat::frc),
+                m_hash,
                 new_pos.to_string(MoveFormat::frc),
                 new_pos.m_hash,
                 new_pos.calc_hash_slow());
