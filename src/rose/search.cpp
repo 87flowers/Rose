@@ -308,6 +308,29 @@ namespace rose {
           return razor_score;
         }
       }
+
+      // Null move reductions
+      if (depth >= 4 && m_nmr_ply != ply && ss[-1].move.is_some() && static_eval >= beta) {
+        const i32 reduction = 4;
+
+        const Position null_position = position.null_move();
+        make_null_move(ss, null_position);
+        const Score null_score = -search<NodeType::all>(ctrl, null_position, pv, -beta, -beta + 1, ss + 1, ply + 1, depth - reduction);
+        unmake_move(ss);
+
+        if (m_shared.stopping)
+          return 0;
+
+        if (m_nmr_ply.has_value()) {
+          if (null_score >= beta)
+            return null_score;
+        } else {
+          m_nmr_ply = ply;
+          const Score score = search<expected>(ctrl, position, pv, alpha, beta, ss, ply, depth - 2);
+          m_nmr_ply = std::nullopt;
+          return score;
+        }
+      }
     }
 
     MovePicker moves {*this, position, ss, tte.move};

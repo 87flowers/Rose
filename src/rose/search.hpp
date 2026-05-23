@@ -119,6 +119,8 @@ namespace rose {
     NoisyHistory m_noisy_history;
     ContinuationHistory m_continuation_history;
 
+    std::optional<i32> m_nmr_ply;
+
   public:
     Search(int id, SearchShared& shared) :
         m_id(id),
