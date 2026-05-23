@@ -153,6 +153,7 @@ namespace rose {
     auto tt_store(const Position& position, i32 ply, tt::LookupResult lr) -> void;
 
     auto make_move(SearchStack* ss, const Position& child_position, Move mv) -> void;
+    auto make_null_move(SearchStack* ss, const Position& child_position) -> void;
     auto unmake_move(SearchStack* ss) -> void;
   };
 

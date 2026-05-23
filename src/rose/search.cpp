@@ -603,6 +603,12 @@ namespace rose {
     ss->conthist = m_continuation_history.get_subtable(!child_position.stm(), child_position.place_at(mv.to()).ptype(), mv);
   }
 
+  auto Search::make_null_move(SearchStack* ss, const Position& child_position) -> void {
+    m_hash_stack.push_back(child_position.hash());
+    ss->move = Move::none();
+    ss->conthist = nullptr;
+  }
+
   auto Search::unmake_move(SearchStack* ss) -> void {
     m_hash_stack.pop_back();
     ss->move = Move::none();
