@@ -321,14 +321,15 @@ namespace rose {
         if (m_shared.stopping)
           return 0;
 
-        if (m_nmr_ply.has_value()) {
-          if (null_score >= beta)
+        if (null_score >= beta) {
+          if (m_nmr_ply.has_value()) {
             return null_score;
-        } else {
-          m_nmr_ply = ply;
-          const Score score = search<expected>(ctrl, position, pv, alpha, beta, ss, ply, depth - 2);
-          m_nmr_ply = std::nullopt;
-          return score;
+          } else {
+            m_nmr_ply = ply;
+            const Score score = search<expected>(ctrl, position, pv, alpha, beta, ss, ply, depth - 2);
+            m_nmr_ply = std::nullopt;
+            return score;
+          }
         }
       }
     }
