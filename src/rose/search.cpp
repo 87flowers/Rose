@@ -480,12 +480,12 @@ namespace rose {
         }
       } else {
         m_quiet_history.update(stm, best_move, quiet_bonus);
-        for (i32 i : {1, 2, 4})
+        for (i32 i : {1, 2, 4, 6})
           if (ss[-i].conthist)
             ss[-i].conthist->update(stm, position.place_at(best_move.from()).ptype(), best_move, cont_bonus);
         for (const Move quiet : fail_low_quiets) {
           m_quiet_history.update(stm, quiet, -quiet_malus);
-          for (i32 i : {1, 2, 4})
+          for (i32 i : {1, 2, 4, 6})
             if (ss[-i].conthist)
               ss[-i].conthist->update(stm, position.place_at(quiet.from()).ptype(), quiet, -cont_malus);
         }
