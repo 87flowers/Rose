@@ -384,6 +384,8 @@ namespace rose {
           extension = 1;
           // Double extension
           extension += expected != NodeType::pv && singular_score <= singular_beta - 20;
+          // Triple extension
+          extension += expected != NodeType::pv && singular_score <= singular_beta - 100;
         }
       }
 
