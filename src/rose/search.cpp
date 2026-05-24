@@ -66,7 +66,9 @@ namespace rose {
   auto Search::reset() -> void {
     m_quiet_history.reset();
     m_noisy_history.reset();
-    m_continuation_history.reset();
+    m_even_continuation_history.reset();
+    for (i32 i : {1, 3})
+      m_odd_continuation_history[i / 2].reset();
   }
 
   auto Search::launch() -> void {
@@ -480,14 +482,20 @@ namespace rose {
         }
       } else {
         m_quiet_history.update(stm, best_move, quiet_bonus);
-        for (i32 i : {1, 2, 4})
-          if (ss[-i].conthist)
-            ss[-i].conthist->update(stm, position.place_at(best_move.from()).ptype(), best_move, cont_bonus);
+        for (i32 i : {2, 4})
+          if (ss[-i].evenconthist)
+            ss[-i].evenconthist->update(stm, position.place_at(best_move.from()).ptype(), best_move, cont_bonus);
+        for (i32 i : {1, 3})
+          if (ss[-i].oddconthist[i / 2])
+            ss[-i].oddconthist[i / 2]->update(stm, position.place_at(best_move.from()).ptype(), best_move, cont_bonus);
         for (const Move quiet : fail_low_quiets) {
           m_quiet_history.update(stm, quiet, -quiet_malus);
-          for (i32 i : {1, 2, 4})
-            if (ss[-i].conthist)
-              ss[-i].conthist->update(stm, position.place_at(quiet.from()).ptype(), quiet, -cont_malus);
+          for (i32 i : {2, 4})
+            if (ss[-i].evenconthist)
+              ss[-i].evenconthist->update(stm, position.place_at(quiet.from()).ptype(), quiet, -cont_malus);
+          for (i32 i : {1, 3})
+            if (ss[-i].oddconthist[i / 2])
+              ss[-i].oddconthist[i / 2]->update(stm, position.place_at(quiet.from()).ptype(), quiet, -cont_malus);
         }
       }
     }
@@ -624,19 +632,23 @@ namespace rose {
   auto Search::make_move(SearchStack* ss, const Position& child_position, Move mv) -> void {
     m_hash_stack.push_back(child_position.hash());
     ss->move = mv;
-    ss->conthist = m_continuation_history.get_subtable(!child_position.stm(), child_position.place_at(mv.to()).ptype(), mv);
+    ss->evenconthist = m_even_continuation_history.get_subtable(!child_position.stm(), child_position.place_at(mv.to()).ptype(), mv);
+    for (i32 i : {1, 3})
+      ss->oddconthist[i / 2] = m_odd_continuation_history[i / 2].get_subtable(!child_position.stm(), child_position.place_at(mv.to()).ptype(), mv);
   }
 
   auto Search::make_null_move(SearchStack* ss, const Position& child_position) -> void {
     m_hash_stack.push_back(child_position.hash());
     ss->move = Move::none();
-    ss->conthist = nullptr;
+    ss->evenconthist = nullptr;
+    ss->oddconthist.fill(nullptr);
   }
 
   auto Search::unmake_move(SearchStack* ss) -> void {
     m_hash_stack.pop_back();
     ss->move = Move::none();
-    ss->conthist = nullptr;
+    ss->evenconthist = nullptr;
+    ss->oddconthist.fill(nullptr);
   }
 
 }  // namespace rose

@@ -94,7 +94,8 @@ namespace rose {
     Move move = Move::none();
     Move excluded = Move::none();
     Score static_eval = score::none;
-    ContinuationHistorySubtable* conthist = nullptr;
+    ContinuationHistorySubtable* evenconthist = nullptr;
+    std::array<ContinuationHistorySubtable*, 2> oddconthist {};
   };
 
   struct Search {
@@ -117,7 +118,8 @@ namespace rose {
 
     QuietHistory m_quiet_history;
     NoisyHistory m_noisy_history;
-    ContinuationHistory m_continuation_history;
+    ContinuationHistory m_even_continuation_history;
+    std::array<ContinuationHistory, 2> m_odd_continuation_history;
 
     std::optional<i32> m_nmr_ply;
 
