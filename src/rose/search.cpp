@@ -237,6 +237,8 @@ namespace rose {
   template<NodeType expected, bool is_root, typename Controls>
   auto Search::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply, i32 depth)
     -> Score {
+    ss->best_move = Move::none();
+
     if (depth <= 0)
       return qsearch<expected>(ctrl, position, pv, alpha, beta, ss, ply);
 
@@ -266,13 +268,13 @@ namespace rose {
         return alpha;
     }
 
-    const bool excluded = ss->excluded.is_some();
+    const bool disable_pruning = ss->disable_pruning;
     const bool is_in_check = position.is_in_check();
 
     const tt::LookupResult tte = tt_load(position, ply);
 
     // Transposition Table Cutoffs
-    if (expected != NodeType::pv && !excluded && tte.is_some() && tte.depth >= depth && [&] {
+    if (expected != NodeType::pv && !disable_pruning && tte.is_some() && tte.depth >= depth && [&] {
           switch (tte.bound.raw) {
           case NodeType::none:
             return false;
@@ -287,7 +289,7 @@ namespace rose {
       return tte.score;
     }
 
-    const i32 static_eval = is_in_check ? score::none : excluded ? ss->static_eval : eval(position);
+    const i32 static_eval = is_in_check ? score::none : disable_pruning ? ss->static_eval : eval(position);
     ss->static_eval = static_eval;
 
     const bool improving = is_in_check                       ? false :
@@ -295,7 +297,7 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
-    if (expected != NodeType::pv && !is_in_check && !excluded) {
+    if (expected != NodeType::pv && !is_in_check && !disable_pruning) {
       // Reverse Futility Pruning
       if (depth <= 6 && static_eval - 128 * depth >= beta) {
         return static_eval;
@@ -334,6 +336,31 @@ namespace rose {
       }
     }
 
+    // Multi-cut
+    if (expected == NodeType::cut && depth >= 9 && !disable_pruning && (tte.move.is_none() || tte.depth < depth - 3) &&
+        (tte.bound == NodeType::none || (tte.bound == NodeType::cut && tte.score >= static_eval && !score::is_theoretical(tte.score))) &&
+        !score::is_theoretical(beta)) {
+      const i32 reduced_depth = depth / 2;
+
+      ss->disable_pruning = true;
+      const Score reduced_score = search<expected.narrow()>(ctrl, position, pv, beta - 1, beta, ss, ply, reduced_depth);
+      ss->disable_pruning = false;
+
+      // Multicut
+      if (reduced_score >= beta && !score::is_theoretical(reduced_score) && ss->best_move.is_some()) {
+        ss->disable_pruning = true;
+        ss->excluded = ss->best_move;
+        const Score singular_score = search<expected.narrow()>(ctrl, position, pv, beta - 1, beta, ss, ply, reduced_depth);
+        ss->disable_pruning = false;
+        ss->excluded = Move::none();
+        ss->best_move = Move::none();
+
+        if (singular_score >= beta && !score::is_theoretical(singular_score)) {
+          return singular_score;
+        }
+      }
+    }
+
     MovePicker moves {*this, position, ss, tte.move};
 
     MoveList fail_low_quiets;
@@ -366,13 +393,16 @@ namespace rose {
 
       i32 extension = 0;
       // Singular Extensions
-      if (!is_root && depth >= 9 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
+      if (!is_root && depth >= 9 && mv == tte.move && !disable_pruning && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
         const Score singular_beta = std::max(score::min_score, tte.score - 2 * depth);
         const i32 singular_depth = depth / 2;
 
         ss->excluded = mv;
+        ss->disable_pruning = true;
         const Score singular_score = search<expected.narrow()>(ctrl, position, pv, singular_beta - 1, singular_beta, ss, ply, singular_depth);
         ss->excluded = Move::none();
+        ss->disable_pruning = false;
+        ss->best_move = Move::none();
 
         // Multicut
         if (singular_score >= singular_beta && singular_beta >= beta) {
@@ -456,7 +486,7 @@ namespace rose {
     }
 
     if (best_score == score::none) {
-      if (excluded)
+      if (ss->excluded.is_some())
         return score::min_score;
       return position.is_in_check() ? score::mated(ply) : 0;
     }
@@ -492,7 +522,7 @@ namespace rose {
       }
     }
 
-    if (!excluded) {
+    if (!disable_pruning) {
       tt_store(position,
                ply,
                tt::LookupResult {
