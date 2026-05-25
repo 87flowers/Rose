@@ -345,6 +345,8 @@ namespace rose {
       const Score reduced_score = search<expected>(ctrl, position, pv, alpha, beta, ss, ply, reduced_depth);
       ss->disable_pruning = false;
 
+      hint_move = ss->best_move;
+
       if (m_shared.stopping)
         return 0;
 
