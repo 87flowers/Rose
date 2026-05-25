@@ -48,6 +48,11 @@ namespace rose {
       return &data[len++];
     }
 
+    constexpr auto pop_back() -> void {
+      rose_assert(!empty());
+      len--;
+    }
+
     constexpr auto append(StaticVector&& other) -> void {
       rose_assert(len + other.len < cap);
       std::move(other.begin(), other.end(), end());
@@ -108,6 +113,27 @@ namespace rose {
     constexpr auto cend() const -> const_iterator {
       return end();
     }
+
+    constexpr auto front() -> T& {
+      rose_assert(!empty());
+      return data[0];
+    }
+
+    constexpr auto front() const -> const T& {
+      rose_assert(!empty());
+      return data[0];
+    }
+
+    constexpr auto back() -> T& {
+      rose_assert(!empty());
+      return data[len - 1];
+    }
+
+    constexpr auto back() const -> const T& {
+      rose_assert(!empty());
+      return data[len - 1];
+    }
+
   protected:
     usize len = 0;
     std::array<T, cap> data;

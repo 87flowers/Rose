@@ -28,7 +28,7 @@ VERSION_FLAGS += -DROSE_GIT_COMMIT_DESC=\"$(GIT_COMMIT_DESC)\"
 
 BUILD_DIR := build/$(ARCH)
 
-LIB_SRCS := $(wildcard src/rose/*.cpp) $(wildcard src/rose/**/*.cpp)
+LIB_SRCS := $(wildcard src/rose/*.cpp) $(wildcard src/rose/**/*.cpp) $(wildcard src/rose/**/**/*.cpp)
 TOOL_SRCS := $(wildcard tools/*.cpp)
 TEST_SRCS := $(wildcard tests/*.cpp)
 
@@ -79,13 +79,13 @@ $(BUILD_DIR)/deb/src/rose/version.o: .FORCE
 > @mkdir -p $(dir $@)
 > $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEBFLAGS) $(VERSION_FLAGS) -c src/rose/version.cpp -o $@
 
-$(BUILD_DIR)/rel/src/rose/nnue/network.o: $(EVALFILE)
+$(BUILD_DIR)/rel/src/rose/eval/nnue/embedded.o: $(EVALFILE)
 > @mkdir -p $(dir $@)
-> $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(RELFLAGS) -DROSE_NETWORK_FILE=\"$(EVALFILE)\" -c src/rose/nnue/network.cpp -o $@
+> $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(RELFLAGS) -DROSE_NETWORK_FILE=\"$(EVALFILE)\" -c src/rose/eval/nnue/embedded.cpp -o $@
 
-$(BUILD_DIR)/deb/src/rose/nnue/network.o: $(EVALFILE)
+$(BUILD_DIR)/deb/src/rose/eval/nnue/embedded.o: $(EVALFILE)
 > @mkdir -p $(dir $@)
-> $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEBFLAGS) -DROSE_NETWORK_FILE=\"$(EVALFILE)\" -c src/rose/nnue/network.cpp -o $@
+> $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEBFLAGS) -DROSE_NETWORK_FILE=\"$(EVALFILE)\" -c src/rose/eval/nnue/embedded.cpp -o $@
 
 $(DEFAULT_NETWORK_FILE):
 > @mkdir -p $(dir $@)

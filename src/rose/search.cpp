@@ -2,10 +2,11 @@
 
 #include "rose/common.hpp"
 #include "rose/engine_output.hpp"
+#include "rose/eval/nnue/rose_arch_1.hpp"
 #include "rose/game.hpp"
+#include "rose/limits.hpp"
 #include "rose/move_picker.hpp"
 #include "rose/movegen.hpp"
-#include "rose/nnue/nnue.hpp"
 #include "rose/node_type.hpp"
 #include "rose/score.hpp"
 #include "rose/search_control.hpp"
@@ -63,13 +64,15 @@ namespace rose {
     stopping = true;
   }
 
-  auto Search::reset() -> void {
-    m_quiet_history.reset();
-    m_noisy_history.reset();
-    m_continuation_history.reset();
+  template<eval::concepts::State Evaluation>
+  auto Search<Evaluation>::reset() -> void {
+    m_sd.quiet_history.reset();
+    m_sd.noisy_history.reset();
+    m_sd.continuation_history.reset();
   }
 
-  auto Search::launch() -> void {
+  template<eval::concepts::State Evaluation>
+  auto Search<Evaluation>::launch() -> void {
     rose_assert(!m_thread.joinable());
     m_thread = std::jthread([this] {
       this->thread_main();
@@ -126,7 +129,8 @@ namespace rose {
     }
   }
 
-  auto Search::thread_main() -> void {
+  template<eval::concepts::State Evaluation>
+  auto Search<Evaluation>::thread_main() -> void {
     while (true) {
       m_shared.idle_barrier.arrive_and_wait();
 
@@ -164,8 +168,9 @@ namespace rose {
     }
   }
 
+  template<eval::concepts::State Evaluation>
   template<typename Controls>
-  auto Search::search_root(const Controls& ctrl) -> void {
+  auto Search<Evaluation>::search_root(const Controls& ctrl) -> void {
     Line last_pv;
     Score last_score = score::none;
     i32 last_depth = -1;
@@ -179,6 +184,8 @@ namespace rose {
         .pv = last_pv,
       });
     };
+
+    m_evaluation.reset(m_root);
 
     for (i32 depth = 1; depth < max_depth; depth++) {
       Line pv {};
@@ -234,9 +241,11 @@ namespace rose {
     }
   }
 
+  template<eval::concepts::State Evaluation>
   template<NodeType expected, bool is_root, typename Controls>
-  auto Search::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply, i32 depth)
-    -> Score {
+  auto
+    Search<Evaluation>::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply, i32 depth)
+      -> Score {
     if (depth <= 0)
       return qsearch<expected>(ctrl, position, pv, alpha, beta, ss, ply);
 
@@ -313,8 +322,7 @@ namespace rose {
       if (depth >= 4 && m_nmr_ply != ply && ss[-1].move.is_some() && static_eval >= beta) {
         const i32 reduction = 4;
 
-        const Position null_position = position.null_move();
-        make_null_move(ss, null_position);
+        const Position null_position = make_null_move(ss, position);
         const Score null_score = -search<NodeType::all>(ctrl, null_position, pv, -beta, -beta + 1, ss + 1, ply + 1, depth - reduction);
         unmake_move(ss);
 
@@ -334,7 +342,7 @@ namespace rose {
       }
     }
 
-    MovePicker moves {*this, position, ss, tte.move};
+    MovePicker moves {m_sd, position, ss, tte.move};
 
     MoveList fail_low_quiets;
     MoveList fail_low_noisies;
@@ -387,8 +395,7 @@ namespace rose {
         }
       }
 
-      const Position child_position = position.move(mv);
-      make_move(ss, child_position, mv);
+      const Position child_position = make_move(ss, position, mv);
       rose_defer {
         unmake_move(ss);
       };
@@ -474,17 +481,17 @@ namespace rose {
       const i32 cont_malus = 75 * depth - 30;
 
       if (best_move.noisy()) {
-        m_noisy_history.update(stm, position.ptype_at(best_move.from()), best_move, noisy_bonus);
+        m_sd.noisy_history.update(stm, position.ptype_at(best_move.from()), best_move, noisy_bonus);
         for (const Move noisy : fail_low_noisies) {
-          m_noisy_history.update(stm, position.ptype_at(noisy.from()), noisy, -noisy_malus);
+          m_sd.noisy_history.update(stm, position.ptype_at(noisy.from()), noisy, -noisy_malus);
         }
       } else {
-        m_quiet_history.update(stm, best_move, quiet_bonus);
+        m_sd.quiet_history.update(stm, best_move, quiet_bonus);
         for (i32 i : {1, 2, 4})
           if (ss[-i].conthist)
             ss[-i].conthist->update(stm, position.place_at(best_move.from()).ptype(), best_move, cont_bonus);
         for (const Move quiet : fail_low_quiets) {
-          m_quiet_history.update(stm, quiet, -quiet_malus);
+          m_sd.quiet_history.update(stm, quiet, -quiet_malus);
           for (i32 i : {1, 2, 4})
             if (ss[-i].conthist)
               ss[-i].conthist->update(stm, position.place_at(quiet.from()).ptype(), quiet, -cont_malus);
@@ -506,8 +513,10 @@ namespace rose {
     return best_score;
   }
 
+  template<eval::concepts::State Evaluation>
   template<NodeType leaf_expected, typename Controls>
-  auto Search::qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply) -> Score {
+  auto Search<Evaluation>::qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply)
+    -> Score {
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
     if (is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
       m_shared.stop();
@@ -562,7 +571,7 @@ namespace rose {
     }
     alpha = std::max(alpha, static_eval);
 
-    MovePicker moves {*this, position, ss, Move::none()};
+    MovePicker moves {m_sd, position, ss, Move::none()};
     moves.skip_quiet();
 
     Score best_score = static_eval;
@@ -576,8 +585,7 @@ namespace rose {
           continue;
       }
 
-      const Position child_position = position.move(mv);
-      make_move(ss, child_position, mv);
+      const Position child_position = make_move(ss, position, mv);
       rose_defer {
         unmake_move(ss);
       };
@@ -609,34 +617,49 @@ namespace rose {
     return best_score;
   }
 
-  auto Search::eval(const Position& position) -> Score {
-    return nnue::evaluate(position);
+  template<eval::concepts::State Evaluation>
+  auto Search<Evaluation>::eval(const Position& position) -> Score {
+    return m_evaluation.evaluate(position);
   }
 
-  auto Search::tt_load(const Position& position, i32 ply) -> tt::LookupResult {
+  template<eval::concepts::State Evaluation>
+  auto Search<Evaluation>::tt_load(const Position& position, i32 ply) -> tt::LookupResult {
     return m_shared.transposition_table.load(position.hash(), ply);
   }
 
-  auto Search::tt_store(const Position& position, i32 ply, tt::LookupResult lr) -> void {
+  template<eval::concepts::State Evaluation>
+  auto Search<Evaluation>::tt_store(const Position& position, i32 ply, tt::LookupResult lr) -> void {
     m_shared.transposition_table.store(position.hash(), ply, lr);
   }
 
-  auto Search::make_move(SearchStack* ss, const Position& child_position, Move mv) -> void {
+  template<eval::concepts::State Evaluation>
+  auto Search<Evaluation>::make_move(SearchStack* ss, const Position& position, Move mv) -> Position {
+    m_evaluation.push();
+    const Position child_position = position.move(mv, m_evaluation.observer());
     m_hash_stack.push_back(child_position.hash());
     ss->move = mv;
-    ss->conthist = m_continuation_history.get_subtable(!child_position.stm(), child_position.place_at(mv.to()).ptype(), mv);
+    ss->conthist = m_sd.continuation_history.get_subtable(!child_position.stm(), child_position.place_at(mv.to()).ptype(), mv);
+    return child_position;
   }
 
-  auto Search::make_null_move(SearchStack* ss, const Position& child_position) -> void {
+  template<eval::concepts::State Evaluation>
+  auto Search<Evaluation>::make_null_move(SearchStack* ss, const Position& position) -> Position {
+    m_evaluation.push();
+    const Position child_position = position.null_move();
     m_hash_stack.push_back(child_position.hash());
     ss->move = Move::none();
     ss->conthist = nullptr;
+    return child_position;
   }
 
-  auto Search::unmake_move(SearchStack* ss) -> void {
+  template<eval::concepts::State Evaluation>
+  auto Search<Evaluation>::unmake_move(SearchStack* ss) -> void {
+    m_evaluation.pop();
     m_hash_stack.pop_back();
     ss->move = Move::none();
     ss->conthist = nullptr;
   }
+
+  template struct Search<eval::nnue::rose_arch_1::State>;
 
 }  // namespace rose

@@ -3,6 +3,7 @@
 #include "rose/common.hpp"
 #include "rose/engine_output.hpp"
 #include "rose/engine_output_null.hpp"
+#include "rose/eval/nnue/embedded.hpp"
 #include "rose/game.hpp"
 #include "rose/search.hpp"
 #include "rose/tt.hpp"
@@ -50,7 +51,7 @@ namespace rose {
     m_shared = std::make_unique<SearchShared>(thread_count, m_tt_size, m_output);
 
     for (int i = 0; i < thread_count; i++)
-      m_searches.emplace_back(std::make_unique<Search>(i, *m_shared));
+      m_searches.emplace_back(std::make_unique<Search<eval::nnue::embedded_arch::State>>(i, *m_shared, eval::nnue::embedded_network()));
     for (const auto& search : m_searches)
       search->launch();
   }

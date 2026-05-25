@@ -7,7 +7,7 @@
 
 namespace rose {
 
-  struct Search;
+  struct SearchData;
 
   struct MovePicker {
   private:
@@ -27,7 +27,7 @@ namespace rose {
 
     Stage m_stage = Stage::tt_move;
 
-    const Search& m_search;
+    const SearchData& m_sd;
     const Position& m_position;
     const SearchStack* m_ss;
     MoveGen m_movegen;
@@ -39,7 +39,7 @@ namespace rose {
     MoveList m_bad_noisies;
 
   public:
-    MovePicker(const Search& search, const Position& position, const SearchStack* ss, Move tt_move);
+    MovePicker(const SearchData& sd, const Position& position, const SearchStack* ss, Move tt_move);
 
     auto next() -> Move;
 
