@@ -559,16 +559,17 @@ namespace rose {
     if (ss->static_eval == score::none)
       ss->static_eval = is_in_check ? score::none : eval(position);
 
+    Score best_score = is_in_check ? score::mated(ply) : ss->static_eval;
+
     // Standpat
-    if (ss->static_eval >= beta) {
-      return ss->static_eval;
+    if (best_score >= beta) {
+      return best_score;
     }
-    alpha = std::max(alpha, ss->static_eval);
+    alpha = std::max(alpha, best_score);
 
     MovePicker moves {*this, position, ss, Move::none()};
     moves.skip_quiet();
 
-    Score best_score = is_in_check ? score::mated(ply) : ss->static_eval;
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
 
