@@ -272,6 +272,7 @@ namespace rose {
     const bool is_in_check = position.is_in_check();
 
     const tt::LookupResult tte = tt_load(position, ply);
+    Move hint_move = tte.move;
 
     // Transposition Table Cutoffs
     if (expected != NodeType::pv && !disable_pruning && tte.is_some() && tte.depth >= depth && [&] {
@@ -336,36 +337,20 @@ namespace rose {
       }
     }
 
-    // Multi-cut
-    if (expected == NodeType::cut && depth >= 9 && !disable_pruning && (tte.move.is_none() || tte.depth < depth - 3) &&
-        !score::is_theoretical(beta)) {
+    // Internal Iterative Deepening
+    if (expected == NodeType::cut && depth >= 9 && !disable_pruning && tte.move.is_none()) {
       const i32 reduced_depth = depth / 2;
 
       ss->disable_pruning = true;
       const Score reduced_score = search<expected.narrow()>(ctrl, position, pv, beta - 1, beta, ss, ply, reduced_depth);
       ss->disable_pruning = false;
 
-      if (m_shared.stopping)
-        return 0;
+      hint_move = ss->best_move;
 
-      if (reduced_score >= beta && !score::is_theoretical(reduced_score) && ss->best_move.is_some()) {
-        ss->disable_pruning = true;
-        ss->excluded = ss->best_move;
-        const Score singular_score = search<expected.narrow()>(ctrl, position, pv, beta - 1, beta, ss, ply, reduced_depth);
-        ss->disable_pruning = false;
-        ss->excluded = Move::none();
-        ss->best_move = Move::none();
-
-        if (m_shared.stopping)
-          return 0;
-
-        if (singular_score >= beta && !score::is_theoretical(singular_score)) {
-          return beta;
-        }
-      }
+      ss->best_move = Move::none();
     }
 
-    MovePicker moves {*this, position, ss, tte.move};
+    MovePicker moves {*this, position, ss, hint_move};
 
     MoveList fail_low_quiets;
     MoveList fail_low_noisies;
