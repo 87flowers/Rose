@@ -215,6 +215,11 @@ namespace rose {
     }
 
     template<PieceType ptype>
+    auto piece_count() const -> int {
+      return piece_list_type(Color::white).piece_mask_for<ptype>().popcount() + piece_list_type(Color::black).piece_mask_for<ptype>().popcount();
+    }
+
+    template<PieceType ptype>
     auto bitboard_for(Color color) const -> Bitboard {
       return board().bitboard_for<ptype>(color);
     }

@@ -344,6 +344,9 @@ namespace rose {
     NodeType actual_node_type = NodeType::all;
     u32 move_count = 0;
 
+    const i32 non_pawn_material = position.piece_count<PieceType::n>() * 300 + position.piece_count<PieceType::b>() * 350 +
+                                  position.piece_count<PieceType::r>() * 500 + position.piece_count<PieceType::q>() * 900;
+
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (mv == ss->excluded)
         continue;
@@ -384,6 +387,14 @@ namespace rose {
           extension = 1;
           // Double extension
           extension += expected != NodeType::pv && singular_score <= singular_beta - 20;
+        }
+      }
+
+      // Capture extension
+      if (extension == 0 && mv.capture()) {
+        const PieceType captured = position.ptype_at(mv.to());
+        if (captured.raw > PieceType::p && non_pawn_material < 1100) {
+          extension = 1;
         }
       }
 
