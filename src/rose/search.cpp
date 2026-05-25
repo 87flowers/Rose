@@ -338,7 +338,7 @@ namespace rose {
     }
 
     // Internal Iterative Deepening
-    if (expected == NodeType::cut && depth >= 4 && tte.move.is_none()) {
+    if (expected == NodeType::cut && depth >= 4 && tte.bound == NodeType::none) {
       const i32 reduced_depth = depth / 2;
 
       ss->disable_pruning = true;
