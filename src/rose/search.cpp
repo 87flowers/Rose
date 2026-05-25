@@ -310,7 +310,7 @@ namespace rose {
       }
 
       // Null move reductions
-      if (depth >= 4 && m_nmr_ply != ply && ss[-1].move.is_some() && static_eval >= beta) {
+      if (expected == NodeType::cut && depth >= 4 && m_nmr_ply != ply && ss[-1].move.is_some() && static_eval >= beta) {
         const i32 reduction = 4;
 
         const Position null_position = position.null_move();
