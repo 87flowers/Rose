@@ -237,6 +237,8 @@ namespace rose {
   template<NodeType expected, bool is_root, typename Controls>
   auto Search::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply, i32 depth)
     -> Score {
+    ss->best_move = Move::none();
+
     if (depth <= 0)
       return qsearch<expected>(ctrl, position, pv, alpha, beta, ss, ply);
 
@@ -334,13 +336,20 @@ namespace rose {
       }
     }
 
-    MovePicker moves {*this, position, ss, tte.move};
+    // Internal Iterative Deepening
+    Move hint_move = tte.move;
+    if (expected == NodeType::pv && depth >= 4 && tte.is_none()) {
+      search<expected>(ctrl, position, pv, alpha, beta, ss, ply, depth - 2);
+      hint_move = ss->best_move;
+      ss->best_move = Move::none();
+    }
+
+    MovePicker moves {*this, position, ss, hint_move};
 
     MoveList fail_low_quiets;
     MoveList fail_low_noisies;
 
     Score best_score = score::none;
-    Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
     u32 move_count = 0;
 
@@ -372,6 +381,7 @@ namespace rose {
 
         ss->excluded = mv;
         const Score singular_score = search<expected.narrow()>(ctrl, position, pv, singular_beta - 1, singular_beta, ss, ply, singular_depth);
+        ss->best_move = Move::none();
         ss->excluded = Move::none();
 
         // Multicut
@@ -434,7 +444,7 @@ namespace rose {
         if (score > alpha) {
           actual_node_type = NodeType::pv;
           alpha = score;
-          best_move = mv;
+          ss->best_move = mv;
 
           if constexpr (expected == NodeType::pv)
             pv.write(mv, std::move(child_pv));
@@ -446,7 +456,7 @@ namespace rose {
         }
       }
 
-      if (mv != best_move) {
+      if (mv != ss->best_move) {
         if (mv.noisy()) {
           fail_low_noisies.push_back(mv);
         } else {
@@ -461,7 +471,7 @@ namespace rose {
       return position.is_in_check() ? score::mated(ply) : 0;
     }
 
-    if (best_move.is_some()) {
+    if (ss->best_move.is_some()) {
       const Color stm = position.stm();
 
       const i32 noisy_bonus = 150 * depth - 75;
@@ -473,16 +483,16 @@ namespace rose {
       const i32 cont_bonus = 150 * depth - 75;
       const i32 cont_malus = 75 * depth - 30;
 
-      if (best_move.noisy()) {
-        m_noisy_history.update(stm, position.ptype_at(best_move.from()), best_move, noisy_bonus);
+      if (ss->best_move.noisy()) {
+        m_noisy_history.update(stm, position.ptype_at(ss->best_move.from()), ss->best_move, noisy_bonus);
         for (const Move noisy : fail_low_noisies) {
           m_noisy_history.update(stm, position.ptype_at(noisy.from()), noisy, -noisy_malus);
         }
       } else {
-        m_quiet_history.update(stm, best_move, quiet_bonus);
+        m_quiet_history.update(stm, ss->best_move, quiet_bonus);
         for (i32 i : {1, 2, 4})
           if (ss[-i].conthist)
-            ss[-i].conthist->update(stm, position.place_at(best_move.from()).ptype(), best_move, cont_bonus);
+            ss[-i].conthist->update(stm, position.place_at(ss->best_move.from()).ptype(), ss->best_move, cont_bonus);
         for (const Move quiet : fail_low_quiets) {
           m_quiet_history.update(stm, quiet, -quiet_malus);
           for (i32 i : {1, 2, 4})
@@ -499,7 +509,7 @@ namespace rose {
                  .depth = depth,
                  .bound = actual_node_type,
                  .score = best_score,
-                 .move = best_move,
+                 .move = ss->best_move,
                });
     }
 
@@ -508,6 +518,8 @@ namespace rose {
 
   template<NodeType leaf_expected, typename Controls>
   auto Search::qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply) -> Score {
+    ss->best_move = Move::none();
+
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
     if (is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
       m_shared.stop();
@@ -566,7 +578,6 @@ namespace rose {
     moves.skip_quiet();
 
     Score best_score = static_eval;
-    Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
@@ -594,7 +605,7 @@ namespace rose {
         if (score > alpha) {
           actual_node_type = NodeType::pv;
           alpha = score;
-          best_move = mv;
+          ss->best_move = mv;
           if constexpr (leaf_expected == NodeType::pv)
             pv.write(mv, std::move(child_pv));
 
