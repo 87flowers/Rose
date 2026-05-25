@@ -338,7 +338,6 @@ namespace rose {
 
     // Multi-cut
     if (expected == NodeType::cut && depth >= 9 && !disable_pruning && (tte.move.is_none() || tte.depth < depth - 3) &&
-        (tte.bound == NodeType::none || (tte.bound == NodeType::cut && tte.score >= static_eval && !score::is_theoretical(tte.score))) &&
         !score::is_theoretical(beta)) {
       const i32 reduced_depth = depth / 2;
 
@@ -346,7 +345,9 @@ namespace rose {
       const Score reduced_score = search<expected.narrow()>(ctrl, position, pv, beta - 1, beta, ss, ply, reduced_depth);
       ss->disable_pruning = false;
 
-      // Multicut
+      if (m_shared.stopping)
+        return 0;
+
       if (reduced_score >= beta && !score::is_theoretical(reduced_score) && ss->best_move.is_some()) {
         ss->disable_pruning = true;
         ss->excluded = ss->best_move;
@@ -354,6 +355,9 @@ namespace rose {
         ss->disable_pruning = false;
         ss->excluded = Move::none();
         ss->best_move = Move::none();
+
+        if (m_shared.stopping)
+          return 0;
 
         if (singular_score >= beta && !score::is_theoretical(singular_score)) {
           return singular_score;
