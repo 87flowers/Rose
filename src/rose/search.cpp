@@ -289,20 +289,21 @@ namespace rose {
 
     if (ss->static_eval == score::none)
       ss->static_eval = is_in_check ? score::none : eval(position);
+    const Score static_eval = ss->static_eval;
 
     const bool improving = is_in_check                       ? false :
-                           ss[-2].static_eval != score::none ? ss->static_eval > ss[-2].static_eval :
-                           ss[-4].static_eval != score::none ? ss->static_eval > ss[-4].static_eval :
+                           ss[-2].static_eval != score::none ? static_eval > ss[-2].static_eval :
+                           ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
     if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Reverse Futility Pruning
-      if (depth <= 6 && ss->static_eval - 128 * depth >= beta) {
-        return ss->static_eval;
+      if (depth <= 6 && static_eval - 128 * depth >= beta) {
+        return static_eval;
       }
 
       // Razoring
-      if (depth <= 4 && ss->static_eval + 600 * depth < alpha) {
+      if (depth <= 4 && static_eval + 600 * depth < alpha) {
         const Score razor_score = qsearch<expected.narrow()>(ctrl, position, pv, alpha, beta, ss, ply);
         if (razor_score <= alpha) {
           return razor_score;
@@ -310,7 +311,7 @@ namespace rose {
       }
 
       // Null move reductions
-      if (depth >= 4 && m_nmr_ply != ply && ss[-1].move.is_some() && ss->static_eval >= beta) {
+      if (depth >= 4 && m_nmr_ply != ply && ss[-1].move.is_some() && static_eval >= beta) {
         const i32 reduction = 4;
 
         const Position null_position = position.null_move();
@@ -357,7 +358,7 @@ namespace rose {
         }
 
         // Futility Pruning
-        if (!mv.noisy() && depth <= 6 && std::abs(alpha) < 2000 && ss->static_eval + 256 + depth * 100 <= alpha) {
+        if (!mv.noisy() && depth <= 6 && std::abs(alpha) < 2000 && static_eval + 256 + depth * 100 <= alpha) {
           moves.skip_quiet();
           continue;
         }
@@ -558,8 +559,9 @@ namespace rose {
 
     if (ss->static_eval == score::none)
       ss->static_eval = is_in_check ? score::none : eval(position);
+    const Score static_eval = ss->static_eval;
 
-    Score best_score = is_in_check ? score::mated(ply) : ss->static_eval;
+    Score best_score = is_in_check ? score::mated(ply) : static_eval;
 
     // Standpat
     if (best_score >= beta) {
