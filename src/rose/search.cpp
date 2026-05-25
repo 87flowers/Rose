@@ -338,18 +338,15 @@ namespace rose {
     }
 
     // Internal Iterative Deepening
-    if (expected == NodeType::cut && depth >= 4 && !disable_pruning && tte.bound == NodeType::none) {
+    if (expected == NodeType::pv && depth >= 4 && !disable_pruning && tte.bound == NodeType::none) {
       const i32 reduced_depth = depth / 2;
 
       ss->disable_pruning = true;
-      const Score reduced_score = search<expected.narrow()>(ctrl, position, pv, beta - 1, beta, ss, ply, reduced_depth);
+      const Score reduced_score = search<expected>(ctrl, position, pv, alpha, beta, ss, ply, reduced_depth);
       ss->disable_pruning = false;
 
       if (m_shared.stopping)
         return 0;
-
-      if (reduced_score >= beta)
-        hint_move = ss->best_move;
 
       ss->best_move = Move::none();
     }
