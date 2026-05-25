@@ -405,6 +405,11 @@ namespace rose {
         unmake_move(ss);
       };
 
+      // Check extension
+      if (extension == 0 && child_position.is_in_check()) {
+        extension = 1;
+      }
+
       const i32 new_depth = depth + extension - 1;
       Line child_pv {};
       Score score = score::none;
