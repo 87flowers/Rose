@@ -537,6 +537,7 @@ namespace rose {
     const bool is_in_check = position.is_in_check();
 
     const tt::LookupResult tte = tt_load(position, ply);
+    const Move hint_move = tte.move.noisy() ? tte.move : Move::none();
 
     // Transposition Table Cutoffs
     if (leaf_expected != NodeType::pv && tte.is_some() && [&] {
@@ -562,7 +563,7 @@ namespace rose {
     }
     alpha = std::max(alpha, static_eval);
 
-    MovePicker moves {*this, position, ss, Move::none()};
+    MovePicker moves {*this, position, ss, hint_move};
     moves.skip_quiet();
 
     Score best_score = static_eval;
