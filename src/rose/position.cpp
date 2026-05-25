@@ -3,6 +3,7 @@
 #include "rose/bitboard.hpp"
 #include "rose/board.hpp"
 #include "rose/common.hpp"
+#include "rose/eval/nnue/rose_arch_1.hpp"
 #include "rose/geometry.hpp"
 #include "rose/move.hpp"
 #include "rose/movegen.hpp"
@@ -220,7 +221,8 @@ namespace rose {
     return false;
   }
 
-  auto Position::move(Move m) const -> Position {
+  template<eval::concepts::Observer Observer>
+  auto Position::move(Move m, Observer observer) const -> Position {
     Position new_pos = *this;
     new_pos.m_valid_pin_info = false;
     new_pos.m_cached_pinned = {};
@@ -251,6 +253,7 @@ namespace rose {
 
     const auto normal = [&] {
       new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      observer.on_move(*this, m_stm, src_place.ptype(), from, to);
       new_pos.m_hash ^= hash::move_piece(from, to, src_place);
       if (src_place.ptype() != PieceType::p) {
         new_pos.m_50mr++;
@@ -262,7 +265,9 @@ namespace rose {
 
     const auto cap_normal = [&] {
       new_pos.remove_piece<false>(!m_stm, to, dest_id);
+      observer.on_remove(*this, !m_stm, dest_place.ptype(), to);
       new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      observer.on_move(*this, m_stm, src_place.ptype(), from, to);
       new_pos.m_hash ^= hash::remove_piece(to, dest_place);
       new_pos.m_hash ^= hash::move_piece(from, to, src_place);
       new_pos.m_50mr = 0;
@@ -272,13 +277,16 @@ namespace rose {
 
     const auto promo = [&](auto ptype) {
       new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
+      observer.on_promote(*this, m_stm, decltype(ptype)::value, from, to);
       new_pos.m_hash ^= hash::promo(from, to, m_stm, decltype(ptype)::value);
       new_pos.m_50mr = 0;
     };
 
     const auto cap_promo = [&](auto ptype) {
       new_pos.remove_piece<false>(!m_stm, to, dest_id);
+      observer.on_remove(*this, !m_stm, dest_place.ptype(), to);
       new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
+      observer.on_promote(*this, m_stm, decltype(ptype)::value, from, to);
       new_pos.m_hash ^= hash::remove_piece(to, dest_place);
       new_pos.m_hash ^= hash::promo(from, to, m_stm, decltype(ptype)::value);
       new_pos.m_50mr = 0;
@@ -287,6 +295,7 @@ namespace rose {
 
     const auto double_push = [&] {
       new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      observer.on_move(*this, m_stm, src_place.ptype(), from, to);
       new_pos.m_hash ^= hash::move_piece(from, to, src_place);
       new_pos.m_50mr = 0;
       new_pos.m_enpassant = Square {narrow_cast<u8>((from.raw + to.raw) >> 1)};
@@ -298,7 +307,9 @@ namespace rose {
       const PieceId victim_id = m_board[victim].id();
 
       new_pos.remove_piece<true>(!m_stm, victim, victim_id);
+      observer.on_remove(*this, !m_stm, PieceType::p, victim);
       new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      observer.on_move(*this, m_stm, src_place.ptype(), from, to);
       new_pos.m_hash ^= hash::remove_piece(victim, !m_stm, PieceType::p);
       new_pos.m_hash ^= hash::move_piece(from, to, src_place);
 
@@ -316,9 +327,13 @@ namespace rose {
       const PieceId rook_id = m_board[rook_src].id();
 
       new_pos.remove_piece<true>(m_stm, king_src, king_id);
+      observer.on_remove(*this, m_stm, PieceType::k, king_src);
       new_pos.remove_piece<true>(m_stm, rook_src, rook_id);
+      observer.on_remove(*this, m_stm, PieceType::r, rook_src);
       new_pos.add_piece<true>(m_stm, king_dest, king_id, PieceType::k);
+      observer.on_add(*this, m_stm, PieceType::k, king_dest);
       new_pos.add_piece<true>(m_stm, rook_dest, rook_id, PieceType::r);
+      observer.on_add(*this, m_stm, PieceType::r, rook_dest);
 
       new_pos.m_hash ^= hash::move_piece(king_src, king_dest, m_stm, PieceType::k);
       new_pos.m_hash ^= hash::move_piece(rook_src, rook_dest, m_stm, PieceType::r);
@@ -392,6 +407,9 @@ namespace rose {
 
     return new_pos;
   }
+
+  template auto Position::move<eval::NullObserver>(Move m, eval::NullObserver observer) const -> Position;
+  template auto Position::move<eval::nnue::rose_arch_1::Observer>(Move m, eval::nnue::rose_arch_1::Observer observer) const -> Position;
 
   auto Position::null_move() const -> Position {
     Position new_pos = *this;

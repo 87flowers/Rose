@@ -3,6 +3,8 @@
 #include "rose/bitboard.hpp"
 #include "rose/board.hpp"
 #include "rose/common.hpp"
+#include "rose/eval/concepts.hpp"
+#include "rose/eval/null_observer.hpp"
 #include "rose/hash.hpp"
 #include "rose/move.hpp"
 #include "rose/score.hpp"
@@ -12,7 +14,6 @@
 #include <string>
 #include <tuple>
 #include <type_traits>
-#include <utility>
 #include <vector>
 
 namespace rose {
@@ -233,8 +234,13 @@ namespace rose {
     auto is_fifty_move_draw(i32 ply = 0) const -> std::optional<Score>;
     auto is_repetition(const std::vector<u64>& hash_stack, usize hash_waterline) const -> bool;
 
-    auto move(Move m) const -> Position;
+    template<eval::concepts::Observer Observer>
+    auto move(Move m, Observer observer) const -> Position;
     auto null_move() const -> Position;
+
+    auto move(Move m) const -> Position {
+      return move(m, eval::NullObserver {});
+    }
 
     auto calc_hash_slow() const -> Hash;
 

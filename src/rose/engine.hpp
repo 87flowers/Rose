@@ -10,13 +10,13 @@ namespace rose {
 
   struct EngineOutput;
   struct Game;
-  struct Search;
+  struct SearchBase;
   struct SearchLimit;
   struct SearchShared;
 
   struct Engine {
   private:
-    std::vector<std::unique_ptr<Search>> m_searches;
+    std::vector<std::unique_ptr<SearchBase>> m_searches;
     std::unique_ptr<SearchShared> m_shared;
     std::shared_ptr<EngineOutput> m_output;
     usize m_tt_size;

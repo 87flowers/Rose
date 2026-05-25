@@ -5,6 +5,7 @@
 #include "rose/game.hpp"
 #include "rose/hash.hpp"
 #include "rose/history.hpp"
+#include "rose/limits.hpp"
 #include "rose/line.hpp"
 #include "rose/move.hpp"
 #include "rose/node_type.hpp"
@@ -21,8 +22,6 @@
 #include <thread>
 
 namespace rose {
-
-  constexpr i32 max_depth = 250;
 
   struct SearchLimit {
     bool has_time = false;
@@ -97,7 +96,20 @@ namespace rose {
     ContinuationHistorySubtable* conthist = nullptr;
   };
 
-  struct Search {
+  struct SearchData {
+    QuietHistory quiet_history;
+    NoisyHistory noisy_history;
+    ContinuationHistory continuation_history;
+  };
+
+  struct SearchBase {
+    virtual ~SearchBase() = default;
+    virtual auto reset() -> void = 0;
+    virtual auto launch() -> void = 0;
+  };
+
+  template<eval::concepts::State Evaluation>
+  struct Search final : public SearchBase {
   private:
     friend struct MovePicker;
 
@@ -115,20 +127,23 @@ namespace rose {
     inline static constexpr usize search_stack_safety = 8;
     std::array<SearchStack, max_depth + search_stack_offset + search_stack_safety> m_search_stack;
 
-    QuietHistory m_quiet_history;
-    NoisyHistory m_noisy_history;
-    ContinuationHistory m_continuation_history;
+    Evaluation m_evaluation;
 
+    SearchData m_sd;
     std::optional<i32> m_nmr_ply;
 
   public:
-    Search(int id, SearchShared& shared) :
+    template<typename Network>
+    Search(int id, SearchShared& shared, const Network& network) :
         m_id(id),
-        m_shared(shared) {
+        m_shared(shared),
+        m_evaluation(network) {
     }
 
-    auto reset() -> void;
-    auto launch() -> void;
+    ~Search() final = default;
+
+    auto reset() -> void final;
+    auto launch() -> void final;
 
     auto is_main_thread() -> bool {
       return m_id == 0;
@@ -154,8 +169,8 @@ namespace rose {
     auto tt_load(const Position& position, i32 ply) -> tt::LookupResult;
     auto tt_store(const Position& position, i32 ply, tt::LookupResult lr) -> void;
 
-    auto make_move(SearchStack* ss, const Position& child_position, Move mv) -> void;
-    auto make_null_move(SearchStack* ss, const Position& child_position) -> void;
+    [[nodiscard]] auto make_move(SearchStack* ss, const Position& position, Move mv) -> Position;
+    [[nodiscard]] auto make_null_move(SearchStack* ss, const Position& position) -> Position;
     auto unmake_move(SearchStack* ss) -> void;
   };
 

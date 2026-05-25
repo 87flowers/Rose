@@ -10,8 +10,8 @@
 
 namespace rose {
 
-  MovePicker::MovePicker(const Search& search, const Position& position, const SearchStack* ss, Move tt_move) :
-      m_search(search),
+  MovePicker::MovePicker(const SearchData& sd, const Position& position, const SearchStack* ss, Move tt_move) :
+      m_sd(sd),
       m_position(position),
       m_ss(ss),
       m_movegen(position),
@@ -111,7 +111,7 @@ namespace rose {
 
       i32 score = 0;
       score += victim_score[victim.to_index()] * 8;
-      score += m_search.m_noisy_history.get(stm, attacker, mv);
+      score += m_sd.noisy_history.get(stm, attacker, mv);
 
       scores[i] = score * 256 - i;
     }
@@ -135,7 +135,7 @@ namespace rose {
       const PieceType ptype = m_position.place_at(mv.from()).ptype();
 
       i32 score = 0;
-      score += m_search.m_quiet_history.get(stm, mv);
+      score += m_sd.quiet_history.get(stm, mv);
       for (i32 i : {1, 2, 4})
         if (m_ss[-i].conthist)
           score += m_ss[-i].conthist->get(stm, ptype, mv);
