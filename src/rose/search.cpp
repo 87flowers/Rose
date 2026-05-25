@@ -370,7 +370,7 @@ namespace rose {
         }
 
         // SEE Pruning
-        if (depth <= 11 && see::see(position, mv, mv.noisy() ? -64 * depth : -48 * depth)) {
+        if (depth <= 11 && !see::see(position, mv, mv.noisy() ? -64 * depth : -48 * depth)) {
           continue;
         }
       }
