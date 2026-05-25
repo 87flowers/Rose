@@ -398,9 +398,9 @@ namespace rose {
           // Double extension
           extension += expected != NodeType::pv && singular_score <= singular_beta - 20;
         }
-        // Alternate move reduction
-        else if (singular_score >= tte.score) {
-          depth -= 1;
+        // Negative extension
+        else if (tte.score >= beta) {
+          extension = -1;
         }
       }
 
