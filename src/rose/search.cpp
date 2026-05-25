@@ -338,8 +338,8 @@ namespace rose {
     }
 
     // Internal Iterative Deepening
-    if (expected == NodeType::pv && depth >= 4 && !disable_pruning && tte.bound == NodeType::none) {
-      const i32 reduced_depth = depth / 2;
+    if (expected == NodeType::pv && depth >= 4 && ss->excluded.is_none() && tte.bound == NodeType::none) {
+      const i32 reduced_depth = depth - 2;
 
       ss->disable_pruning = true;
       const Score reduced_score = search<expected>(ctrl, position, pv, alpha, beta, ss, ply, reduced_depth);
