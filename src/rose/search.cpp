@@ -360,7 +360,7 @@ namespace rose {
           return 0;
 
         if (singular_score >= beta && !score::is_theoretical(singular_score)) {
-          return singular_score;
+          return (reduced_score + singular_score) / 2;
         }
       }
     }
