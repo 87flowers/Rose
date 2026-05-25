@@ -338,22 +338,37 @@ namespace rose {
     }
 
     // Internal Iterative Deepening
-    if (expected == NodeType::cut && depth >= 4 && !disable_pruning && tte.bound == NodeType::none) {
+    if (expected == NodeType::cut && depth >= 4 && !disable_pruning && tte.bound == NodeType::none && !score::is_theoretical(beta)) {
       const i32 reduced_depth = depth / 2;
 
       ss->disable_pruning = true;
       const Score reduced_score = search<expected>(ctrl, position, pv, alpha, beta, ss, ply, reduced_depth);
       ss->disable_pruning = false;
 
-      hint_move = ss->best_move;
+      const Move hint_move = ss->best_move;
+      ss->best_move = Move::none();
 
       if (m_shared.stopping)
         return 0;
 
-      ss->best_move = Move::none();
+      if (reduced_score >= beta && !score::is_theoretical(reduced_depth)) {
+        ss->disable_pruning = true;
+        ss->excluded = hint_move;
+        const Score singular_score = search<expected>(ctrl, position, pv, alpha, beta, ss, ply, reduced_depth);
+        ss->disable_pruning = false;
+        ss->excluded = Move::none();
+        ss->best_move = Move::none();
+
+        if (m_shared.stopping)
+          return 0;
+
+        if (singular_score >= beta && !score::is_theoretical(singular_score)) {
+          return beta;
+        }
+      }
     }
 
-    MovePicker moves {*this, position, ss, hint_move};
+    MovePicker moves {*this, position, ss, tte.move};
 
     MoveList fail_low_quiets;
     MoveList fail_low_noisies;
