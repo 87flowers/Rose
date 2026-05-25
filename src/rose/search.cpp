@@ -287,22 +287,22 @@ namespace rose {
       return tte.score;
     }
 
-    const i32 static_eval = is_in_check ? score::none : excluded ? ss->static_eval : eval(position);
-    ss->static_eval = static_eval;
+    if (ss->static_eval == score::none)
+      ss->static_eval = is_in_check ? score::none : eval(position);
 
     const bool improving = is_in_check                       ? false :
-                           ss[-2].static_eval != score::none ? static_eval > ss[-2].static_eval :
-                           ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
+                           ss[-2].static_eval != score::none ? ss->static_eval > ss[-2].static_eval :
+                           ss[-4].static_eval != score::none ? ss->static_eval > ss[-4].static_eval :
                                                                false;
 
     if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Reverse Futility Pruning
-      if (depth <= 6 && static_eval - 128 * depth >= beta) {
-        return static_eval;
+      if (depth <= 6 && ss->static_eval - 128 * depth >= beta) {
+        return ss->static_eval;
       }
 
       // Razoring
-      if (depth <= 4 && static_eval + 600 * depth < alpha) {
+      if (depth <= 4 && ss->static_eval + 600 * depth < alpha) {
         const Score razor_score = qsearch<expected.narrow()>(ctrl, position, pv, alpha, beta, ss, ply);
         if (razor_score <= alpha) {
           return razor_score;
@@ -310,11 +310,12 @@ namespace rose {
       }
 
       // Null move reductions
-      if (depth >= 4 && m_nmr_ply != ply && ss[-1].move.is_some() && static_eval >= beta) {
+      if (depth >= 4 && m_nmr_ply != ply && ss[-1].move.is_some() && ss->static_eval >= beta) {
         const i32 reduction = 4;
 
         const Position null_position = position.null_move();
         make_null_move(ss, null_position);
+        ss[1].static_eval = score::none;
         const Score null_score = -search<NodeType::all>(ctrl, null_position, pv, -beta, -beta + 1, ss + 1, ply + 1, depth - reduction);
         unmake_move(ss);
 
@@ -356,7 +357,7 @@ namespace rose {
         }
 
         // Futility Pruning
-        if (!mv.noisy() && depth <= 6 && std::abs(alpha) < 2000 && static_eval + 256 + depth * 100 <= alpha) {
+        if (!mv.noisy() && depth <= 6 && std::abs(alpha) < 2000 && ss->static_eval + 256 + depth * 100 <= alpha) {
           moves.skip_quiet();
           continue;
         }
@@ -392,6 +393,7 @@ namespace rose {
       rose_defer {
         unmake_move(ss);
       };
+      ss[1].static_eval = score::none;
 
       const i32 new_depth = depth + extension - 1;
       Line child_pv {};
@@ -554,18 +556,19 @@ namespace rose {
       return tte.score;
     }
 
-    const Score static_eval = is_in_check ? score::mated(ply) : eval(position);
+    if (ss->static_eval == score::none)
+      ss->static_eval = is_in_check ? score::none : eval(position);
 
     // Standpat
-    if (static_eval >= beta) {
-      return static_eval;
+    if (ss->static_eval >= beta) {
+      return ss->static_eval;
     }
-    alpha = std::max(alpha, static_eval);
+    alpha = std::max(alpha, ss->static_eval);
 
     MovePicker moves {*this, position, ss, Move::none()};
     moves.skip_quiet();
 
-    Score best_score = static_eval;
+    Score best_score = is_in_check ? score::mated(ply) : ss->static_eval;
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
 
@@ -581,6 +584,7 @@ namespace rose {
       rose_defer {
         unmake_move(ss);
       };
+      ss[1].static_eval = score::none;
 
       Line child_pv {};
       const Score score = -qsearch<leaf_expected>(ctrl, child_position, child_pv, -beta, -alpha, ss + 1, ply + 1);
