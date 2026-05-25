@@ -477,6 +477,8 @@ namespace rose {
       }
     }
 
+    ss->best_move = best_move;
+
     if (best_score == score::none) {
       if (ss->excluded.is_some())
         return score::min_score;
@@ -530,6 +532,8 @@ namespace rose {
 
   template<NodeType leaf_expected, typename Controls>
   auto Search::qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply) -> Score {
+    ss->best_move = Move::none();
+
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
     if (is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
       m_shared.stop();
@@ -627,6 +631,8 @@ namespace rose {
         }
       }
     }
+
+    ss->best_move = best_move;
 
     return best_score;
   }
