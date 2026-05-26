@@ -421,7 +421,7 @@ namespace rose {
 
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
 
-        score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, lmr_depth);
+        score = -search<NodeType::cut>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, lmr_depth);
 
         if (score > alpha && lmr_depth < new_depth) {
           score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, new_depth);
