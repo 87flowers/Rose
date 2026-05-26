@@ -417,7 +417,7 @@ namespace rose {
         i32 reduction = 2048 + 256 * log2_depth * log2_move_count;
 
         reduction -= 512 * mv.capture();
-        reduction -= 1024 * (expected == NodeType::cut);
+        reduction += 1024 * (expected == NodeType::cut);
 
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
 
