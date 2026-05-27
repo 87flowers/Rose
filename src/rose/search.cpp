@@ -410,14 +410,16 @@ namespace rose {
       Score score = score::none;
 
       // Late Move Reductions
-      if (depth >= 3 && move_count >= 4) {
+      if (depth >= 3 && move_count > 2) {
         const i32 log2_depth = std::bit_width(static_cast<u32>(depth)) - 1;
         const i32 log2_move_count = std::bit_width(static_cast<u32>(move_count)) - 1;
 
-        i32 reduction = 2048 + 256 * log2_depth * log2_move_count;
+        i32 reduction;
 
-        if (mv.capture()) {
-          reduction -= 512;
+        if (mv.noisy()) {
+          reduction = 768 + 128 * log2_depth * log2_move_count;
+        } else {
+          reduction = 2048 + 256 * log2_depth * log2_move_count;
         }
 
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
