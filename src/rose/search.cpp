@@ -350,7 +350,7 @@ namespace rose {
     Score best_score = score::none;
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
-    u32 move_count = 0;
+    u32 searched_moves = 0;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (mv == ss->excluded)
@@ -358,7 +358,7 @@ namespace rose {
 
       if (!score::is_loss(best_score) && !is_in_check) {
         // Late Move Pruning
-        if (!mv.noisy() && move_count >= (4 + depth * depth) / (2 - improving)) {
+        if (!mv.noisy() && searched_moves >= (4 + depth * depth) / (2 - improving)) {
           moves.skip_quiet();
           continue;
         }
@@ -398,7 +398,7 @@ namespace rose {
         }
       }
 
-      move_count++;
+      searched_moves++;
 
       const Position child_position = make_move(ss, position, mv);
       rose_defer {
@@ -410,16 +410,16 @@ namespace rose {
       Score score = score::none;
 
       // Late Move Reductions
-      if (depth >= 3 && move_count > 2) {
+      if (depth >= 3 && searched_moves > 2) {
         const i32 log2_depth = std::bit_width(static_cast<u32>(depth)) - 1;
-        const i32 log2_move_count = std::bit_width(static_cast<u32>(move_count)) - 1;
+        const i32 log2_searched_moves = std::bit_width(static_cast<u32>(searched_moves)) - 1;
 
         i32 reduction;
 
         if (mv.noisy()) {
-          reduction = 1024 + 192 * log2_depth * log2_move_count;
+          reduction = 1024 + 192 * log2_depth * log2_searched_moves;
         } else {
-          reduction = 2048 + 256 * log2_depth * log2_move_count;
+          reduction = 2048 + 256 * log2_depth * log2_searched_moves;
         }
 
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
@@ -431,11 +431,11 @@ namespace rose {
         }
       }
       // PVS Scout Search
-      else if (expected != NodeType::pv || move_count > 1) {
+      else if (expected != NodeType::pv || searched_moves > 1) {
         score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, new_depth);
       }
       // PVS Full Window Search
-      if (expected == NodeType::pv && (move_count == 1 || score > alpha)) {
+      if (expected == NodeType::pv && (searched_moves == 1 || score > alpha)) {
         score = -search<NodeType::pv>(ctrl, child_position, child_pv, -beta, -alpha, ss + 1, ply + 1, new_depth);
       }
 
