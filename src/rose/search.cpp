@@ -375,8 +375,6 @@ namespace rose {
         }
       }
 
-      move_count++;
-
       i32 extension = 0;
       // Singular Extensions
       if (!is_root && depth >= 9 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
@@ -400,6 +398,8 @@ namespace rose {
         }
       }
 
+      move_count++;
+
       const Position child_position = make_move(ss, position, mv);
       rose_defer {
         unmake_move(ss);
@@ -410,7 +410,7 @@ namespace rose {
       Score score = score::none;
 
       // Late Move Reductions
-      if (depth >= 2 && move_count >= 3) {
+      if (depth >= 3 && move_count >= 2 + 2 * (expected == NodeType::pv)) {
         const i32 log2_depth = std::bit_width(static_cast<u32>(depth)) - 1;
         const i32 log2_move_count = std::bit_width(static_cast<u32>(move_count)) - 1;
 
