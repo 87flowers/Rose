@@ -375,8 +375,6 @@ namespace rose {
         }
       }
 
-      move_count++;
-
       i32 extension = 0;
       // Singular Extensions
       if (!is_root && depth >= 9 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
@@ -400,6 +398,8 @@ namespace rose {
         }
       }
 
+      move_count++;
+
       const Position child_position = make_move(ss, position, mv);
       rose_defer {
         unmake_move(ss);
@@ -410,14 +410,16 @@ namespace rose {
       Score score = score::none;
 
       // Late Move Reductions
-      if (depth >= 3 && move_count >= 3) {
+      if (depth >= 3 && move_count > 2) {
         const i32 log2_depth = std::bit_width(static_cast<u32>(depth)) - 1;
         const i32 log2_move_count = std::bit_width(static_cast<u32>(move_count)) - 1;
 
-        i32 reduction = 2048 + 256 * log2_depth * log2_move_count;
+        i32 reduction;
 
-        if (mv.capture()) {
-          reduction -= 512;
+        if (mv.noisy()) {
+          reduction = 1024 + 192 * log2_depth * log2_move_count;
+        } else {
+          reduction = 2048 + 256 * log2_depth * log2_move_count;
         }
 
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
