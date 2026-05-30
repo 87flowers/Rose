@@ -304,13 +304,12 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
-    // Hindsight extension
-    if (!is_root && !is_in_check && !excluded && ss[-1].reduction >= 3072 && ss[-1].static_eval != score::none &&
-        static_eval + ss[-1].static_eval < 0) {
-      depth += 1;
-    }
-
     if (expected != NodeType::pv && !is_in_check && !excluded) {
+      // Hindsight reduction
+      if (depth >= 2 && ss[-1].reduction >= 1024 && ss[-1].static_eval != score::none && static_eval + ss[-1].static_eval > 128) {
+        depth += 1;
+      }
+
       // Reverse Futility Pruning
       if (depth <= 6 && static_eval - 128 * depth >= beta) {
         return static_eval;
