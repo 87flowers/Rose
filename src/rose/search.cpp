@@ -336,7 +336,8 @@ namespace rose {
             m_nmr_ply = ply;
             const Score score = search<expected>(ctrl, position, pv, alpha, beta, ss, ply, depth - 2);
             m_nmr_ply = std::nullopt;
-            return score;
+            if (score >= beta)
+              return score;
           }
         }
       }
