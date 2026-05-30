@@ -356,7 +356,7 @@ namespace rose {
       if (mv == ss->excluded)
         continue;
 
-      if (!score::is_loss(best_score) && !is_in_check) {
+      if (!score::is_loss(best_score) && !is_in_check && expected != NodeType::pv) {
         // Late Move Pruning
         if (!mv.noisy() && searched_moves >= (4 + depth * depth) / (2 - improving)) {
           moves.skip_quiet();
