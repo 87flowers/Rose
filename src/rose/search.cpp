@@ -307,7 +307,7 @@ namespace rose {
     if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Hindsight reduction
       if (depth >= 2 && ss[-1].reduction >= 1024 && ss[-1].static_eval != score::none && static_eval + ss[-1].static_eval > 128) {
-        depth += 1;
+        depth -= 1;
       }
 
       // Reverse Futility Pruning
