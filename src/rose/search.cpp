@@ -277,6 +277,7 @@ namespace rose {
 
     const bool excluded = ss->excluded.is_some();
     const bool is_in_check = position.is_in_check();
+    const Color stm = position.stm();
 
     const tt::LookupResult tte = tt_load(position, ply);
 
@@ -358,7 +359,6 @@ namespace rose {
         continue;
 
       const i32 history = [&] {
-        const Color stm = position.stm();
         const PieceType ptype = position.ptype_at(mv.from());
 
         i32 history = 0;
@@ -449,6 +449,16 @@ namespace rose {
 
         if (score > alpha && lmr_depth < new_depth) {
           score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, new_depth);
+
+          // Post-LMR continuation history update
+          if (!mv.noisy() && (score <= alpha || score >= beta)) {
+            const i32 cont_bonus = 150 * depth - 75;
+            const i32 cont_malus = 75 * depth - 30;
+
+            for (i32 i : {1, 2, 4})
+              if (ss[-i].conthist)
+                ss[-i].conthist->update(stm, position.place_at(mv.from()).ptype(), mv, score <= alpha ? -cont_malus : cont_bonus);
+          }
         }
       }
       // PVS Scout Search
@@ -497,8 +507,6 @@ namespace rose {
     }
 
     if (best_move.is_some()) {
-      const Color stm = position.stm();
-
       const i32 noisy_bonus = 150 * depth - 75;
       const i32 noisy_malus = 75 * depth - 30;
 
