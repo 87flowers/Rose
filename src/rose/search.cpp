@@ -277,6 +277,7 @@ namespace rose {
 
     const bool excluded = ss->excluded.is_some();
     const bool is_in_check = position.is_in_check();
+    const Color stm = position.stm();
 
     const tt::LookupResult tte = tt_load(position, ply);
 
@@ -358,7 +359,6 @@ namespace rose {
         continue;
 
       const i32 history = [&] {
-        const Color stm = position.stm();
         const PieceType ptype = position.ptype_at(mv.from());
 
         i32 history = 0;
@@ -497,16 +497,14 @@ namespace rose {
     }
 
     if (best_move.is_some()) {
-      const Color stm = position.stm();
+      const i32 noisy_bonus = std::min(150 * depth - 75, 1536);
+      const i32 noisy_malus = std::min(75 * depth - 30, 1024);
 
-      const i32 noisy_bonus = 150 * depth - 75;
-      const i32 noisy_malus = 75 * depth - 30;
+      const i32 quiet_bonus = std::min(150 * depth - 75, 1536);
+      const i32 quiet_malus = std::min(75 * depth - 30, 1024);
 
-      const i32 quiet_bonus = 150 * depth - 75;
-      const i32 quiet_malus = 75 * depth - 30;
-
-      const i32 cont_bonus = 150 * depth - 75;
-      const i32 cont_malus = 75 * depth - 30;
+      const i32 cont_bonus = std::min(150 * depth - 75, 1536);
+      const i32 cont_malus = std::min(75 * depth - 30, 1024);
 
       if (best_move.noisy()) {
         m_sd.noisy_history.update(stm, position.ptype_at(best_move.from()), best_move, noisy_bonus);
