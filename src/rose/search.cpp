@@ -416,6 +416,10 @@ namespace rose {
           // Double extension
           extension += expected != NodeType::pv && singular_score <= singular_beta - 20;
         }
+        // Negative extensions
+        else if (expected == NodeType::cut) {
+          extension = -1;
+        }
       }
 
       searched_moves++;
