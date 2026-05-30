@@ -356,6 +356,20 @@ namespace rose {
       if (mv == ss->excluded)
         continue;
 
+      const i32 history = [&] {
+        const Color stm = position.stm();
+        const PieceType ptype = position.ptype_at(mv.from());
+
+        i32 history = 0;
+        if (!mv.noisy()) {
+          history += m_sd.quiet_history.get(stm, mv);
+          for (i32 i : {1, 2})
+            if (ss[-i].conthist)
+              history += ss[-i].conthist->get(stm, ptype, mv);
+        }
+        return history;
+      }();
+
       if (!score::is_loss(best_score) && !is_in_check && !is_root) {
         // Late Move Pruning
         if (!mv.noisy() && searched_moves >= (4 + depth * depth) / (2 - improving)) {
@@ -365,6 +379,12 @@ namespace rose {
 
         // Futility Pruning
         if (!mv.noisy() && depth <= 6 && std::abs(alpha) < 2000 && static_eval + 256 + depth * 100 <= alpha) {
+          moves.skip_quiet();
+          continue;
+        }
+
+        // History Pruning
+        if (!mv.noisy() && depth <= 4 && history < -1024 * depth * depth) {
           moves.skip_quiet();
           continue;
         }
