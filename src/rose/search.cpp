@@ -338,6 +338,7 @@ namespace rose {
             m_nmr_ply = std::nullopt;
             if (score >= beta)
               return score;
+            depth -= 2;
           }
         }
       }
