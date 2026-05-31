@@ -452,8 +452,8 @@ namespace rose {
 
           // Post-LMR continuation history update
           if (!mv.noisy() && (score <= alpha || score >= beta)) {
-            const i32 cont_bonus = 150 * depth - 75;
-            const i32 cont_malus = 75 * depth - 30;
+            const i32 cont_bonus = std::min(150 * depth - 75, 1536);
+            const i32 cont_malus = std::min(75 * depth - 30, 1024);
 
             for (i32 i : {1, 2, 4})
               if (ss[-i].conthist)
@@ -507,14 +507,14 @@ namespace rose {
     }
 
     if (best_move.is_some()) {
-      const i32 noisy_bonus = 150 * depth - 75;
-      const i32 noisy_malus = 75 * depth - 30;
+      const i32 noisy_bonus = std::min(150 * depth - 75, 1536);
+      const i32 noisy_malus = std::min(75 * depth - 30, 1024);
 
-      const i32 quiet_bonus = 150 * depth - 75;
-      const i32 quiet_malus = 75 * depth - 30;
+      const i32 quiet_bonus = std::min(150 * depth - 75, 1536);
+      const i32 quiet_malus = std::min(75 * depth - 30, 1024);
 
-      const i32 cont_bonus = 150 * depth - 75;
-      const i32 cont_malus = 75 * depth - 30;
+      const i32 cont_bonus = std::min(150 * depth - 75, 1536);
+      const i32 cont_malus = std::min(75 * depth - 30, 1024);
 
       if (best_move.noisy()) {
         m_sd.noisy_history.update(stm, position.ptype_at(best_move.from()), best_move, noisy_bonus);
