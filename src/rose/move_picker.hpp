@@ -51,6 +51,10 @@ namespace rose {
       }
     }
 
+    auto is_in_bad_noisy_stage() const -> bool {
+      return m_stage == Stage::emit_bad_noisy;
+    }
+
   private:
     auto generate_noisy() -> void;
     auto generate_quiet() -> void;
