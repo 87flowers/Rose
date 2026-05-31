@@ -37,7 +37,7 @@ LIB_DEB_OBJS := $(patsubst %.cpp,$(BUILD_DIR)/deb/%.o,$(LIB_SRCS))
 
 DEPS := $(LIB_REL_OBJS:.o=.d) $(LIB_DEB_OBJS:.o=.d)
 
-TOOLS := $(patsubst tools/%.cpp,%,$(TOOL_SRCS))
+TOOLS := $(patsubst tools/%.cpp,bin/%,$(TOOL_SRCS))
 TESTS := $(patsubst tests/%.cpp,$(BUILD_DIR)/%,$(TEST_SRCS))
 
 all: $(EXE) rose-debug $(TOOLS) $(TESTS)
@@ -57,7 +57,8 @@ $(EXE): $(BUILD_DIR)/rel/src/main.o $(LIB_REL_OBJS)
 rose-debug: $(BUILD_DIR)/deb/src/main.o $(LIB_DEB_OBJS)
 > $(CXX) $^ -o $@ $(LDFLAGS) $(DEBFLAGS)
 
-$(TOOLS): %: $(BUILD_DIR)/rel/tools/%.o $(LIB_REL_OBJS)
+$(TOOLS): bin/%: $(BUILD_DIR)/rel/tools/%.o $(LIB_REL_OBJS)
+> @mkdir -p $(dir $@)
 > $(CXX) $^ -o $@ $(LDFLAGS) $(RELFLAGS)
 
 $(TESTS): $(BUILD_DIR)/%: $(BUILD_DIR)/deb/tests/%.o $(LIB_DEB_OBJS)

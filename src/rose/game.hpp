@@ -28,6 +28,10 @@ namespace rose {
       return m_position_stack.back();
     }
 
+    auto initial_position() const -> const Position& {
+      return m_position_stack.front();
+    }
+
     auto hash() const -> Hash {
       return m_hash_stack.back();
     }
