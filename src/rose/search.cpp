@@ -392,7 +392,7 @@ namespace rose {
         }
 
         // Bad Noisy Pruning
-        if (mv.noisy() && ply >= 3 && depth <= 6 && moves.is_in_bad_noisy_stage() && static_eval + 128 * depth <= alpha) {
+        if (mv.noisy() && depth <= 6 && moves.is_in_bad_noisy_stage() && static_eval + 512 + 128 * depth <= alpha) {
           break;
         }
 
