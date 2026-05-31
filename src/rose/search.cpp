@@ -442,6 +442,7 @@ namespace rose {
         } else {
           reduction = 2048 + 256 * log2_depth * log2_searched_moves;
         }
+        reduction -= 1024 * (expected == NodeType::pv);
 
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
 
