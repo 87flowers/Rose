@@ -353,6 +353,7 @@ namespace rose {
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
     u32 searched_moves = 0;
+    u32 alpha_raises = 0;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (mv == ss->excluded)
@@ -443,6 +444,8 @@ namespace rose {
           reduction = 2048 + 256 * log2_depth * log2_searched_moves;
         }
 
+        reduction += 768 * alpha_raises;
+
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
 
         score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, lmr_depth);
@@ -477,6 +480,10 @@ namespace rose {
           if (score >= beta) {
             actual_node_type = NodeType::cut;
             break;
+          }
+
+          if (!score::is_theoretical(score)) {
+            alpha_raises++;
           }
         }
       }
