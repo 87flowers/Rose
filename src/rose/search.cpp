@@ -297,7 +297,7 @@ namespace rose {
       return tte.score;
     }
 
-    const i32 static_eval = is_in_check ? score::none : excluded ? ss->static_eval : eval(position);
+    const i32 static_eval = ss->static_eval != score::none ? ss->static_eval : is_in_check ? score::none : eval(position);
     ss->static_eval = static_eval;
 
     const bool improving = is_in_check                       ? false :
@@ -324,6 +324,7 @@ namespace rose {
         const i32 reduction = 4 + depth / 3;
 
         const Position null_position = make_null_move(ss, position);
+        ss[1].static_eval = score::none;
         const Score null_score = -search<NodeType::all>(ctrl, null_position, pv, -beta, -beta + 1, ss + 1, ply + 1, depth - reduction);
         unmake_move(ss);
 
@@ -422,6 +423,7 @@ namespace rose {
       searched_moves++;
 
       const Position child_position = make_move(ss, position, mv);
+      ss[1].static_eval = score::none;
       rose_defer {
         unmake_move(ss);
       };
@@ -599,18 +601,20 @@ namespace rose {
       return tte.score;
     }
 
-    const Score static_eval = is_in_check ? score::mated(ply) : eval(position);
+    const Score static_eval = ss->static_eval != score::none ? ss->static_eval : is_in_check ? score::none : eval(position);
+    ss->static_eval = static_eval;
+
+    Score best_score = is_in_check ? score::mated(ply) : static_eval;
 
     // Standpat
-    if (static_eval >= beta) {
-      return static_eval;
+    if (best_score >= beta) {
+      return best_score;
     }
-    alpha = std::max(alpha, static_eval);
+    alpha = std::max(alpha, best_score);
 
     MovePicker moves {m_sd, position, ss, Move::none()};
     moves.skip_quiet();
 
-    Score best_score = static_eval;
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
 
@@ -622,6 +626,7 @@ namespace rose {
       }
 
       const Position child_position = make_move(ss, position, mv);
+      ss[1].static_eval = score::none;
       rose_defer {
         unmake_move(ss);
       };
