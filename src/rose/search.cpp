@@ -390,6 +390,11 @@ namespace rose {
           continue;
         }
 
+        // Bad Noisy Pruning
+        if (mv.noisy() && ply >= 3 && depth <= 6 && moves.is_in_bad_noisy_stage() && static_eval + 128 * depth <= alpha) {
+          break;
+        }
+
         // SEE Pruning
         if (depth <= 11 && !see::see(position, mv, mv.noisy() ? -64 * depth : -48 * depth)) {
           continue;
