@@ -622,7 +622,7 @@ namespace rose {
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (!score::is_loss(best_score) && !is_in_check) {
         // QS Futility Pruning
-        const Score futility_score = static_eval + 384;
+        const Score futility_score = static_eval + 128;
         if (futility_score <= alpha && !see::see(position, mv, 1)) {
           if (!score::is_theoretical(futility_score))
             best_score = std::max(best_score, futility_score);
