@@ -199,17 +199,22 @@ namespace rose {
         beta = last_score + delta;
       }
 
+      i32 aspiration_reduction = 0;
+
       while (true) {
         m_search_stack = {};
 
+        const i32 asp_depth = std::max(depth - aspiration_reduction, 1);
         pv.clear();
         score = search<NodeType::pv, true>(ctrl, m_root, pv, alpha, beta, &m_search_stack[search_stack_offset], 0, depth);
 
         // Aspiration window
         if (score <= alpha) {
+          aspiration_reduction = 0;
           beta = (alpha + beta) / 2;
           alpha = std::max(score - delta, -score::infinity);
         } else if (score >= beta) {
+          aspiration_reduction = std::min(aspiration_reduction + 1, 3);
           beta = std::min(score + delta, score::infinity);
         } else {
           break;
