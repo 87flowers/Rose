@@ -307,7 +307,7 @@ namespace rose {
 
     if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Reverse Futility Pruning
-      if (depth <= 6 && static_eval - 128 * depth >= beta) {
+      if (depth <= 6 && static_eval - 128 * depth + 128 * improving >= beta) {
         return static_eval;
       }
 
