@@ -305,6 +305,10 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
+    if (!is_root && !is_in_check && !excluded && ss[-1].reduction >= 3072 && ss[-1].static_eval != score::none && static_eval < -ss[-1].static_eval) {
+      depth += 1;
+    }
+
     if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Reverse Futility Pruning
       if (depth <= 6 && static_eval - 128 * depth >= beta) {
@@ -447,8 +451,9 @@ namespace rose {
         reduction -= 1024 * (expected == NodeType::pv);
 
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
-
+        ss->reduction = reduction;
         score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, lmr_depth);
+        ss->reduction = 0;
 
         if (score > alpha && lmr_depth < new_depth) {
           score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, new_depth);
