@@ -420,7 +420,7 @@ namespace rose {
         }
         // Negative extensions
         else if (tte.score >= beta) {
-          extension = -1;
+          extension = -3;
         }
       }
 
