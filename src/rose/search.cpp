@@ -191,7 +191,7 @@ namespace rose {
       Line pv {};
       Score alpha = -score::infinity;
       Score beta = score::infinity;
-      Score delta = 25;
+      Score delta = 12;
       Score score = score::none;
 
       if (depth >= 4) {
@@ -205,6 +205,7 @@ namespace rose {
         pv.clear();
         score = search<NodeType::pv, true>(ctrl, m_root, pv, alpha, beta, &m_search_stack[search_stack_offset], 0, depth);
 
+        // Aspiration window
         if (score <= alpha) {
           alpha = std::max(score - delta, -score::infinity);
         } else if (score >= beta) {
