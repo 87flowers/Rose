@@ -205,7 +205,9 @@ namespace rose {
         pv.clear();
         score = search<NodeType::pv, true>(ctrl, m_root, pv, alpha, beta, &m_search_stack[search_stack_offset], 0, depth);
 
+        // Aspiration window
         if (score <= alpha) {
+          beta = (alpha + beta) / 2;
           alpha = std::max(score - delta, -score::infinity);
         } else if (score >= beta) {
           beta = std::min(score + delta, score::infinity);
