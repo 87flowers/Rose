@@ -343,6 +343,12 @@ namespace rose {
           }
         }
       }
+
+      // TT Probcut
+      if (tte.score != score::none && !score::is_theoretical(tte.score) && !score::is_theoretical(beta) && tte.bound.is_pv_or_cut() &&
+          tte.score >= beta + 384 && tte.depth >= depth - 2) {
+        return tte.score;
+      }
     }
 
     MovePicker moves {m_sd, position, ss, tte.move};
