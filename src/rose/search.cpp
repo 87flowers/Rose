@@ -444,9 +444,10 @@ namespace rose {
         if (mv.noisy()) {
           reduction = 1024 + 192 * log2_depth * log2_searched_moves;
         } else {
-          reduction = 2048 + 256 * log2_depth * log2_searched_moves;
+          reduction = 2176 + 256 * log2_depth * log2_searched_moves;
         }
         reduction -= 1024 * (expected == NodeType::pv);
+        reduction -= 128 * history / 1024;
 
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
 
