@@ -456,7 +456,7 @@ namespace rose {
           i32 research_depth = new_depth;
           if (!is_root) {
             research_depth += score > best_score + 64;
-            research_depth -= score < best_score + 8;
+            research_depth -= score < best_score + 6;
           }
           score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, research_depth);
 
