@@ -453,7 +453,12 @@ namespace rose {
         score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, lmr_depth);
 
         if (score > alpha && lmr_depth < new_depth) {
-          score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, new_depth);
+          i32 research_depth = new_depth;
+          if (!is_root) {
+            research_depth += score > best_score + 64;
+          }
+
+          score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, research_depth);
 
           // Post-LMR continuation history update
           if (!mv.noisy() && (score <= alpha || score >= beta)) {
