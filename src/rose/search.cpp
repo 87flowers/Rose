@@ -306,8 +306,10 @@ namespace rose {
                                                                false;
 
     if (expected != NodeType::pv && !is_in_check && !excluded) {
+      const Bitboard enemy_threats = position.attack_table(!stm).bitboard_any() & position.color_bitboard(stm);
+
       // Reverse Futility Pruning
-      if (depth <= 6 && static_eval - 128 * depth >= beta) {
+      if (depth <= 6 && static_eval - 128 * depth + 64 * enemy_threats.is_empty() >= beta) {
         return static_eval;
       }
 
