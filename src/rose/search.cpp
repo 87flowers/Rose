@@ -325,6 +325,7 @@ namespace rose {
 
         const Position null_position = make_null_move(ss, position);
         ss[1].static_eval = score::none;
+        ss[1].killer = Move::none();
         const Score null_score = -search<NodeType::all>(ctrl, null_position, pv, -beta, -beta + 1, ss + 1, ply + 1, depth - reduction);
         unmake_move(ss);
 
@@ -354,6 +355,8 @@ namespace rose {
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
     u32 searched_moves = 0;
+
+    ss[1].killer = Move::none();
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (mv == ss->excluded)
@@ -538,6 +541,7 @@ namespace rose {
           m_sd.noisy_history.update(stm, position.ptype_at(noisy.from()), noisy, -noisy_malus);
         }
       } else {
+        ss->killer = best_move;
         m_sd.quiet_history.update(stm, best_move, quiet_bonus);
         for (i32 i : {1, 2, 4})
           if (ss[-i].conthist)

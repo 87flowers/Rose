@@ -15,6 +15,7 @@ namespace rose {
       tt_move,
       generate_noisy,
       emit_good_noisy,
+      emit_killer,
       generate_quiet,
       emit_quiet,
       emit_bad_noisy,
@@ -22,7 +23,7 @@ namespace rose {
     };
 
     auto is_in_quiet_stage() const -> bool {
-      return m_stage >= Stage::generate_quiet && m_stage <= Stage::emit_quiet;
+      return m_stage >= Stage::emit_killer && m_stage <= Stage::emit_quiet;
     }
 
     Stage m_stage = Stage::tt_move;
