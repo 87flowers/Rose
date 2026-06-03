@@ -426,6 +426,10 @@ namespace rose {
           extension += expected != NodeType::pv && singular_score <= singular_beta - 120;
         }
       }
+      // Low Depth Singular Extensions
+      else if (!is_root && depth <= 7 && mv == tte.move && !excluded && !is_in_check && static_eval <= alpha - 32 && tte.bound == NodeType::all) {
+        extension = 1;
+      }
 
       searched_moves++;
 
