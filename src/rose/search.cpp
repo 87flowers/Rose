@@ -380,7 +380,7 @@ namespace rose {
         }
 
         // Futility Pruning
-        if (!mv.noisy() && depth <= 6 && std::abs(alpha) < 2000 && static_eval + 256 + depth * 100 <= alpha) {
+        if (!mv.noisy() && depth <= 6 && std::abs(alpha) < 2000 && static_eval + 256 + depth * 100 + 128 * history / 1024 <= alpha) {
           moves.skip_quiet();
           continue;
         }
