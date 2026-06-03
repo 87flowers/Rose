@@ -471,7 +471,7 @@ namespace rose {
             const i32 cont_bonus = std::min(150 * depth - 75, 1536);
             const i32 cont_malus = std::min(75 * depth - 30, 1024);
 
-            for (i32 i : {1, 2, 4})
+            for (i32 i : conthists_indexes)
               if (ss[-i].conthist)
                 ss[-i].conthist->update(stm, position.place_at(mv.from()).ptype(), mv, score <= alpha ? -cont_malus : cont_bonus);
           }
@@ -539,12 +539,12 @@ namespace rose {
         }
       } else {
         m_sd.quiet_history.update(stm, best_move, quiet_bonus);
-        for (i32 i : {1, 2, 4})
+        for (i32 i : conthists_indexes)
           if (ss[-i].conthist)
             ss[-i].conthist->update(stm, position.place_at(best_move.from()).ptype(), best_move, cont_bonus);
         for (const Move quiet : fail_low_quiets) {
           m_sd.quiet_history.update(stm, quiet, -quiet_malus);
-          for (i32 i : {1, 2, 4})
+          for (i32 i : conthists_indexes)
             if (ss[-i].conthist)
               ss[-i].conthist->update(stm, position.place_at(quiet.from()).ptype(), quiet, -cont_malus);
         }
