@@ -716,5 +716,6 @@ namespace rose {
   }
 
   template struct Search<eval::nnue::Jasper<128>::State>;
+  template struct Search<eval::nnue::Jasper<256>::State>;
 
 }  // namespace rose
