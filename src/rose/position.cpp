@@ -410,6 +410,7 @@ namespace rose {
 
   template auto Position::move<eval::NullObserver>(Move m, eval::NullObserver observer) const -> Position;
   template auto Position::move<eval::nnue::Jasper<128>::Observer>(Move m, eval::nnue::Jasper<128>::Observer observer) const -> Position;
+  template auto Position::move<eval::nnue::Jasper<256>::Observer>(Move m, eval::nnue::Jasper<256>::Observer observer) const -> Position;
 
   auto Position::null_move() const -> Position {
     Position new_pos = *this;
