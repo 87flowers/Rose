@@ -51,7 +51,7 @@ namespace rose {
     m_shared = std::make_unique<SearchShared>(thread_count, m_tt_size, m_output);
 
     for (int i = 0; i < thread_count; i++)
-      m_searches.emplace_back(std::make_unique<Search<eval::nnue::embedded_arch::State>>(i, *m_shared, eval::nnue::embedded_network()));
+      m_searches.emplace_back(std::make_unique<Search<eval::nnue::EmbeddedArch::State>>(i, *m_shared, eval::nnue::embedded_network()));
     for (const auto& search : m_searches)
       search->launch();
   }

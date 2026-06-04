@@ -2,7 +2,7 @@
 
 #include "rose/common.hpp"
 #include "rose/engine_output.hpp"
-#include "rose/eval/nnue/rose_arch_1.hpp"
+#include "rose/eval/nnue/jasper.hpp"
 #include "rose/game.hpp"
 #include "rose/limits.hpp"
 #include "rose/move_picker.hpp"
@@ -715,6 +715,6 @@ namespace rose {
     ss->conthist = nullptr;
   }
 
-  template struct Search<eval::nnue::rose_arch_1::State>;
+  template struct Search<eval::nnue::Jasper<128>::State>;
 
 }  // namespace rose

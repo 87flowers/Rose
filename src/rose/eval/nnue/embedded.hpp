@@ -1,11 +1,11 @@
 #pragma once
 
-#include "rose/eval/nnue/rose_arch_1.hpp"
+#include "rose/eval/nnue/jasper.hpp"
 
 namespace rose::eval::nnue {
 
-  namespace embedded_arch = rose_arch_1;
-  using EmbeddedNetwork = embedded_arch::Network;
+  using EmbeddedArch = Jasper<128>;
+  using EmbeddedNetwork = EmbeddedArch::Network;
 
   alignas(EmbeddedNetwork) extern const char g_embedded_network_raw[];
 

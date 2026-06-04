@@ -3,7 +3,7 @@
 #include "rose/bitboard.hpp"
 #include "rose/board.hpp"
 #include "rose/common.hpp"
-#include "rose/eval/nnue/rose_arch_1.hpp"
+#include "rose/eval/nnue/jasper.hpp"
 #include "rose/geometry.hpp"
 #include "rose/move.hpp"
 #include "rose/movegen.hpp"
@@ -409,7 +409,7 @@ namespace rose {
   }
 
   template auto Position::move<eval::NullObserver>(Move m, eval::NullObserver observer) const -> Position;
-  template auto Position::move<eval::nnue::rose_arch_1::Observer>(Move m, eval::nnue::rose_arch_1::Observer observer) const -> Position;
+  template auto Position::move<eval::nnue::Jasper<128>::Observer>(Move m, eval::nnue::Jasper<128>::Observer observer) const -> Position;
 
   auto Position::null_move() const -> Position {
     Position new_pos = *this;
