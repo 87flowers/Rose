@@ -41,8 +41,26 @@ auto roundtripDfrc() -> void {
   }
 }
 
+auto frcIndex() -> void {
+  const std::vector<std::tuple<usize, std::string_view>> cases {{
+    {0, "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1"},
+    {3, "bqnnrkrb/pppppppp/8/8/8/8/PPPPPPPP/BQNNRKRB w GEge - 0 1"},
+    {193, "bqnbrknr/pppppppp/8/8/8/8/PPPPPPPP/BQNBRKNR w HEhe - 0 1"},
+    {329, "nrqbbkrn/pppppppp/8/8/8/8/PPPPPPPP/NRQBBKRN w GBgb - 0 1"},
+    {480, "bbqrnknr/pppppppp/8/8/8/8/PPPPPPPP/BBQRNKNR w HDhd - 0 1"},
+    {863, "rknrnqbb/pppppppp/8/8/8/8/PPPPPPPP/RKNRNQBB w DAda - 0 1"},
+    {959, "rkrnnqbb/pppppppp/8/8/8/8/PPPPPPPP/RKRNNQBB w CAca - 0 1"},
+  }};
+  for (auto [index, fen] : cases) {
+    const Position position = Position::frcstartpos(index);
+    const std::string result = position.to_string(MoveFormat::frc);
+    rose_assert(result == fen, "{} != {}", fen, result);
+  }
+}
+
 auto main() -> int {
   roundtripClassical();
   roundtripDfrc();
+  frcIndex();
   return 0;
 }

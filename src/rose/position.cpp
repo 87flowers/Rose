@@ -9,6 +9,7 @@
 #include "rose/movegen.hpp"
 #include "rose/score.hpp"
 #include "rose/square.hpp"
+#include "rose/util/assert.hpp"
 #include "rose/util/string.hpp"
 
 #include <algorithm>
@@ -180,6 +181,76 @@ namespace rose {
   auto Position::startpos() -> Position {
     static const Position startpos = Position::parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").value();
     return startpos;
+  }
+
+  static auto frc_backrank(usize index) -> std::array<PieceType, 8> {
+    rose_assert(index < 960);
+    std::array<PieceType, 8> rank {};
+
+    const usize b1 = index % 4;
+    index /= 4;
+    const usize b2 = index % 4;
+    index /= 4;
+    const usize q = index % 6;
+    index /= 6;
+
+    constexpr std::array<std::array<usize, 2>, 10> knight_lut {{
+      {{0, 0}},
+      {{0, 1}},
+      {{0, 2}},
+      {{0, 3}},
+      {{1, 1}},
+      {{1, 2}},
+      {{1, 3}},
+      {{2, 2}},
+      {{2, 3}},
+      {{3, 3}},
+    }};
+    const auto [n1, n2] = knight_lut[index];
+
+    // Insert ptype into place-th empty space
+    const auto insert = [&](PieceType ptype, usize place) {
+      for (usize i = 0, j = 0;; i++) {
+        if (rank[i] == PieceType::none) {
+          if (j == place) {
+            rank[i] = ptype;
+            break;
+          }
+          j++;
+        }
+      }
+    };
+
+    rank[b1 * 2 + 1] = PieceType::b;
+    rank[b2 * 2 + 0] = PieceType::b;
+    insert(PieceType::q, q);
+    insert(PieceType::n, n1);
+    insert(PieceType::n, n2);
+    insert(PieceType::r, 0);
+    insert(PieceType::k, 0);
+    insert(PieceType::r, 0);
+
+    return rank;
+  }
+
+  static auto rank_to_string(Color color, std::array<PieceType, 8> rank) -> std::string {
+    std::string str;
+    for (const PieceType ptype : rank)
+      str += ptype.to_char(color);
+    return str;
+  }
+
+  auto Position::frcstartpos(usize index) -> Position {
+    const auto rank = frc_backrank(index);
+    const auto black_rank = rank_to_string(Color::black, rank);
+    const auto white_rank = rank_to_string(Color::white, rank);
+    return Position::parse(black_rank + "/pppppppp/8/8/8/8/PPPPPPPP/" + white_rank + " w KQkq - 0 1").value();
+  }
+
+  auto Position::dfrcstartpos(usize index) -> Position {
+    const auto black_rank = rank_to_string(Color::black, frc_backrank(index / 960));
+    const auto white_rank = rank_to_string(Color::white, frc_backrank(index % 960));
+    return Position::parse(black_rank + "/pppppppp/8/8/8/8/PPPPPPPP/" + white_rank + " w KQkq - 0 1").value();
   }
 
   auto Position::is_legal_slow(Move m) const -> bool {
@@ -636,14 +707,12 @@ namespace rose {
             if (file < 0 || file > 7)
               return ParseError::invalid_board;
             const Square rook_sq = Square::from_file_and_rank(static_cast<u8>(file), color.to_back_rank());
-            const Place rook_place = result.m_board[rook_sq];
-            if (rook_place.is_empty()) {
-              file += direction;
-              continue;
-            }
-            if (rook_place.color() != color || rook_place.ptype() != PieceType::r)
+            const Place place = result.m_board[rook_sq];
+            if (place.color() == color && place.ptype() == PieceType::r)
+              return castle_rights(color, file);
+            if (place.color() == color && place.ptype() == PieceType::k)
               return ParseError::invalid_board;
-            return castle_rights(color, file);
+            file += direction;
           }
         };
         if (ch >= 'A' && ch <= 'H') {

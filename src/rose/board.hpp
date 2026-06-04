@@ -162,17 +162,8 @@ namespace rose {
       return PieceId {narrow_cast<u8>(raw & 0xF)};
     }
 
-    constexpr auto to_color_index() const -> usize {
-      return color().to_index();
-    }
-
-    constexpr auto to_ptype_index() const -> usize {
-      return ptype().to_index();
-    }
-
     constexpr auto to_char() const -> char {
-      constexpr std::array<std::string_view, 2> str {{".KPN?BRQ", ".kpn?brq"}};
-      return str[to_color_index()][to_ptype_index()];
+      return ptype().to_char(color());
     }
 
     inline constexpr auto operator==(const Place&) const -> bool = default;

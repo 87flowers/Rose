@@ -135,9 +135,9 @@ namespace rose {
       return (std::to_underlying(raw) - k - 1) & 0b111;
     }
 
-    constexpr auto to_char() const -> char {
-      constexpr std::string_view str = ".kpn?brq";
-      return str[to_index()];
+    constexpr auto to_char(Color color) const -> char {
+      constexpr std::array<std::string_view, 2> str {{".KPN?BRQ", ".kpn?brq"}};
+      return str[color.to_index()][to_index()];
     }
 
     constexpr auto is_slider() const -> bool {
@@ -232,6 +232,6 @@ struct fmt::formatter<rose::PieceType, char> {
 
   template<class FmtContext>
   auto format(rose::PieceType ptype, FmtContext& ctx) const -> FmtContext::iterator {
-    return fmt::format_to(ctx.out(), "{}", ptype.to_char());
+    return fmt::format_to(ctx.out(), "{}", ptype.to_char(rose::Color::black));
   }
 };

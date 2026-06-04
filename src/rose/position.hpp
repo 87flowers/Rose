@@ -154,6 +154,8 @@ namespace rose {
 
   public:
     static auto startpos() -> Position;
+    static auto frcstartpos(usize index) -> Position;
+    static auto dfrcstartpos(usize index) -> Position;
 
     constexpr Position() = default;
 

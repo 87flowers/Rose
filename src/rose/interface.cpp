@@ -134,6 +134,18 @@ namespace rose {
 
     if (pos_type == "startpos") {
       m_game.set_position(Position::startpos());
+    } else if (pos_type == "frc") {
+      const std::string_view index_str = it.next();
+      const auto index = parse_int(index_str);
+      if (!index || *index >= 960)
+        return print_protocol_error("position", "invalid frc index: {}", index_str);
+      m_game.set_position(Position::frcstartpos(*index));
+    } else if (pos_type == "dfrc") {
+      const std::string_view index_str = it.next();
+      const auto index = parse_int(index_str);
+      if (!index || *index >= 960 * 960)
+        return print_protocol_error("position", "invalid dfrc index: {}", index_str);
+      m_game.set_position(Position::dfrcstartpos(*index));
     } else if (pos_type == "fen") {
       const std::string_view board = it.next();
       const std::string_view color = it.next();
