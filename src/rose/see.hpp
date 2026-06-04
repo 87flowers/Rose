@@ -19,15 +19,15 @@ namespace rose::see {
   }
 
   inline Score gain(const Position& pos, Move mv) {
-    if (mv.castle()) {
+    if (mv.is_castle()) {
       return 0;
     }
-    if (mv.enpassant()) {
+    if (mv.is_enpassant()) {
       return value(PieceType::p);
     }
 
     Score score = value(pos.place_at(mv.to()).ptype());
-    if (mv.promo()) {
+    if (mv.is_promo()) {
       score += value(mv.ptype()) - value(PieceType::p);
     }
     return score;
@@ -42,7 +42,7 @@ namespace rose::see {
       return false;
     }
 
-    score -= value(mv.promo() ? mv.ptype() : pos.place_at(mv.from()).ptype());
+    score -= value(mv.is_promo() ? mv.ptype() : pos.place_at(mv.from()).ptype());
     stm = !stm;
 
     if (score >= 0) {
@@ -60,7 +60,7 @@ namespace rose::see {
 
     // Remove already moved piece and enpassant victim
     occupied ^= ray_coords.eq(u8x64::splat(mv.from().raw)).to_bits();
-    if (mv.enpassant()) {
+    if (mv.is_enpassant()) {
       occupied &= pos.stm() == Color::black ? 0xFFFFFFFFFFFFFFFD : 0xFFFFFFFDFFFFFFFF;
     }
 

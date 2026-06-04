@@ -36,6 +36,15 @@ namespace rose {
       return raw / 8;
     }
 
+    constexpr auto relative_rank(Color perspective) const -> i8 {
+      switch (perspective.raw) {
+      case Color::white:
+        return rank();
+      case Color::black:
+        return flip_ranks().rank();
+      }
+    }
+
     constexpr auto flip_ranks() const -> Square {
       return {narrow_cast<u8>(raw ^ 0b111000)};
     }

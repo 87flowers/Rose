@@ -524,7 +524,7 @@ namespace rose {
       return Move::parse(move_str, m_format, pos).value_or(Move::none());
     }();
 
-    if (m.is_none() || pos.is_legal_slow(m))
+    if (!pos.is_legal(m))
       return print_illegal_move(move_str);
 
     m_game.move(m);

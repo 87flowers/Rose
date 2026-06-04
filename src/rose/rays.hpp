@@ -64,15 +64,15 @@ namespace rose::rays {
     // 1 4 7
     // 0 3 6
     constexpr std::array<u64, 9> base {{
-      internal::dir_bb(64 - 9) | internal::dir_bb(9),
-      internal::dir_bb(64 - 1) | internal::dir_bb(1),
-      internal::dir_bb(7) | internal::dir_bb(64 - 7),
-      internal::dir_bb(64 - 8) | internal::dir_bb(8),
+      internal::dir_bb(9),
+      internal::dir_bb(1),
+      internal::dir_bb(64 - 7),
+      internal::dir_bb(8),
       0,
-      internal::dir_bb(8) | internal::dir_bb(64 - 8),
-      internal::dir_bb(64 - 7) | internal::dir_bb(7),
-      internal::dir_bb(1) | internal::dir_bb(64 - 1),
-      internal::dir_bb(9) | internal::dir_bb(64 - 9),
+      internal::dir_bb(64 - 8),
+      internal::dir_bb(7),
+      internal::dir_bb(64 - 1),
+      internal::dir_bb(64 - 9),
     }};
 
     return Bitboard {std::rotl(base[direction], k.raw)};
