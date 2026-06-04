@@ -68,8 +68,8 @@ namespace rose::tool::datagen {
     DatagenConfig dgc {
       .base_filename = base_filename,
       .initial_move_count = 8,
-      .soft_nodes = 5000,
-      .hard_nodes = 5000000,
+      .soft_nodes = 7000,
+      .hard_nodes = 10000000,
       .thread_count = thread_count,
       .root_seed = root_seed,
       .timestamp = timestamp,
@@ -187,14 +187,16 @@ namespace rose::tool::datagen {
     // Play random opening
     const Position initial_position = [&]() -> Position {
 retry:
-      Position position = Position::startpos();
+      std::uniform_int_distribution<usize> pos_dist {0, 960 * 960 - 1};
+      Position position = Position::dfrcstartpos(pos_dist(rand));
+
       for (usize i = 0; i < dgc.initial_move_count; ++i) {
         MoveList moves = generate_all_moves(position);
         if (moves.size() == 0)
           goto retry;
 
-        std::uniform_int_distribution<usize> d {0, moves.size() - 1};
-        position = position.move(moves[d(rand)]);
+        std::uniform_int_distribution<usize> move_dist {0, moves.size() - 1};
+        position = position.move(moves[move_dist(rand)]);
       }
 
       if (position.has_no_legal_moves_slow())
