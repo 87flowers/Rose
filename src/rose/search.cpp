@@ -403,13 +403,15 @@ namespace rose {
       }
 
       i32 extension = 0;
+      Score singular_score = score::none;
+
       // Singular Extensions
       if (!is_root && depth >= 9 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
         const Score singular_beta = std::max(score::min_score, tte.score - 2 * depth);
         const i32 singular_depth = depth / 2;
 
         ss->excluded = mv;
-        const Score singular_score = search<expected.narrow()>(ctrl, position, pv, singular_beta - 1, singular_beta, ss, ply, singular_depth);
+        singular_score = search<expected.narrow()>(ctrl, position, pv, singular_beta - 1, singular_beta, ss, ply, singular_depth);
         ss->excluded = Move::none();
 
         // Multicut
@@ -442,6 +444,7 @@ namespace rose {
       const i32 new_depth = depth + extension - 1;
       Line child_pv {};
       Score score = score::none;
+      Score tt_move_score = score::none;
 
       // Late Move Reductions
       if (depth >= 3 && searched_moves > 2) {
@@ -457,6 +460,7 @@ namespace rose {
         }
         reduction -= 1024 * (expected == NodeType::pv);
         reduction -= 128 * history / 1024;
+        reduction += 1024 * (expected == NodeType::cut);
 
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
 
@@ -489,6 +493,9 @@ namespace rose {
       if (expected == NodeType::pv && (searched_moves == 1 || score > alpha)) {
         score = -search<NodeType::pv>(ctrl, child_position, child_pv, -beta, -alpha, ss + 1, ply + 1, new_depth);
       }
+
+      if (mv == tte.move)
+        tt_move_score = score;
 
       if (m_shared.stopping)
         return 0;
