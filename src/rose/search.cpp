@@ -634,12 +634,19 @@ namespace rose {
     alpha = std::max(alpha, best_score);
 
     MovePicker moves {m_sd, position, ss, Move::none()};
-    moves.skip_quiet();
+    if (!is_in_check)
+      moves.skip_quiet();
 
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
+      // QS Mate Evasion Limiter
+      if (!score::is_loss(best_score) && is_in_check && !mv.is_noisy()) {
+        moves.skip_quiet();
+        continue;
+      }
+
       if (!score::is_loss(best_score) && !is_in_check) {
         // QS SEE Pruning
         if (!see::see(position, mv, 0))
