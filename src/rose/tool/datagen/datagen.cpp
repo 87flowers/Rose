@@ -187,8 +187,14 @@ namespace rose::tool::datagen {
     // Play random opening
     const Position initial_position = [&]() -> Position {
 retry:
-      std::uniform_int_distribution<usize> pos_dist {0, 960 * 960 - 1};
-      Position position = Position::dfrcstartpos(pos_dist(rand));
+      Position position = [&] {
+        std::uniform_int_distribution<usize> variant_dist {0, 4};
+        if (variant_dist(rand) == 0)
+          return Position::startpos();
+
+        std::uniform_int_distribution<usize> pos_dist {0, 960 * 960 - 1};
+        return Position::dfrcstartpos(pos_dist(rand));
+      }();
 
       for (usize i = 0; i < dgc.initial_move_count; ++i) {
         MoveList moves = generate_all_moves(position);
