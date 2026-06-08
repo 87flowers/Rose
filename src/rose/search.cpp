@@ -681,7 +681,8 @@ namespace rose {
 
   template<eval::concepts::State Evaluation>
   auto Search<Evaluation>::eval(const Position& position) -> Score {
-    return m_evaluation.evaluate(position);
+    const i32 phase_scaling = 24 + position.phase();
+    return m_evaluation.evaluate(position) * phase_scaling / 48;
   }
 
   template<eval::concepts::State Evaluation>

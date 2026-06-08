@@ -230,6 +230,12 @@ namespace rose {
       return board().bitboard_for<ptype>(color);
     }
 
+    auto phase() const -> i32 {
+      constexpr u8x16 ptype_to_phase {{0, 0, 0, 1, 0, 1, 2, 4, 0, 0, 0, 0, 0, 0, 0, 0}};
+      return (piece_list_type(Color::white).to_vector().swizzle(ptype_to_phase) + piece_list_type(Color::black).to_vector().swizzle(ptype_to_phase))
+        .reduce_add();
+    }
+
     auto is_valid() const -> bool {
       return attack_table(m_stm).read(king_sq(!m_stm)).is_empty();
     }
