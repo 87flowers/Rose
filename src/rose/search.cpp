@@ -414,11 +414,11 @@ namespace rose {
 
       // Check extension
       if (child_position.is_in_check() && see::see(position, mv, 0)) {
-        extension += 1;
+        extension = 1;
       }
 
       // Singular Extensions
-      if (extension == 0 && !is_root && depth >= 9 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
+      if (!is_root && depth >= 9 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
         const Score singular_beta = std::max(score::min_score, tte.score - 2 * depth);
         const i32 singular_depth = depth / 2;
 
@@ -441,9 +441,9 @@ namespace rose {
         }
         // Negative extension
         else if (expected == NodeType::cut) {
-          extension = -2;
+          extension += -2;
         } else if (tte.score <= alpha) {
-          extension = -1;
+          extension += -1;
         }
       }
 
