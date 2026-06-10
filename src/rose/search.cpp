@@ -402,9 +402,23 @@ namespace rose {
         }
       }
 
+      searched_moves++;
+
+      const Position child_position = make_move(ss, position, mv);
+      ss[1].static_eval = score::none;
+      rose_defer {
+        unmake_move(ss);
+      };
+
       i32 extension = 0;
+
+      // Check extension
+      if (child_position.is_in_check() && see::see(position, mv, 0)) {
+        extension += 1;
+      }
+
       // Singular Extensions
-      if (!is_root && depth >= 9 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
+      if (extension == 0 && !is_root && depth >= 9 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
         const Score singular_beta = std::max(score::min_score, tte.score - 2 * depth);
         const i32 singular_depth = depth / 2;
 
@@ -431,19 +445,6 @@ namespace rose {
         } else if (tte.score <= alpha) {
           extension = -1;
         }
-      }
-
-      searched_moves++;
-
-      const Position child_position = make_move(ss, position, mv);
-      ss[1].static_eval = score::none;
-      rose_defer {
-        unmake_move(ss);
-      };
-
-      // Check extension
-      if (child_position.is_in_check() && see::see(position, mv, 0)) {
-        extension += 1;
       }
 
       const i32 new_depth = depth + extension - 1;
