@@ -1,0 +1,26 @@
+name: Windows
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup msys2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: UCRT64
+        update: true
+        install: make mingw-w64-ucrt-x86_64-clang mingw-w64-ucrt-x86_64-git mingw-w64-ucrt-x86_64-lld mingw-w64-ucrt-x86_64-llvm
+
+    - name: Build
+      shell: msys2 {0}
+      run: make CC=clang

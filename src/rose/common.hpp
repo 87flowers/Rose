@@ -1,10 +1,13 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <fmt/format.h>
 #include <lps/lps.hpp>
+#include <optional>
 #include <string_view>
+#include <tuple>
 #include <utility>
 
 namespace rose {

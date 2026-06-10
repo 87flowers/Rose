@@ -15,7 +15,6 @@
 
 #include <atomic>
 #include <chrono>
-#include <csignal>
 #include <cstdio>
 #include <fmt/chrono.h>
 #include <fmt/format.h>
@@ -24,6 +23,13 @@
 #include <thread>
 #include <tuple>
 #include <vector>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#else
+#include <csignal>
+#endif
 
 namespace rose::tool::datagen {
 
@@ -81,6 +87,18 @@ namespace rose::tool::datagen {
 
     write_meta_file(dgc);
 
+#if _WIN32
+    // Setup Ctrl+C handler
+    if (!SetConsoleCtrlHandler(
+          +[](DWORD) -> int {
+            g_stop.store(true);
+            return true;
+          },
+          true)) {
+      fmt::print("SetConsoleCtrlHandler failed\n");
+      std::exit(-1);
+    }
+#else
     // Setup signal handlers
     {
       struct sigaction action;
@@ -100,6 +118,7 @@ namespace rose::tool::datagen {
         std::exit(-1);
       }
     }
+#endif
 
     std::mt19937_64 per_thread_seed_gen {dgc.root_seed};
     std::vector<std::jthread> threads;

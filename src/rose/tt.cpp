@@ -16,6 +16,18 @@ namespace rose::tt {
     return {index, fragment};
   }
 
+#ifdef _WIN32
+
+  auto TT::table_alloc(std::size_t m_count) -> Entry* {
+    return static_cast<Entry*>(_aligned_malloc(m_count * sizeof(Entry), 4096));
+  }
+
+  auto TT::table_free(Entry* ptr) -> void {
+    return _aligned_free(ptr);
+  }
+
+#else
+
   auto TT::table_alloc(std::size_t m_count) -> Entry* {
     return static_cast<Entry*>(std::aligned_alloc(4096, m_count * sizeof(Entry)));
   }
@@ -23,6 +35,8 @@ namespace rose::tt {
   auto TT::table_free(Entry* ptr) -> void {
     return std::free(ptr);
   }
+
+#endif
 
   auto TT::clear() -> void {
     std::memset(m_table.get(), 0, m_count * sizeof(Entry));

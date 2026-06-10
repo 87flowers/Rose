@@ -18,9 +18,14 @@ CPPFLAGS := -Isrc -MMD -MP
 CPPFLAGS += -DFMT_HEADER_ONLY -Ivendor/fmt/include
 CPPFLAGS += -Ivendor/lps/include
 CXXFLAGS := -std=c++26 -march=$(ARCH)
-LDFLAGS  := -pthread
 RELFLAGS := -DNDEBUG -O3 -DROSE_NO_ASSERTS -flto=thin
 DEBFLAGS := -DNDEBUG -O2 -g
+
+ifeq ($(OS),Windows_NT)
+  LDFLAGS := -fuse-ld=lld
+else
+  LDFLAGS := -pthread
+endif
 
 VERSION_FLAGS := -DROSE_VERSION=\"$(VERSION)\"
 VERSION_FLAGS += -DROSE_GIT_COMMIT_HASH=\"$(GIT_COMMIT_HASH)\"
