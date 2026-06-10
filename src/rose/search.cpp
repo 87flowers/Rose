@@ -279,7 +279,7 @@ namespace rose {
     const bool is_in_check = position.is_in_check();
     const Color stm = position.stm();
 
-    const tt::LookupResult tte = tt_load(position, ply);
+    tt::LookupResult tte = tt_load(position, ply);
 
     // Transposition Table Cutoffs
     if (expected != NodeType::pv && !excluded && tte.is_some() && tte.depth >= depth && [&] {
@@ -343,6 +343,13 @@ namespace rose {
           }
         }
       }
+    }
+
+    // Internal iterative deepening
+    if (expected == NodeType::pv && depth >= 7 && tte.is_none()) {
+      const i32 iid_depth = (depth * 3) / 4 - 1;
+      search<expected>(ctrl, position, pv, alpha, beta, ss, ply, iid_depth);
+      tte = tt_load(position, ply);
     }
 
     MovePicker moves {m_sd, position, ss, tte.move};
