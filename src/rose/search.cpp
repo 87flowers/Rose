@@ -644,6 +644,7 @@ namespace rose {
         // QS SEE Pruning
         if (!see::see(position, mv, 0))
           continue;
+
         // QS Futility Pruning
         const Score futility = static_eval + 175;
         if (futility <= alpha && !see::see(position, mv, 1)) {
