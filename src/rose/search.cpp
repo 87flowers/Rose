@@ -356,6 +356,10 @@ namespace rose {
       ss->disable_node_pruning = old_disable_node_pruning;
 
       tte = tt_load(position, ply);
+
+      if (!disable_node_pruning && tte.score >= beta + 120) {
+        return beta + 120;
+      }
     }
 
     MovePicker moves {m_sd, position, ss, tte.move};
