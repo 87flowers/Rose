@@ -93,6 +93,7 @@ namespace rose {
     Move move = Move::none();
     Move excluded = Move::none();
     Score static_eval = score::none;
+    bool disable_node_pruning = false;
     ContinuationHistorySubtable* conthist = nullptr;
   };
 

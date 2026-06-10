@@ -276,13 +276,14 @@ namespace rose {
     }
 
     const bool excluded = ss->excluded.is_some();
+    const bool disable_node_pruning = ss->disable_node_pruning || excluded;
     const bool is_in_check = position.is_in_check();
     const Color stm = position.stm();
 
     tt::LookupResult tte = tt_load(position, ply);
 
     // Transposition Table Cutoffs
-    if (expected != NodeType::pv && !excluded && tte.is_some() && tte.depth >= depth && [&] {
+    if (expected != NodeType::pv && !disable_node_pruning && tte.is_some() && tte.depth >= depth && [&] {
           switch (tte.bound.raw) {
           case NodeType::none:
             return false;
@@ -305,7 +306,7 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
-    if (expected != NodeType::pv && !is_in_check && !excluded) {
+    if (expected != NodeType::pv && !is_in_check && !disable_node_pruning) {
       // Reverse Futility Pruning
       if (depth <= 6 && static_eval - 128 * depth >= beta) {
         return static_eval;
@@ -346,9 +347,14 @@ namespace rose {
     }
 
     // Internal iterative deepening
-    if (expected == NodeType::pv && depth >= 7 && tte.is_none()) {
+    if (expected == NodeType::pv && depth >= 7 && tte.is_none() && !excluded) {
       const i32 iid_depth = (depth * 3) / 4 - 1;
+
+      const bool old_disable_node_pruning = ss->disable_node_pruning;
+      ss->disable_node_pruning = true;
       search<expected>(ctrl, position, pv, alpha, beta, ss, ply, iid_depth);
+      ss->disable_node_pruning = old_disable_node_pruning;
+
       tte = tt_load(position, ply);
     }
 
