@@ -644,6 +644,13 @@ namespace rose {
         // QS SEE Pruning
         if (!see::see(position, mv, 0))
           continue;
+
+        // QS Futility Pruning
+        const Score futility = static_eval + 175;
+        if (futility <= alpha && !see::see(position, mv, 1)) {
+          best_score = std::max(best_score, futility);
+          continue;
+        }
       }
 
       const Position child_position = make_move(ss, position, mv);
