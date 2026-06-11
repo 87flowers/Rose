@@ -16,7 +16,10 @@ namespace rose {
 
 namespace rose {
 
-#define rose_unused(...) (void)sizeof(__VA_ARGS__)
+  // Silences unused variable warnings
+  template<typename... T>
+  constexpr void rose_unused(const T&...) noexcept {
+  }
 
   using namespace lps::prelude;
 

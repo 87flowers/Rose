@@ -3,6 +3,7 @@
 #include "rose/common.hpp"
 #include "rose/engine_output.hpp"
 #include "rose/eval/nnue/jasper.hpp"
+#include "rose/eval/nnue/kyanite.hpp"
 #include "rose/game.hpp"
 #include "rose/limits.hpp"
 #include "rose/move_picker.hpp"
@@ -732,5 +733,6 @@ namespace rose {
 
   template struct Search<eval::nnue::Jasper<128>::State>;
   template struct Search<eval::nnue::Jasper<256>::State>;
+  template struct Search<eval::nnue::Kyanite<256>::State>;
 
 }  // namespace rose
