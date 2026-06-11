@@ -1,5 +1,6 @@
 #include "rose/move_picker.hpp"
 
+#include "rose/bitboard.hpp"
 #include "rose/movegen.hpp"
 #include "rose/search.hpp"
 #include "rose/see.hpp"
@@ -129,13 +130,14 @@ namespace rose {
     scores.resize(m_moves.size());
 
     const Color stm = m_position.stm();
+    const Bitboard threats = m_position.attack_table(!stm).bitboard_any();
 
     for (isize i = 0; i < m_moves.size(); i++) {
       const Move mv = m_moves[i];
       const PieceType ptype = m_position.place_at(mv.from()).ptype();
 
       i32 score = 0;
-      score += m_sd.quiet_history.get(stm, mv);
+      score += m_sd.quiet_history.get(stm, threats, mv);
       for (i32 i : conthists_indexes)
         if (m_ss[-i].conthist)
           score += m_ss[-i].conthist->get(stm, ptype, mv);
