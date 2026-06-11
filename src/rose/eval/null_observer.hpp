@@ -11,6 +11,10 @@ namespace rose {
 namespace rose::eval {
 
   struct NullObserver {
+    auto on_king_move(const Position& pos, Color stm, Square from, Square to) -> void {
+      rose_unused(pos, stm, from, to);
+    }
+
     auto on_add(const Position& pos, Color side, PieceType ptype, Square sq) -> void {
       rose_unused(pos, side, ptype, sq);
     }
@@ -29,6 +33,10 @@ namespace rose::eval {
 
     auto on_promote(const Position& pos, Color side, PieceType dst_ptype, Square from, Square to) -> void {
       rose_unused(pos, side, dst_ptype, from, to);
+    }
+
+    auto on_finalize(const Position& pos) -> void {
+      rose_unused(pos);
     }
   };
 

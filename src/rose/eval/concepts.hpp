@@ -14,11 +14,13 @@ namespace rose::eval::concepts {
   template<typename T>
   concept Observer =
     requires(T o, const Position& pos, Color stm, PieceType src_ptype, PieceType dst_ptype, PieceType ptype, Square from, Square to, Square sq) {
+      { o.on_king_move(pos, stm, from, to) } -> std::same_as<void>;
       { o.on_add(pos, stm, ptype, sq) } -> std::same_as<void>;
       { o.on_remove(pos, stm, ptype, sq) } -> std::same_as<void>;
       { o.on_mutate(pos, stm, src_ptype, dst_ptype, sq) } -> std::same_as<void>;
       { o.on_move(pos, stm, ptype, from, to) } -> std::same_as<void>;
       { o.on_promote(pos, stm, dst_ptype, from, to) } -> std::same_as<void>;
+      { o.on_finalize(pos) } -> std::same_as<void>;
     };
 
   template<typename T>

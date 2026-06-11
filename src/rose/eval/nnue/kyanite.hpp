@@ -14,19 +14,19 @@
 namespace rose::eval::nnue {
 
   template<usize hl_size>
-  struct Jasper {
+  struct Kyanite {
     inline static constexpr usize input_size = 768;
     inline static constexpr i32 scale = 400;
     inline static constexpr i32 qa = 255;
     inline static constexpr i32 qb = 64;
 
-    inline static auto feature_index(Color perspective, Square sq, PieceType ptype, Color side) -> usize {
+    inline static auto feature_index(const Position& pos, Color perspective, Square sq, PieceType ptype, Color side) -> usize {
       //                          qrb-npk-
       constexpr u32 ptype_lut = 0x43201050;
 
       usize side_index = side.to_index();
       usize ptype_index = (ptype_lut >> (4 * ptype.to_index())) & 0xf;
-      usize square_index = sq.raw;
+      usize square_index = sq.raw ^ (pos.king_sq(perspective).file() >= 4 ? 0b000111 : 0);
 
       if (perspective == Color::black) {
         side_index ^= 1;
@@ -70,10 +70,32 @@ namespace rose::eval::nnue {
       return y * y;
     }
 
+    inline static auto rebuild_accumulator(const Position& pos, const Network& net) -> AccumulatorPair {
+      AccumulatorPair result;
+      result.values.fill(net.accumulator_biases);
+
+      for (u8 i = 0; i < 64; i++) {
+        const Square sq {i};
+        const Place p = pos.place_at(sq);
+
+        if (p.is_empty())
+          continue;
+
+        const usize feature0 = feature_index(pos, Color::white, sq, p.ptype(), p.color());
+        const usize feature1 = feature_index(pos, Color::black, sq, p.ptype(), p.color());
+
+        add(net, result.values[0], feature0);
+        add(net, result.values[1], feature1);
+      }
+
+      return result;
+    }
+
     struct Observer {
     private:
       const Network& m_net;
       AccumulatorPair& m_accum;
+      bool refresh = false;
 
     public:
       Observer(const Network& net, AccumulatorPair& accum) :
@@ -82,17 +104,17 @@ namespace rose::eval::nnue {
       }
 
       auto on_king_move(const Position& pos, Color stm, Square from, Square to) -> void {
-        rose_unused(pos, stm, from, to);
+        refresh = (from.file() >= 4 && to.file() < 4) || (from.file() < 4 && to.file() >= 4);
       }
 
       auto on_add(const Position& pos, Color side, PieceType ptype, Square sq) -> void {
-        add(m_net, m_accum.values[0], feature_index(Color::white, sq, ptype, side));
-        add(m_net, m_accum.values[1], feature_index(Color::black, sq, ptype, side));
+        add(m_net, m_accum.values[0], feature_index(pos, Color::white, sq, ptype, side));
+        add(m_net, m_accum.values[1], feature_index(pos, Color::black, sq, ptype, side));
       }
 
       auto on_remove(const Position& pos, Color side, PieceType ptype, Square sq) -> void {
-        sub(m_net, m_accum.values[0], feature_index(Color::white, sq, ptype, side));
-        sub(m_net, m_accum.values[1], feature_index(Color::black, sq, ptype, side));
+        sub(m_net, m_accum.values[0], feature_index(pos, Color::white, sq, ptype, side));
+        sub(m_net, m_accum.values[1], feature_index(pos, Color::black, sq, ptype, side));
       }
 
       auto on_mutate(const Position& pos, Color side, PieceType src_ptype, PieceType dst_ptype, Square sq) -> void {
@@ -111,7 +133,9 @@ namespace rose::eval::nnue {
       }
 
       auto on_finalize(const Position& pos) -> void {
-        rose_unused(pos);
+        if (refresh) {
+          m_accum = rebuild_accumulator(pos, m_net);
+        }
       }
     };
 
@@ -121,27 +145,6 @@ namespace rose::eval::nnue {
     private:
       StaticVector<AccumulatorPair, max_depth + 6> m_stack;
       const Network& m_net;
-
-      auto rebuild_accumulator(const Position& pos) -> AccumulatorPair {
-        AccumulatorPair result;
-        result.values.fill(m_net.accumulator_biases);
-
-        for (u8 i = 0; i < 64; i++) {
-          const Square sq {i};
-          const Place p = pos.place_at(sq);
-
-          if (p.is_empty())
-            continue;
-
-          const usize feature0 = feature_index(Color::white, sq, p.ptype(), p.color());
-          const usize feature1 = feature_index(Color::black, sq, p.ptype(), p.color());
-
-          add(m_net, result.values[0], feature0);
-          add(m_net, result.values[1], feature1);
-        }
-
-        return result;
-      }
 
       auto evaluate(const Accumulator& us, const Accumulator& them) -> i32 {
         i32 output = 0;
@@ -163,7 +166,7 @@ namespace rose::eval::nnue {
 
       auto reset(const Position& pos) -> void {
         m_stack.clear();
-        m_stack.push_back(rebuild_accumulator(pos));
+        m_stack.push_back(rebuild_accumulator(pos, m_net));
       }
 
       auto push() -> void {
@@ -178,7 +181,7 @@ namespace rose::eval::nnue {
         const Color stm = pos.stm();
         const AccumulatorPair& accumulators = m_stack.back();
 
-        rose_assert(rebuild_accumulator(pos) == accumulators);
+        rose_assert(rebuild_accumulator(pos, m_net) == accumulators);
 
         return evaluate(accumulators.get(stm), accumulators.get(stm.invert()));
       }

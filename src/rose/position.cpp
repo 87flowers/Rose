@@ -4,6 +4,7 @@
 #include "rose/board.hpp"
 #include "rose/common.hpp"
 #include "rose/eval/nnue/jasper.hpp"
+#include "rose/eval/nnue/kyanite.hpp"
 #include "rose/geometry.hpp"
 #include "rose/move.hpp"
 #include "rose/movegen.hpp"
@@ -430,6 +431,10 @@ namespace rose {
     const PieceId src_id = src_place.id();
     const PieceId dest_id = dest_place.id();
 
+    if (src_place.ptype() == PieceType::k) {
+      observer.on_king_move(new_pos, m_stm, from, to);
+    }
+
     const auto check_src_castling_rights = [&] {
       new_pos.m_rook_info.unset(m_stm, from);
       if (src_place.ptype() == PieceType::k) {
@@ -586,6 +591,8 @@ namespace rose {
     new_pos.m_ply++;
     new_pos.m_stm = !m_stm;
 
+    observer.on_finalize(new_pos);
+
     rose_assert(new_pos.m_hash == new_pos.calc_hash_slow(),
                 "{} [{:016x}] : {} : {} [{:016x} {:016x}]",
                 to_string(MoveFormat::frc),
@@ -601,6 +608,7 @@ namespace rose {
   template auto Position::move<eval::NullObserver>(Move m, eval::NullObserver observer) const -> Position;
   template auto Position::move<eval::nnue::Jasper<128>::Observer>(Move m, eval::nnue::Jasper<128>::Observer observer) const -> Position;
   template auto Position::move<eval::nnue::Jasper<256>::Observer>(Move m, eval::nnue::Jasper<256>::Observer observer) const -> Position;
+  template auto Position::move<eval::nnue::Kyanite<256>::Observer>(Move m, eval::nnue::Kyanite<256>::Observer observer) const -> Position;
 
   auto Position::null_move() const -> Position {
     Position new_pos = *this;
