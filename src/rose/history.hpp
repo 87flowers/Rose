@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rose/bitboard.hpp"
 #include "rose/common.hpp"
 #include "rose/move.hpp"
 #include "rose/square.hpp"
@@ -23,20 +24,20 @@ namespace rose {
   private:
     constexpr static i32 entry_max = 8192;
 
-    multi_array<i16, Color::count, Square::count, Square::count> m_table {};
+    multi_array<i16, Color::count, Square::count, Square::count, 2, 2> m_table {};
 
   public:
     auto reset() -> void {
       m_table = {};
     }
 
-    auto update(Color stm, Move mv, i32 bonus) -> void {
-      i16& entry = m_table[stm.to_index()][mv.from().to_index()][mv.to().to_index()];
+    auto update(Color stm, Bitboard threats, Move mv, i32 bonus) -> void {
+      i16& entry = m_table[stm.to_index()][mv.from().to_index()][mv.to().to_index()][threats.read(mv.from())][threats.read(mv.to())];
       gravity_formula<entry_max>(entry, bonus);
     }
 
-    auto get(Color stm, Move mv) const -> i32 {
-      return m_table[stm.to_index()][mv.from().to_index()][mv.to().to_index()];
+    auto get(Color stm, Bitboard threats, Move mv) const -> i32 {
+      return m_table[stm.to_index()][mv.from().to_index()][mv.to().to_index()][threats.read(mv.from())][threats.read(mv.to())];
     }
   };
 

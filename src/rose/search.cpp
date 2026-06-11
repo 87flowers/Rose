@@ -279,6 +279,7 @@ namespace rose {
     const bool excluded = ss->excluded.is_some();
     const bool is_in_check = position.is_in_check();
     const Color stm = position.stm();
+    const Bitboard enemy_threatened = position.attack_table(!stm).bitboard_any();
 
     const tt::LookupResult tte = tt_load(position, ply);
 
@@ -365,7 +366,7 @@ namespace rose {
 
         i32 history = 0;
         if (!mv.is_noisy()) {
-          history += m_sd.quiet_history.get(stm, mv);
+          history += m_sd.quiet_history.get(stm, enemy_threatened, mv);
           for (i32 i : {1, 2})
             if (ss[-i].conthist)
               history += ss[-i].conthist->get(stm, ptype, mv);
@@ -547,12 +548,12 @@ namespace rose {
           m_sd.noisy_history.update(stm, position.ptype_at(noisy.from()), noisy, -noisy_malus);
         }
       } else {
-        m_sd.quiet_history.update(stm, best_move, quiet_bonus);
+        m_sd.quiet_history.update(stm, enemy_threatened, best_move, quiet_bonus);
         for (i32 i : conthists_indexes)
           if (ss[-i].conthist)
             ss[-i].conthist->update(stm, position.place_at(best_move.from()).ptype(), best_move, cont_bonus);
         for (const Move quiet : fail_low_quiets) {
-          m_sd.quiet_history.update(stm, quiet, -quiet_malus);
+          m_sd.quiet_history.update(stm, enemy_threatened, quiet, -quiet_malus);
           for (i32 i : conthists_indexes)
             if (ss[-i].conthist)
               ss[-i].conthist->update(stm, position.place_at(quiet.from()).ptype(), quiet, -cont_malus);
