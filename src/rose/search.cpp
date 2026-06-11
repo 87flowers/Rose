@@ -640,9 +640,14 @@ namespace rose {
 
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
+    u32 searched_moves = 0;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (!score::is_loss(best_score) && !is_in_check) {
+        // QS LMP
+        if (searched_moves >= 3)
+          break;
+
         // QS SEE Pruning
         if (!see::see(position, mv, 0))
           continue;
@@ -654,6 +659,8 @@ namespace rose {
           continue;
         }
       }
+
+      searched_moves++;
 
       const Position child_position = make_move(ss, position, mv);
       ss[1].static_eval = score::none;
