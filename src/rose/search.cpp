@@ -306,6 +306,8 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
+    const i32 perplexity = tte.score == score::none ? 0 : std::abs(static_eval - tte.score);
+
     if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Reverse Futility Pruning
       if (depth <= 6 && static_eval - 128 * depth >= beta) {
@@ -460,6 +462,7 @@ namespace rose {
         }
         reduction -= 1024 * (expected == NodeType::pv);
         reduction -= 128 * history / 1024;
+        reduction -= std::min(1024, 256 * perplexity / 1024);
         reduction += 1024 * (expected == NodeType::cut);
         reduction -= 768 * child_position.is_in_check();
 
