@@ -142,7 +142,7 @@ namespace rose {
       for (i32 i : conthists_indexes)
         if (m_ss[-i].conthist)
           score += m_ss[-i].conthist->get(stm, ptype, mv);
-      score += 1024 * (threats.read(mv.from()) && ptype != PieceType::p);
+      score += 2048 * (threats.read(mv.from()) && !threats.read(mv.to()) && ptype != PieceType::p);
 
       scores[i] = score * 256 - i;
     }
