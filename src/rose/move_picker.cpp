@@ -1,6 +1,7 @@
 #include "rose/move_picker.hpp"
 
 #include "rose/bitboard.hpp"
+#include "rose/common.hpp"
 #include "rose/movegen.hpp"
 #include "rose/search.hpp"
 #include "rose/see.hpp"
@@ -131,6 +132,7 @@ namespace rose {
 
     const Color stm = m_position.stm();
     const Bitboard threats = m_position.attack_table(!stm).bitboard_any();
+    const Bitboard pawn_threatened = m_position.attack_table(!stm).bitboard_for(m_position.piece_mask_for<PieceType::p>(!stm));
 
     for (isize i = 0; i < m_moves.size(); i++) {
       const Move mv = m_moves[i];
@@ -141,6 +143,7 @@ namespace rose {
       for (i32 i : conthists_indexes)
         if (m_ss[-i].conthist)
           score += m_ss[-i].conthist->get(stm, ptype, mv);
+      score += 2048 * (pawn_threatened.read(mv.from()) && ptype != PieceType::p);
 
       scores[i] = score * 256 - i;
     }
