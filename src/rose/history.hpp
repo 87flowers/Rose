@@ -84,15 +84,15 @@ namespace rose {
 
   struct ContinuationHistory {
   private:
-    multi_array<ContinuationHistorySubtable, Color::count, PieceType::count, Square::count> m_table {};
+    multi_array<ContinuationHistorySubtable, Color::count, 2, PieceType::count, Square::count> m_table {};
 
   public:
     auto reset() -> void {
       m_table = {};
     }
 
-    auto get_subtable(Color stm, PieceType ptype, Move mv) -> ContinuationHistorySubtable* {
-      return &m_table[stm.to_index()][ptype.to_index()][mv.to().to_index()];
+    auto get_subtable(Color stm, bool capture, PieceType ptype, Move mv) -> ContinuationHistorySubtable* {
+      return &m_table[stm.to_index()][capture][ptype.to_index()][mv.to().to_index()];
     }
   };
 

@@ -710,7 +710,7 @@ namespace rose {
     const Position child_position = position.move(mv, m_evaluation.observer());
     m_hash_stack.push_back(child_position.hash());
     ss->move = mv;
-    ss->conthist = m_sd.continuation_history.get_subtable(!child_position.stm(), child_position.place_at(mv.to()).ptype(), mv);
+    ss->conthist = m_sd.continuation_history.get_subtable(!child_position.stm(), mv.is_capture(), child_position.place_at(mv.to()).ptype(), mv);
     return child_position;
   }
 
