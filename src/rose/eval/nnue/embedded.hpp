@@ -4,7 +4,7 @@
 
 namespace rose::eval::nnue {
 
-  using EmbeddedArch = Kyanite<256>;
+  using EmbeddedArch = Kyanite<512>;
   using EmbeddedNetwork = EmbeddedArch::Network;
 
   alignas(EmbeddedNetwork) extern const char g_embedded_network_raw[];
