@@ -313,7 +313,7 @@ namespace rose {
                                                                false;
 
     // Hindsight Extension
-    if (!is_root && !is_in_check && !excluded && ss[-1].reduction >= 4096 && ss[-1].static_eval != score::none && static_eval < -ss[-1].static_eval) {
+    if (!is_root && !is_in_check && !excluded && ss[-1].reduction >= 8192 && ss[-1].static_eval != score::none && static_eval < -ss[-1].static_eval) {
       depth += 1;
     }
 
