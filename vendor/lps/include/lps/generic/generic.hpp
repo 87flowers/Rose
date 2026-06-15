@@ -16,6 +16,9 @@ namespace lps::generic {
 
     template<class T, usize N>
     using mask = generic::vector_mask<T, N>;
+
+    template<class T>
+    inline static constexpr usize native_vector_size = 16 * sizeof(u8) / sizeof(T);
   };
 
 }  // namespace lps::generic

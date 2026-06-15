@@ -140,6 +140,24 @@ namespace lps::doubling {
   }
 
   template<class T, usize N, class Env>
+  LPS_INLINE constexpr vector<T, N, Env> vector<T, N, Env>::clamp(const vector& min, const vector& max) const {
+    vector<T, N, Env> result;
+    result.raw[0] = raw[0].clamp(min.raw[0], max.raw[0]);
+    result.raw[1] = raw[1].clamp(min.raw[1], max.raw[1]);
+    return result;
+  }
+
+  template<class T, usize N, class Env>
+  template<class V>
+  LPS_INLINE constexpr auto vector<T, N, Env>::pair_dot(const V& second) const {
+    using S = detail::signed_double_element_size_t<T>;
+    vector<S, N / 2, Env> result;
+    result.raw[0] = raw[0].pair_dot(second.raw[0]);
+    result.raw[1] = raw[1].pair_dot(second.raw[1]);
+    return result;
+  }
+
+  template<class T, usize N, class Env>
   LPS_INLINE constexpr T vector<T, N, Env>::reduce_add() const {
     return (raw[0] + raw[1]).reduce_add();
   }

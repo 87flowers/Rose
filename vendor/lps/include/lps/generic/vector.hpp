@@ -136,6 +136,26 @@ namespace lps::generic {
   }
 
   template<class T, usize N>
+  constexpr vector<T, N> vector<T, N>::clamp(const vector<T, N>& min, const vector<T, N>& max) const {
+    vector<T, N> result;
+    for (usize i = 0; i < N; i++) {
+      result.raw[i] = std::clamp<T>(raw[i], min.raw[i], max.raw[i]);
+    }
+    return result;
+  }
+
+  template<class T, usize N>
+  template<class U>
+  constexpr auto vector<T, N>::pair_dot(const vector<U, N>& second) const {
+    using S = detail::signed_double_element_size_t<T>;
+    vector<S, N / 2> result;
+    for (usize i = 0; i < N; i += 2) {
+      result.raw[i / 2] = static_cast<S>(raw[i]) * second.raw[i] + static_cast<S>(raw[i + 1]) * second.raw[i + 1];
+    }
+    return result;
+  }
+
+  template<class T, usize N>
   constexpr T vector<T, N>::reduce_add() const {
     T result = 0;
     for (usize i = 0; i < N; i++) {
