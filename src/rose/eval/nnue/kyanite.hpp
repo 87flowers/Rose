@@ -178,8 +178,8 @@ namespace rose::eval::nnue {
 #elif LPS_AVX2
         const __m256i vec_zero = _mm256_setzero_si256();
         const __m256i vec_qa = _mm256_set1_epi16(qa);
-        __m512i vec_output0 = _mm512_setzero_si512();
-        __m512i vec_output1 = _mm512_setzero_si512();
+        __m256i vec_output0 = _mm256_setzero_si256();
+        __m256i vec_output1 = _mm256_setzero_si256();
         for (usize i = 0; i < hl_size; i += 16) {
           // Weights
           const __m256i w0 = _mm256_loadu_si256((__m256i const*)&m_net.output_weights[0][i]);
