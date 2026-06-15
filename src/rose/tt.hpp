@@ -17,6 +17,7 @@ namespace rose::tt {
     NodeType bound = NodeType::none;
     i32 score = 0;
     Move move = Move::none();
+    bool was_pv = false;
 
     auto is_none() const -> bool {
       return bound == NodeType::none;
@@ -33,8 +34,10 @@ namespace rose::tt {
     // u16 move
     // u8 depth
     // u2 bounds
-    // u22 fragment
-    static inline constexpr usize fragment_width = 22;
+    // u1 was_pv
+    // u21 fragment
+    static inline constexpr usize fragment_width = 21;
+    static inline constexpr usize was_pv_shift = 21;
     static inline constexpr usize bounds_shift = 22;
     static inline constexpr usize depth_shift = 24;
     static inline constexpr usize move_shift = 32;
@@ -52,6 +55,7 @@ namespace rose::tt {
 
       raw = 0;
       raw |= fragment;
+      raw |= static_cast<u64>(lr.was_pv) << was_pv_shift;
       raw |= static_cast<u64>(tt_bound) << bounds_shift;
       raw |= static_cast<u64>(tt_depth) << depth_shift;
       raw |= static_cast<u64>(lr.move.raw) << move_shift;
@@ -74,6 +78,10 @@ namespace rose::tt {
       return Move {static_cast<u16>(raw >> move_shift)};
     }
 
+    constexpr inline auto was_pv() const -> bool {
+      return (raw >> was_pv_shift) & 1;
+    }
+
     constexpr inline auto score(i32 ply) const -> i32 {
       const i32 tt_score = static_cast<i32>(static_cast<i64>(raw) >> score_shift);
       return score::adjust_plys_to_mate(tt_score, +ply);
@@ -85,6 +93,7 @@ namespace rose::tt {
         .bound = bound(),
         .score = score(ply),
         .move = move(),
+        .was_pv = was_pv(),
       };
     }
   };
