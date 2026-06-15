@@ -341,13 +341,19 @@ namespace rose {
         if (null_score >= beta) {
           if (m_nmr_ply.has_value()) {
             return null_score;
-          } else {
-            m_nmr_ply = ply;
-            const Score score = search<expected>(ctrl, position, pv, alpha, beta, ss, ply, depth / 2);
-            m_nmr_ply = std::nullopt;
-            if (score >= beta)
-              return score;
           }
+
+          m_nmr_ply = ply;
+          const Score score = search<expected>(ctrl, position, pv, alpha, beta, ss, ply, depth / 2);
+          m_nmr_ply = std::nullopt;
+
+          if (m_shared.stopping)
+            return 0;
+
+          if (score >= beta)
+            return score;
+
+          depth--;
         }
       }
     }
