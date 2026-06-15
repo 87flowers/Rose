@@ -68,6 +68,9 @@ namespace lps::avx512 {
 
     template<class T, usize N>
     using mask = typename detail::bit_mask_helper<T, N>::type;
+
+    template<class T>
+    inline static constexpr usize native_vector_size = 64 * sizeof(u8) / sizeof(T);
   };
 
 }  // namespace lps::avx512

@@ -14,6 +14,7 @@
 #include <array>
 #include <bit>
 #include <cstring>
+#include <emmintrin.h>
 #include <type_traits>
 
 namespace lps::sse4_2 {
@@ -147,6 +148,30 @@ namespace lps::sse4_2 {
   template<class T, usize N, class Env>
   constexpr vector<T, N, Env> vector<T, N, Env>::andnot(const vector<T, N, Env>& second) const {
     return vector { _mm_andnot_si128(second.raw, raw) };
+  }
+
+  template<class T, usize N, class Env>
+  constexpr vector<T, N, Env> vector<T, N, Env>::clamp(const vector<T, N, Env>& min, const vector<T, N, Env>& max) const {
+    if (std::is_same_v<T, i8>) {
+      return vector { _mm_min_epi8(_mm_max_epi8(raw, min.raw), max.raw) };
+    } else if (std::is_same_v<T, i16>) {
+      return vector { _mm_min_epi16(_mm_max_epi16(raw, min.raw), max.raw) };
+    } else if (std::is_same_v<T, i32>) {
+      return vector { _mm_min_epi32(_mm_max_epi32(raw, min.raw), max.raw) };
+    } else if (std::is_same_v<T, u8>) {
+      return vector { _mm_min_epu8(_mm_max_epu8(raw, min.raw), max.raw) };
+    } else if (std::is_same_v<T, u16>) {
+      return vector { _mm_min_epu16(_mm_max_epu16(raw, min.raw), max.raw) };
+    } else if (std::is_same_v<T, u32>) {
+      return vector { _mm_min_epu32(_mm_max_epu32(raw, min.raw), max.raw) };
+    } else {
+      static_assert(detail::always_false<T>);
+    }
+  }
+
+  template<class T, usize N, class Env>
+  constexpr typename Env::template vector<detail::double_element_size<T>, N / 2> vector<T, N, Env>::pair_dot(const vector& second) const {
+    if (std::is_same_v<T, >)
   }
 
   template<class T, usize N, class Env>

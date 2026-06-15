@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lps/detail/bit_mask_base.hpp"
+#include "lps/detail/double_element_size.hpp"
 #include "lps/detail/vector_clamped_size.hpp"
 #include "lps/doubling/doubling.fwd.hpp"
 #include "lps/stdint.hpp"
@@ -57,6 +58,10 @@ namespace lps::doubling {
     constexpr vector shr() const;
 
     constexpr vector andnot(const vector& second) const;
+
+    constexpr vector clamp(const vector& min, const vector& max) const;
+
+    constexpr typename Env::template vector<detail::double_element_size<T>, N / 2> pair_dot(const vector& min, const vector& max) const;
 
     constexpr T reduce_add() const;
     constexpr T reduce_or() const;

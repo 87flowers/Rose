@@ -148,67 +148,21 @@ namespace rose::eval::nnue {
       const Network& m_net;
 
       auto evaluate(const Accumulator& us, const Accumulator& them) -> i32 {
-        i32 output = 0;
-#if LPS_AVX512
-        const __m512i vec_zero = _mm512_setzero_si512();
-        const __m512i vec_qa = _mm512_set1_epi16(qa);
-        __m512i vec_output0 = _mm512_setzero_si512();
-        __m512i vec_output1 = _mm512_setzero_si512();
-        for (usize i = 0; i < hl_size; i += 32) {
-          // Weights
-          const __m512i w0 = _mm512_loadu_si512((__m512i const*)&m_net.output_weights[0][i]);
-          const __m512i w1 = _mm512_loadu_si512((__m512i const*)&m_net.output_weights[1][i]);
-          // Inputs
-          const __m512i x0_i = _mm512_loadu_si512((__m512i const*)&us[i]);
-          const __m512i x1_i = _mm512_loadu_si512((__m512i const*)&them[i]);
-          // Clipped inputs
-          const __m512i c0_i = _mm512_min_epi16(_mm512_max_epi16(x0_i, vec_zero), vec_qa);
-          const __m512i c1_i = _mm512_min_epi16(_mm512_max_epi16(x1_i, vec_zero), vec_qa);
-          // w * c_i * c_i + accumulate
-          vec_output0 = _mm512_dpwssd_epi32(vec_output0, _mm512_mullo_epi16(w0, c0_i), c0_i);
-          vec_output1 = _mm512_dpwssd_epi32(vec_output1, _mm512_mullo_epi16(w1, c1_i), c1_i);
+        static_assert(hl_size % i16xN::size == 0);
+
+        i32xN output0 = i32xN::zero();
+        i32xN output1 = i32xN::zero();
+        for (usize i = 0; i < hl_size; i += i16xN::size) {
+          const u16xN w0 = i16xN::load(&m_net.output_weights[0][i]);
+          const u16xN w1 = i16xN::load(&m_net.output_weights[1][i]);
+          const u16xN x0_i = i16xN::load(&us[i]);
+          const u16xN x1_i = i16xN::load(&them[i]);
+          const u16xN c0_i = x0_i.clamp(i16xN::zero(), i16xN::splat(qa));
+          const u16xN c1_i = x1_i.clamp(i16xN::zero(), i16xN::splat(qa));
+          output0 = output0 + (w0 * c0_i).dot_pairs(c0_i);
+          output1 = output0 + (w1 * c1_i).dot_pairs(c1_i);
         }
-        // Horizontal sum
-        __m512i vec_output = _mm512_add_epi32(vec_output0, vec_output1);
-        __m256i hsum256 = _mm256_add_epi32(_mm512_extracti32x8_epi32(vec_output, 1), _mm512_castsi512_si256(vec_output));
-        __m128i hsum = _mm_add_epi32(_mm256_extracti128_si256(hsum256, 1), _mm256_castsi256_si128(hsum256));
-        hsum = _mm_add_epi32(hsum, _mm_unpackhi_epi64(hsum, hsum));
-        hsum = _mm_add_epi32(hsum, _mm_shuffle_epi32(hsum, 1));
-        output = _mm_cvtsi128_si32(hsum);
-#elif LPS_AVX2
-        const __m256i vec_zero = _mm256_setzero_si256();
-        const __m256i vec_qa = _mm256_set1_epi16(qa);
-        __m256i vec_output0 = _mm256_setzero_si256();
-        __m256i vec_output1 = _mm256_setzero_si256();
-        for (usize i = 0; i < hl_size; i += 16) {
-          // Weights
-          const __m256i w0 = _mm256_loadu_si256((__m256i const*)&m_net.output_weights[0][i]);
-          const __m256i w1 = _mm256_loadu_si256((__m256i const*)&m_net.output_weights[1][i]);
-          // Inputs
-          const __m256i x0_i = _mm256_loadu_si256((__m256i const*)&us[i]);
-          const __m256i x1_i = _mm256_loadu_si256((__m256i const*)&them[i]);
-          // Clipped inputs
-          const __m256i c0_i = _mm256_min_epi16(_mm256_max_epi16(x0_i, vec_zero), vec_qa);
-          const __m256i c1_i = _mm256_min_epi16(_mm256_max_epi16(x1_i, vec_zero), vec_qa);
-          // w * c_i * c_i
-          const __m256i y0_i = _mm256_madd_epi16(_mm256_mullo_epi16(w0, c0_i), c0_i);
-          const __m256i y1_i = _mm256_madd_epi16(_mm256_mullo_epi16(w1, c1_i), c1_i);
-          // Accumulate
-          vec_output0 = _mm256_add_epi32(vec_output0, y0_i);
-          vec_output1 = _mm256_add_epi32(vec_output1, y1_i);
-        }
-        // Horizontal sum
-        __m256i vec_output = _mm256_add_epi32(vec_output0, vec_output1);
-        __m128i hsum = _mm_add_epi32(_mm256_extracti128_si256(vec_output, 1), _mm256_castsi256_si128(vec_output));
-        hsum = _mm_add_epi32(hsum, _mm_unpackhi_epi64(hsum, hsum));
-        hsum = _mm_add_epi32(hsum, _mm_shuffle_epi32(hsum, 1));
-        output = _mm_cvtsi128_si32(hsum);
-#else
-        for (usize i = 0; i < hl_size; i++) {
-          output += screlu(us[i]) * m_net.output_weights[0][i];
-          output += screlu(them[i]) * m_net.output_weights[1][i];
-        }
-#endif
+        output = (output0 + output1).reduce_add();
         output /= qa;
         output += m_net.output_bias;
         output *= scale;

@@ -54,6 +54,9 @@ namespace lps::sse4_2 {
 
     template<class T, usize N>
     using mask = typename detail::vector_mask_helper<T, N>::type;
+
+    template<class T>
+    inline static constexpr usize native_vector_size = 16 * sizeof(u8) / sizeof(T);
   };
 
 }  // namespace lps::sse4_2
