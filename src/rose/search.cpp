@@ -301,6 +301,14 @@ namespace rose {
             return tte.score <= alpha;
           }
         }()) {
+      if (tte.score >= beta && !tte.move.is_noisy()) {
+        const i32 quiet_bonus = std::min(150 * depth - 75, 1536);
+        const i32 cont_bonus = std::min(150 * depth - 75, 1536);
+        m_sd.quiet_history.update(stm, enemy_threatened, tte.move, quiet_bonus);
+        for (i32 i : conthists_indexes)
+          if (ss[-i].conthist)
+            ss[-i].conthist->update(stm, position.place_at(tte.move.from()).ptype(), tte.move, cont_bonus);
+      }
       return tte.score;
     }
 
