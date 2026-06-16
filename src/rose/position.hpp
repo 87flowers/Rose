@@ -230,6 +230,10 @@ namespace rose {
       return board().bitboard_for<ptype>(color);
     }
 
+    auto color_bitboard(Color color) const -> Bitboard {
+      return board().color_bitboard(color);
+    }
+
     auto is_valid() const -> bool {
       return attack_table(m_stm).read(king_sq(!m_stm)).is_empty();
     }
