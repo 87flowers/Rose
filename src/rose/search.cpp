@@ -314,7 +314,7 @@ namespace rose {
 
     if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Reverse Futility Pruning
-      if (depth <= 15 && static_eval - 64 * depth - 4 * depth * depth - 64 * (enemy_threatened & position.color_bitboard(stm)).is_empty() >= beta) {
+      if (depth <= 15 && static_eval - 32 - 64 * depth - 4 * depth * depth >= beta) {
         return static_eval;
       }
 
