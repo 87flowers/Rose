@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lps/detail/bit_mask_base.hpp"
+#include "lps/detail/signed_double_element_size.hpp"
 #include "lps/detail/vector_clamped_size.hpp"
 #include "lps/sse4_2/sse4_2.fwd.hpp"
 #include "lps/stdint.hpp"
@@ -53,6 +54,14 @@ namespace lps::sse4_2 {
     constexpr vector shr() const;
 
     constexpr vector andnot(const vector& second) const;
+
+    constexpr vector clamp(const vector& min, const vector& max) const;
+
+    template<class V>
+    constexpr auto pair_dot(const V& second) const;
+
+    template<class V1, class V2>
+    constexpr vector accumulate_pair_dot(const V1& first, const V2& second) const;
 
     constexpr T reduce_add() const;
     constexpr T reduce_or() const;

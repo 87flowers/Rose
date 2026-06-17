@@ -53,6 +53,26 @@ namespace lps::prelude {
   template<class T, usize N>
   using mask = environment::mask<T, N>;
 
+  using u8xN = vector<u8, environment::native_vector_size<u8>>;
+  using i8xN = vector<i8, environment::native_vector_size<u8>>;
+  using vm8xN = vector_mask<i8, environment::native_vector_size<u8>>;
+  using m8xN = mask<i8, environment::native_vector_size<u8>>;
+
+  using u16xN = vector<u16, environment::native_vector_size<u16>>;
+  using i16xN = vector<i16, environment::native_vector_size<u16>>;
+  using vm16xN = vector_mask<i16, environment::native_vector_size<u16>>;
+  using m16xN = mask<i16, environment::native_vector_size<u16>>;
+
+  using u32xN = vector<u32, environment::native_vector_size<u32>>;
+  using i32xN = vector<i32, environment::native_vector_size<u32>>;
+  using vm32xN = vector_mask<i32, environment::native_vector_size<u32>>;
+  using m32xN = mask<i32, environment::native_vector_size<u32>>;
+
+  using u64xN = vector<u64, environment::native_vector_size<u64>>;
+  using i64xN = vector<i64, environment::native_vector_size<u64>>;
+  using vm64xN = vector_mask<i64, environment::native_vector_size<u64>>;
+  using m64xN = mask<i64, environment::native_vector_size<u64>>;
+
   using u8x16 = vector<u8, 16>;
   using i8x16 = vector<i8, 16>;
   using vm8x16 = vector_mask<i8, 16>;

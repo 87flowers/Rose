@@ -260,6 +260,74 @@ namespace lps::avx2 {
   }
 
   template<class T, usize N, class Env>
+  LPS_INLINE constexpr vector<T, N, Env> vector<T, N, Env>::clamp(const vector<T, N, Env>& min, const vector<T, N, Env>& max) const {
+    if constexpr (is_128_bit) {
+      if constexpr (std::is_same_v<T, i8>) {
+        return vector { _mm_min_epi8(_mm_max_epi8(raw, min.raw), max.raw) };
+      } else if constexpr (std::is_same_v<T, i16>) {
+        return vector { _mm_min_epi16(_mm_max_epi16(raw, min.raw), max.raw) };
+      } else if constexpr (std::is_same_v<T, i32>) {
+        return vector { _mm_min_epi32(_mm_max_epi32(raw, min.raw), max.raw) };
+      } else if constexpr (std::is_same_v<T, u8>) {
+        return vector { _mm_min_epu8(_mm_max_epu8(raw, min.raw), max.raw) };
+      } else if constexpr (std::is_same_v<T, u16>) {
+        return vector { _mm_min_epu16(_mm_max_epu16(raw, min.raw), max.raw) };
+      } else if constexpr (std::is_same_v<T, u32>) {
+        return vector { _mm_min_epu32(_mm_max_epu32(raw, min.raw), max.raw) };
+      } else {
+        static_assert(detail::always_false<T>);
+      }
+    } else {
+      if constexpr (std::is_same_v<T, i8>) {
+        return vector { _mm256_min_epi8(_mm256_max_epi8(raw, min.raw), max.raw) };
+      } else if constexpr (std::is_same_v<T, i16>) {
+        return vector { _mm256_min_epi16(_mm256_max_epi16(raw, min.raw), max.raw) };
+      } else if constexpr (std::is_same_v<T, i32>) {
+        return vector { _mm256_min_epi32(_mm256_max_epi32(raw, min.raw), max.raw) };
+      } else if constexpr (std::is_same_v<T, u8>) {
+        return vector { _mm256_min_epu8(_mm256_max_epu8(raw, min.raw), max.raw) };
+      } else if constexpr (std::is_same_v<T, u16>) {
+        return vector { _mm256_min_epu16(_mm256_max_epu16(raw, min.raw), max.raw) };
+      } else if constexpr (std::is_same_v<T, u32>) {
+        return vector { _mm256_min_epu32(_mm256_max_epu32(raw, min.raw), max.raw) };
+      } else {
+        static_assert(detail::always_false<T>);
+      }
+    }
+  }
+
+  template<class T, usize N, class Env>
+  template<class V>
+  LPS_INLINE constexpr auto vector<T, N, Env>::pair_dot(const V& second) const {
+    using U = V::element_type;
+    using Result = Env::template vector<detail::signed_double_element_size_t<T>, N / 2>;
+    static_assert(std::is_same_v<V, typename Env::template vector<U, N>>);
+    if constexpr (is_128_bit) {
+      if constexpr (std::is_same_v<T, u8> && std::is_same_v<U, i8>) {
+        return Result { _mm_maddubs_epi16(raw, second.raw) };
+      } else if constexpr (std::is_same_v<T, i16> && std::is_same_v<U, i16>) {
+        return Result { _mm_madd_epi16(raw, second.raw) };
+      } else {
+        static_assert(detail::always_false<T>);
+      }
+    } else {
+      if constexpr (std::is_same_v<T, u8> && std::is_same_v<U, i8>) {
+        return Result { _mm256_maddubs_epi16(raw, second.raw) };
+      } else if constexpr (std::is_same_v<T, i16> && std::is_same_v<U, i16>) {
+        return Result { _mm256_madd_epi16(raw, second.raw) };
+      } else {
+        static_assert(detail::always_false<T>);
+      }
+    }
+  }
+
+  template<class T, usize N, class Env>
+  template<class V1, class V2>
+  LPS_INLINE constexpr vector<T, N, Env> vector<T, N, Env>::accumulate_pair_dot(const V1& first, const V2& second) const {
+    return *this + first.pair_dot(second);
+  }
+
+  template<class T, usize N, class Env>
   LPS_INLINE constexpr T vector<T, N, Env>::reduce_add() const {
     return std::bit_cast<generic::vector<T, N>>(*this).reduce_add();
   }
