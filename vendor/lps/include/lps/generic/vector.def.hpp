@@ -66,6 +66,9 @@ namespace lps::generic {
     template<class U>
     constexpr auto pair_dot(const vector<U, N>& second) const;
 
+    template<class V1, class V2>
+    constexpr vector accumulate_pair_dot(const V1& first, const V2& second) const;
+
     constexpr T reduce_add() const;
     constexpr T reduce_or() const;
     constexpr T reduce_xor() const;

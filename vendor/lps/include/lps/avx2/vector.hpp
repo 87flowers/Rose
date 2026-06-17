@@ -322,6 +322,12 @@ namespace lps::avx2 {
   }
 
   template<class T, usize N, class Env>
+  template<class V1, class V2>
+  LPS_INLINE constexpr vector<T, N, Env> vector<T, N, Env>::accumulate_pair_dot(const V1& first, const V2& second) const {
+    return *this + first.pair_dot(second);
+  }
+
+  template<class T, usize N, class Env>
   LPS_INLINE constexpr T vector<T, N, Env>::reduce_add() const {
     return std::bit_cast<generic::vector<T, N>>(*this).reduce_add();
   }

@@ -462,6 +462,34 @@ namespace lps::avx512 {
   }
 
   template<class T, usize N, class Env>
+  template<class V1, class V2>
+  LPS_INLINE constexpr vector<T, N, Env> vector<T, N, Env>::accumulate_pair_dot(const V1& first, const V2& second) const {
+    using U1 = V1::element_type;
+    using U2 = V2::element_type;
+    static_assert(sizeof(U1) == sizeof(U2) && sizeof(vector) == sizeof(V1) && sizeof(vector) == sizeof(V2));
+    static_assert(std::is_same_v<T, detail::signed_double_element_size_t<U1>> && std::is_same_v<T, detail::signed_double_element_size_t<U2>>);
+    if constexpr (is_128_bit) {
+      if constexpr (std::is_same_v<U1, i16> && std::is_same_v<U2, i16>) {
+        return vector { _mm_dpwssd_epi32(raw, first.raw, second.raw) };
+      } else {
+        static_assert(detail::always_false<T>);
+      }
+    } else if constexpr (is_256_bit) {
+      if constexpr (std::is_same_v<U1, i16> && std::is_same_v<U2, i16>) {
+        return vector { _mm256_dpwssd_epi32(raw, first.raw, second.raw) };
+      } else {
+        static_assert(detail::always_false<T>);
+      }
+    } else {
+      if constexpr (std::is_same_v<U1, i16> && std::is_same_v<U2, i16>) {
+        return vector { _mm512_dpwssd_epi32(raw, first.raw, second.raw) };
+      } else {
+        static_assert(detail::always_false<T>);
+      }
+    }
+  }
+
+  template<class T, usize N, class Env>
   LPS_INLINE constexpr T vector<T, N, Env>::reduce_add() const {
     return std::bit_cast<generic::vector<T, N>>(*this).reduce_add();
   }

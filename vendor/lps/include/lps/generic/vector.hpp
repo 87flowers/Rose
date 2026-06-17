@@ -150,9 +150,15 @@ namespace lps::generic {
     using S = detail::signed_double_element_size_t<T>;
     vector<S, N / 2> result;
     for (usize i = 0; i < N; i += 2) {
-      result.raw[i / 2] = static_cast<S>(raw[i]) * second.raw[i] + static_cast<S>(raw[i + 1]) * second.raw[i + 1];
+      result.raw[i / 2] = static_cast<S>(raw[i]) * static_cast<S>(second.raw[i]) + static_cast<S>(raw[i + 1]) * static_cast<S>(second.raw[i + 1]);
     }
     return result;
+  }
+
+  template<class T, usize N>
+  template<class V1, class V2>
+  constexpr vector<T, N> vector<T, N>::accumulate_pair_dot(const V1& first, const V2& second) const {
+    return *this + first.pair_dot(second);
   }
 
   template<class T, usize N>

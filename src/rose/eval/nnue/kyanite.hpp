@@ -159,8 +159,8 @@ namespace rose::eval::nnue {
           const i16xN x1_i = i16xN::load(&them[i]);
           const i16xN c0_i = x0_i.clamp(i16xN::zero(), i16xN::splat(qa));
           const i16xN c1_i = x1_i.clamp(i16xN::zero(), i16xN::splat(qa));
-          output0 = output0 + (w0 * c0_i).pair_dot(c0_i);
-          output1 = output1 + (w1 * c1_i).pair_dot(c1_i);
+          output0 = output0.accumulate_pair_dot(w0 * c0_i, c0_i);
+          output1 = output1.accumulate_pair_dot(w1 * c1_i, c1_i);
         }
 
         i32 output = (output0 + output1).reduce_add();
