@@ -39,7 +39,7 @@ namespace rose::eval::nnue {
 
     using Accumulator = std::array<i16, hl_size>;
 
-    struct AccumulatorPair {
+    struct alignas(64) AccumulatorPair {
       std::array<Accumulator, 2> values;
 
       const Accumulator& get(Color color) const {
@@ -56,14 +56,39 @@ namespace rose::eval::nnue {
       i16 output_bias;
     };
 
-    inline static auto add(const Network& net, Accumulator& accumulator, usize feature) -> void {
-      for (usize i = 0; i < hl_size; i++)
-        accumulator[i] += net.accumulator_weights[feature][i];
+    inline static auto add(const Network& net, Accumulator& acc0, usize feat0, Accumulator& acc1, usize feat1) -> void {
+      static_assert(hl_size % i16xN::size == 0);
+
+      for (usize i = 0; i < hl_size; i += i16xN::size) {
+        const i16xN w0 = i16xN::load(&net.accumulator_weights[feat0][i]);
+        const i16xN w1 = i16xN::load(&net.accumulator_weights[feat1][i]);
+        (i16xN::load(&acc0[i]) + w0).store(&acc0[i]);
+        (i16xN::load(&acc1[i]) + w1).store(&acc1[i]);
+      }
     }
 
-    inline static auto sub(const Network& net, Accumulator& accumulator, usize feature) -> void {
-      for (usize i = 0; i < hl_size; i++)
-        accumulator[i] -= net.accumulator_weights[feature][i];
+    inline static auto sub(const Network& net, Accumulator& acc0, usize feat0, Accumulator& acc1, usize feat1) -> void {
+      static_assert(hl_size % i16xN::size == 0);
+
+      for (usize i = 0; i < hl_size; i += i16xN::size) {
+        const i16xN w0 = i16xN::load(&net.accumulator_weights[feat0][i]);
+        const i16xN w1 = i16xN::load(&net.accumulator_weights[feat1][i]);
+        (i16xN::load(&acc0[i]) - w0).store(&acc0[i]);
+        (i16xN::load(&acc1[i]) - w1).store(&acc1[i]);
+      }
+    }
+
+    inline static auto subadd(const Network& net, Accumulator& acc0, usize sub0, usize add0, Accumulator& acc1, usize sub1, usize add1) -> void {
+      static_assert(hl_size % i16xN::size == 0);
+
+      for (usize i = 0; i < hl_size; i += i16xN::size) {
+        const i16xN w_sub0 = i16xN::load(&net.accumulator_weights[sub0][i]);
+        const i16xN w_sub1 = i16xN::load(&net.accumulator_weights[sub1][i]);
+        const i16xN w_add0 = i16xN::load(&net.accumulator_weights[add0][i]);
+        const i16xN w_add1 = i16xN::load(&net.accumulator_weights[add1][i]);
+        (i16xN::load(&acc0[i]) - w_sub0 + w_add0).store(&acc0[i]);
+        (i16xN::load(&acc1[i]) - w_sub1 + w_add1).store(&acc1[i]);
+      }
     }
 
     inline static auto screlu(i16 x) -> i32 {
@@ -85,8 +110,7 @@ namespace rose::eval::nnue {
         const usize feature0 = feature_index(pos, Color::white, sq, p.ptype(), p.color());
         const usize feature1 = feature_index(pos, Color::black, sq, p.ptype(), p.color());
 
-        add(net, result.values[0], feature0);
-        add(net, result.values[1], feature1);
+        add(net, result.values[0], feature0, result.values[1], feature1);
       }
 
       return result;
@@ -109,28 +133,49 @@ namespace rose::eval::nnue {
       }
 
       auto on_add(const Position& pos, Color side, PieceType ptype, Square sq) -> void {
-        add(m_net, m_accum.values[0], feature_index(pos, Color::white, sq, ptype, side));
-        add(m_net, m_accum.values[1], feature_index(pos, Color::black, sq, ptype, side));
+        add(m_net,
+            m_accum.values[0],
+            feature_index(pos, Color::white, sq, ptype, side),
+            m_accum.values[1],
+            feature_index(pos, Color::black, sq, ptype, side));
       }
 
       auto on_remove(const Position& pos, Color side, PieceType ptype, Square sq) -> void {
-        sub(m_net, m_accum.values[0], feature_index(pos, Color::white, sq, ptype, side));
-        sub(m_net, m_accum.values[1], feature_index(pos, Color::black, sq, ptype, side));
+        sub(m_net,
+            m_accum.values[0],
+            feature_index(pos, Color::white, sq, ptype, side),
+            m_accum.values[1],
+            feature_index(pos, Color::black, sq, ptype, side));
       }
 
       auto on_mutate(const Position& pos, Color side, PieceType src_ptype, PieceType dst_ptype, Square sq) -> void {
-        on_remove(pos, side, src_ptype, sq);
-        on_add(pos, side, dst_ptype, sq);
+        subadd(m_net,
+               m_accum.values[0],
+               feature_index(pos, Color::white, sq, src_ptype, side),
+               feature_index(pos, Color::white, sq, dst_ptype, side),
+               m_accum.values[1],
+               feature_index(pos, Color::black, sq, src_ptype, side),
+               feature_index(pos, Color::black, sq, dst_ptype, side));
       }
 
       auto on_move(const Position& pos, Color side, PieceType ptype, Square from, Square to) -> void {
-        on_remove(pos, side, ptype, from);
-        on_add(pos, side, ptype, to);
+        subadd(m_net,
+               m_accum.values[0],
+               feature_index(pos, Color::white, from, ptype, side),
+               feature_index(pos, Color::white, to, ptype, side),
+               m_accum.values[1],
+               feature_index(pos, Color::black, from, ptype, side),
+               feature_index(pos, Color::black, to, ptype, side));
       }
 
       auto on_promote(const Position& pos, Color side, PieceType dst_ptype, Square from, Square to) -> void {
-        on_remove(pos, side, PieceType::p, from);
-        on_add(pos, side, dst_ptype, to);
+        subadd(m_net,
+               m_accum.values[0],
+               feature_index(pos, Color::white, from, PieceType::p, side),
+               feature_index(pos, Color::white, to, dst_ptype, side),
+               m_accum.values[1],
+               feature_index(pos, Color::black, from, PieceType::p, side),
+               feature_index(pos, Color::black, to, dst_ptype, side));
       }
 
       auto on_finalize(const Position& pos) -> void {

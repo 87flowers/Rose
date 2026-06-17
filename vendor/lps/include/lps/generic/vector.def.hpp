@@ -32,6 +32,7 @@ namespace lps::generic {
     static constexpr vector splat(T value);
     static constexpr vector splat(half_vector value);
     static vector load(const void* src);
+    void store(void* dst);
 
     constexpr T read(usize i) const;
 

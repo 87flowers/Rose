@@ -61,6 +61,11 @@ namespace lps::sse4_2 {
   }
 
   template<class T, usize N, class Env>
+  void vector<T, N, Env>::store(void* dst) {
+    _mm_storeu_si128(reinterpret_cast<__m128i*>(dst), raw);
+  }
+
+  template<class T, usize N, class Env>
   constexpr T vector<T, N, Env>::read(usize i) const {
     T value;
     std::memcpy(&value, reinterpret_cast<const char*>(&raw) + i * sizeof(T), sizeof(T));

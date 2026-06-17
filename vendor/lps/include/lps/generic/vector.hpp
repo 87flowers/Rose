@@ -40,6 +40,11 @@ namespace lps::generic {
   }
 
   template<class T, usize N>
+  void vector<T, N>::store(void* dst) {
+    std::memcpy(dst, raw.data(), sizeof(raw));
+  }
+
+  template<class T, usize N>
   constexpr T vector<T, N>::read(usize i) const {
     return raw[i];
   }

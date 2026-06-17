@@ -82,6 +82,15 @@ namespace lps::avx2 {
   }
 
   template<class T, usize N, class Env>
+  LPS_INLINE void vector<T, N, Env>::store(void* dst) const {
+    if constexpr (is_128_bit) {
+      _mm_storeu_si128(reinterpret_cast<__m128i*>(dst), raw);
+    } else {
+      _mm256_storeu_si256(reinterpret_cast<__m256i*>(dst), raw);
+    }
+  }
+
+  template<class T, usize N, class Env>
   LPS_INLINE constexpr T vector<T, N, Env>::read(usize i) const {
     T value;
     std::memcpy(&value, reinterpret_cast<const char*>(&raw) + i * sizeof(T), sizeof(T));
