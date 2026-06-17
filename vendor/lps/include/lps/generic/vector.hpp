@@ -76,7 +76,7 @@ namespace lps::generic {
   constexpr vector<T, N> vector<T, N>::swizzle(const vector<T, N>& src) const {
     vector<T, N> result;
     for (usize i = 0; i < N; i++) {
-      result.raw[i] = raw[i] < N ? src.raw[raw[i]] : 0;
+      result.raw[i] = src.raw[raw[i] % N];
     }
     return result;
   }
