@@ -85,10 +85,27 @@ namespace lps::avx512 {
   }
 
   template<class T, usize N, class Env>
-  vector<T, N, Env> vector<T, N, Env>::load(const void* src) {
-    vector v;
-    std::memcpy(&v.raw, src, sizeof(v.raw));
-    return v;
+  LPS_INLINE vector<T, N, Env> vector<T, N, Env>::load(const void* src) {
+    vector result;
+    if constexpr (is_128_bit) {
+      result.raw = _mm_loadu_si128(reinterpret_cast<__m128i const*>(src));
+    } else if constexpr (is_256_bit) {
+      result.raw = _mm256_loadu_si256(reinterpret_cast<__m256i const*>(src));
+    } else {
+      result.raw = _mm512_loadu_si512(reinterpret_cast<__m512i const*>(src));
+    }
+    return result;
+  }
+
+  template<class T, usize N, class Env>
+  LPS_INLINE void vector<T, N, Env>::store(void* dst) const {
+    if constexpr (is_128_bit) {
+      _mm_storeu_si128(reinterpret_cast<__m128i*>(dst), raw);
+    } else if constexpr (is_256_bit) {
+      _mm256_storeu_si256(reinterpret_cast<__m256i*>(dst), raw);
+    } else {
+      _mm512_storeu_si512(reinterpret_cast<__m512i*>(dst), raw);
+    }
   }
 
   template<class T, usize N, class Env>

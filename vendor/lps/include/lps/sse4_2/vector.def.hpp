@@ -31,6 +31,7 @@ namespace lps::sse4_2 {
     static constexpr vector zero();
     static constexpr vector splat(T value);
     static vector load(const void* src);
+    void store(void* dst);
 
     constexpr T read(usize i) const;
 

@@ -35,6 +35,7 @@ namespace lps::avx512 {
     static constexpr vector zero();
     static constexpr vector splat(T value);
     static vector load(const void* src);
+    void store(void* dst) const;
 
     constexpr T read(usize i) const;
 
