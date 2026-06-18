@@ -66,9 +66,7 @@ namespace rose {
 
   template<eval::concepts::State Evaluation>
   auto Search<Evaluation>::reset() -> void {
-    m_sd.quiet_history.reset();
-    m_sd.noisy_history.reset();
-    m_sd.continuation_history.reset();
+    m_sd.reset();
   }
 
   template<eval::concepts::State Evaluation>
@@ -169,9 +167,26 @@ namespace rose {
   }
 
   template<eval::concepts::State Evaluation>
+  auto Search<Evaluation>::emergency_move(Line& pv) -> Score {
+    // If we didn't complete depth 1 we have to scrounge up a move.
+
+    // Try the TT first
+    const auto tte = tt_load(m_root, 0);
+    if (m_root.is_legal(tte.move)) {
+      pv.write(tte.move);
+      return tte.score;
+    }
+
+    // Otherwise, rely on our move ordering to pick a move.
+    MovePicker moves {m_sd, m_root, &m_search_stack[search_stack_offset], Move::none()};
+    pv.write(moves.next());
+    return 0;
+  }
+
+  template<eval::concepts::State Evaluation>
   template<typename Controls>
   auto Search<Evaluation>::search_root(const Controls& ctrl) -> void {
-    Line last_pv;
+    Line last_pv {};
     Score last_score = score::none;
     i32 last_depth = -1;
 
@@ -204,6 +219,7 @@ namespace rose {
       while (true) {
         m_search_stack = {};
         pv.clear();
+        m_nmr_ply = std::nullopt;
 
         const i32 aspiration_depth = std::max(1, depth - aspiration_reduction);
         SearchStack* ss = &m_search_stack[search_stack_offset];
@@ -242,6 +258,11 @@ namespace rose {
     m_shared.stop();
 
     if (is_main_thread()) {
+      if (last_pv.pv.empty()) {
+        last_score = emergency_move(last_pv);
+        last_depth = 0;
+      }
+
       print_info();
       m_shared.output->bestmove(last_pv.pv.empty() ? Move::none() : last_pv.pv[0]);
     }

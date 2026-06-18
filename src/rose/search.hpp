@@ -100,6 +100,12 @@ namespace rose {
     QuietHistory quiet_history;
     NoisyHistory noisy_history;
     ContinuationHistory continuation_history;
+
+    auto reset() -> void {
+      quiet_history.reset();
+      noisy_history.reset();
+      continuation_history.reset();
+    }
   };
 
   struct SearchBase {
@@ -155,6 +161,8 @@ namespace rose {
     }
 
     auto thread_main() -> void;
+
+    auto emergency_move(Line& pv) -> Score;
 
     template<typename Controls>
     auto search_root(const Controls& ctrl) -> void;
