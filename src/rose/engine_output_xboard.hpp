@@ -25,12 +25,13 @@ namespace rose {
 
     auto info(EngineOutput::Info args) -> void override {
       const auto time_cs = time::cast<time::Centiseconds>(args.time);
-      fmt::print("{}\t{}\t{}\t{}\t{}\n",
+      fmt::print("{} {} {} {}\t{}\n",
                  args.depth,
                  args.score,
                  time_cs.count(),  // centiseconds
                  args.nodes,
                  args.pv.to_string(format));
+      std::fflush(stdout);
     }
 
     auto bestmove(Move m) -> void override {

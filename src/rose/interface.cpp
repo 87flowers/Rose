@@ -495,20 +495,20 @@ namespace rose {
 
   auto Interface::xboard_time(Tokenizer& it) -> void {
     const std::string_view value = it.next();
-    const auto time = parse_f64(value);
+    const auto time = parse_u32(value);
     if (!time)
       return print_protocol_error("time", "invalid value: {}", value);
 
-    m_xboard.clocks[m_game.position().stm().invert().to_index()] = time::cast<time::Duration>(time::FloatSeconds {*time});
+    m_xboard.clocks[m_game.position().stm().invert().to_index()] = time::cast<time::Duration>(time::Centiseconds {*time});
   }
 
   auto Interface::xboard_otim(Tokenizer& it) -> void {
     const std::string_view value = it.next();
-    const auto time = parse_f64(value);
+    const auto time = parse_u32(value);
     if (!time)
       return print_protocol_error("otim", "invalid value: {}", value);
 
-    m_xboard.clocks[m_game.position().stm().to_index()] = time::cast<time::Duration>(time::FloatSeconds {*time});
+    m_xboard.clocks[m_game.position().stm().to_index()] = time::cast<time::Duration>(time::Centiseconds {*time});
   }
 
   auto Interface::xboard_usermove(std::string_view move_str, time::TimePoint start_time) -> void {
