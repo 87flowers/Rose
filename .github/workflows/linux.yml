@@ -22,17 +22,10 @@ jobs:
     - name: Build AVX512
       run: make ARCH=icelake-client ARCH_TUNE=znver4 EXE=rose-linux-avx512
 
-    - name: Upload AVX512
-      uses: actions/upload-artifact@v4
-      with:
-        path: rose-linux-avx512
-        archive: false
-
     - name: Build AVX2
       run: make ARCH=x86-64-v3 EXE=rose-linux-avx2
 
-    - name: Upload AVX512
+    - name: Upload AVX2
       uses: actions/upload-artifact@v4
       with:
-        path: rose-linux-avx2
-        archive: false
+        path: rose-linux-*
