@@ -10,7 +10,8 @@ namespace rose::eval::nnue {
   x(jasper128, Jasper<128>)        \
   x(jasper256, Jasper<256>)        \
   x(kyanite256, Kyanite<256>)      \
-  x(kyanite512, Kyanite<512>)
+  x(kyanite512, Kyanite<512>)      \
+  x(kyanite512, Kyanite<768>)
   // clang-format on
 
 }  // namespace rose::eval::nnue
