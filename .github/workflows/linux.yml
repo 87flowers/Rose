@@ -20,12 +20,12 @@ jobs:
         sudo apt-get install -y git clang make curl
 
     - name: Build AVX512
-      run: make ARCH=icelake-client ARCH_TUNE=znver4 EXE=rose-linux-avx512
+      run: make ARCH=icelake-client ARCH_TUNE=znver4 EXE=rose-$(cat src/rose_version.txt)-linux-avx512
 
     - name: Build AVX2
-      run: make ARCH=x86-64-v3 EXE=rose-linux-avx2
+      run: make ARCH=x86-64-v3 EXE=rose-$(cat src/rose_version.txt)-linux-avx2
 
-    - name: Upload AVX2
+    - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        path: rose-linux-*
+        path: rose-*

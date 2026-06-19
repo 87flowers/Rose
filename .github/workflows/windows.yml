@@ -23,13 +23,13 @@ jobs:
 
     - name: Build AVX512
       shell: msys2 {0}
-      run: make ARCH=icelake-client ARCH_TUNE=znver4 EXE=rose-windows-avx512.exe
+      run: make ARCH=icelake-client ARCH_TUNE=znver4 EXE=rose-$(cat src/rose_version.txt)-windows-avx512.exe
 
     - name: Build AVX2
       shell: msys2 {0}
-      run: make ARCH=x86-64-v3 EXE=rose-windows-avx2.exe
+      run: make ARCH=x86-64-v3 EXE=rose-$(cat src/rose_version.txt)-windows-avx2.exe
 
-    - name: Upload AVX512
+    - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        path: rose-windows-*.exe
+        path: rose-*.exe
