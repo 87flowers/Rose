@@ -1,0 +1,31 @@
+name: Linux
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-26.04
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install build environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git clang make curl
+
+    - name: Build AVX512
+      run: make ARCH=icelake-client ARCH_TUNE=znver4 EXE=rose-$(cat src/rose_version.txt)-linux-avx512
+
+    - name: Build AVX2
+      run: make ARCH=x86-64-v3 EXE=rose-$(cat src/rose_version.txt)-linux-avx2
+
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        path: rose-*

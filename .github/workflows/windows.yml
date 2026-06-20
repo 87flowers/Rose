@@ -21,6 +21,15 @@ jobs:
         update: true
         install: make mingw-w64-ucrt-x86_64-clang mingw-w64-ucrt-x86_64-git mingw-w64-ucrt-x86_64-lld mingw-w64-ucrt-x86_64-llvm
 
-    - name: Build
+    - name: Build AVX512
       shell: msys2 {0}
-      run: make CC=clang
+      run: make ARCH=icelake-client ARCH_TUNE=znver4 EXE=rose-$(cat src/rose_version.txt)-windows-avx512.exe
+
+    - name: Build AVX2
+      shell: msys2 {0}
+      run: make ARCH=x86-64-v3 EXE=rose-$(cat src/rose_version.txt)-windows-avx2.exe
+
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        path: rose-*.exe

@@ -21,6 +21,10 @@ CXXFLAGS := -std=c++26 -march=$(ARCH)
 RELFLAGS := -DNDEBUG -O3 -DROSE_NO_ASSERTS -flto=thin
 DEBFLAGS := -DNDEBUG -O2 -g
 
+ifdef ARCH_TUNE
+  CXXFLAGS += -mtune=$(ARCH_TUNE)
+endif
+
 ifeq ($(OS),Windows_NT)
   LDFLAGS := -fuse-ld=lld
 else
