@@ -460,6 +460,10 @@ namespace rose {
           extension = -1;
         }
       }
+      // Low Depth Singular Extensions
+      else if (depth <= 6 && !is_in_check && expected == NodeType::cut && tte.bound.is_pv_or_cut() && tte.score >= std::max(beta, static_eval) + 64) {
+        extension = 1;
+      }
 
       searched_moves++;
 
