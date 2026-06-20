@@ -10,7 +10,7 @@ namespace rose::version {
   extern const std::string_view git_commit_desc;
 
   inline auto to_string() -> std::string {
-    return fmt::format("{}", rose::version::version_string);
+    return fmt::format("{}-dev-{}", version_string, git_commit_desc.empty() ? "nohash" : git_commit_desc);
   }
 
 }  // namespace rose::version
