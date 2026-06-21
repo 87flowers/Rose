@@ -3,6 +3,7 @@
 #include "rose/common.hpp"
 #include "rose/engine_output.hpp"
 #include "rose/move.hpp"
+#include "rose/score.hpp"
 
 #include <cstdio>
 #include <fmt/format.h>
@@ -27,7 +28,7 @@ namespace rose {
       const auto time_cs = time::cast<time::Centiseconds>(args.time);
       fmt::print("{} {} {} {}\t{}\n",
                  args.depth,
-                 args.score,
+                 score::xboard_format(args.score),
                  time_cs.count(),  // centiseconds
                  args.nodes,
                  args.pv.to_string(format));

@@ -4,7 +4,8 @@
 #include "rose/util/assert.hpp"
 
 #include <algorithm>
-#include <limits>
+#include <fmt/format.h>
+#include <string>
 
 namespace rose {
   using Score = i32;
@@ -66,6 +67,26 @@ namespace rose::score {
       return score::mating(score::plys_to_mate(score) + adjustment);
     } else {
       return score;
+    }
+  }
+
+  inline auto uci_format(Score score) -> std::string {
+    if (is_loss(score)) {
+      return fmt::format("mate {}", -plys_to_mate(score) / 2);
+    } else if (is_win(score)) {
+      return fmt::format("mate {}", (plys_to_mate(score) + 1) / 2);
+    } else {
+      return fmt::format("cp {}", score);
+    }
+  }
+
+  inline auto xboard_format(Score score) -> std::string {
+    if (is_loss(score)) {
+      return fmt::format("{}", -100000 - plys_to_mate(score) / 2);
+    } else if (is_win(score)) {
+      return fmt::format("{}", 100000 + (plys_to_mate(score) + 1) / 2);
+    } else {
+      return fmt::format("{}", score);
     }
   }
 }  // namespace rose::score
