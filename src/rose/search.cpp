@@ -227,7 +227,7 @@ namespace rose {
 
         if (score <= alpha) {
           aspiration_reduction = 0;
-          beta = (alpha * 5 + beta * 11) / 16;
+          beta = (alpha + beta) / 2;
           alpha = std::max(score - delta, -score::infinity);
         } else if (score >= beta) {
           aspiration_reduction = std::min(aspiration_reduction + 1, 3);
