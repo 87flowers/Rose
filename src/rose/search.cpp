@@ -308,6 +308,8 @@ namespace rose {
     const Color stm = position.stm();
     const Bitboard enemy_threatened = position.attack_table(!stm).bitboard_any();
 
+    ss->enemy_threatened = enemy_threatened;
+
     const tt::LookupResult tte = tt_load(position, ply);
 
     // Transposition Table Cutoffs
@@ -585,6 +587,16 @@ namespace rose {
             if (ss[-i].conthist)
               ss[-i].conthist->update(stm, position.place_at(quiet.from()).ptype(), quiet, -cont_malus);
         }
+      }
+    }
+
+    // Prior Counter-Move Bonus
+    if (actual_node_type == NodeType::all && expected.is_pv_or_cut() && ss[-1].move.is_some()) {
+      const Move prior_move = ss[-1].move;
+      if (!prior_move.is_noisy()) {
+        const i32 quiet_bonus = std::min(150 * depth - 75, 1536);
+        const i32 cont_bonus = std::min(150 * depth - 75, 1536);
+        m_sd.quiet_history.update(!stm, ss[-1].enemy_threatened, prior_move, quiet_bonus);
       }
     }
 

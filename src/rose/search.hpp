@@ -94,6 +94,7 @@ namespace rose {
     Move excluded = Move::none();
     Score static_eval = score::none;
     ContinuationHistorySubtable* conthist = nullptr;
+    Bitboard enemy_threatened {};
   };
 
   struct SearchData {
