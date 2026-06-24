@@ -420,6 +420,11 @@ namespace rose {
           continue;
         }
 
+        // Bad Noisy Futility Pruning
+        if (mv.is_noisy() && moves.is_in_bad_noisy_stage() && depth <= 5 && std::abs(alpha) < 2000 && static_eval + 256 + depth * 100 <= alpha) {
+          break;
+        }
+
         // Quiet SEE Pruning
         if (!mv.is_noisy() && depth <= 11 && !see::see(position, mv, 32 - 48 * depth - 32 * history / 1024)) {
           continue;
