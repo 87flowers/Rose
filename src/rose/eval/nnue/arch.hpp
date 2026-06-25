@@ -1,7 +1,6 @@
 #pragma once
 
-#include "rose/eval/nnue/jasper.hpp"
-#include "rose/eval/nnue/kyanite.hpp"
+#include "rose/eval/nnue/all.hpp"
 
 namespace rose::eval::nnue {
 
@@ -11,7 +10,8 @@ namespace rose::eval::nnue {
   x(jasper256, Jasper<256>)        \
   x(kyanite256, Kyanite<256>)      \
   x(kyanite512, Kyanite<512>)      \
-  x(kyanite768, Kyanite<768>)
+  x(kyanite768, Kyanite<768>)      \
+  x(kyanite768, Yukari<512>)
   // clang-format on
 
 }  // namespace rose::eval::nnue

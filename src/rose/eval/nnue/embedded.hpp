@@ -1,10 +1,10 @@
 #pragma once
 
-#include "rose/eval/nnue/kyanite.hpp"
+#include "rose/eval/nnue/yukari.hpp"
 
 namespace rose::eval::nnue {
 
-  using EmbeddedArch = Kyanite<768>;
+  using EmbeddedArch = Yukari<512>;
   using EmbeddedNetwork = EmbeddedArch::Network;
 
   alignas(EmbeddedNetwork) extern const char g_embedded_network_raw[];
