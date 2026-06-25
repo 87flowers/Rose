@@ -74,4 +74,10 @@ namespace rose {
     m_shared->stop();
   }
 
+  auto Engine::evaluate(const Position& pos) -> Score {
+    eval::nnue::EmbeddedArch::State state {eval::nnue::embedded_network()};
+    state.reset(pos);
+    return state.evaluate(pos);
+  }
+
 }  // namespace rose

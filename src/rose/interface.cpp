@@ -108,6 +108,8 @@ namespace rose {
       uci_moves(it);
     } else if (cmd == "d") {
       cmd_d(it);
+    } else if (cmd == "eval") {
+      fmt::print("score cp {}\n", m_engine.evaluate(m_game.position()));
     } else if (cmd == "getposition") {
       m_game.print_game_record();
     } else if (cmd == "dumpposition") {

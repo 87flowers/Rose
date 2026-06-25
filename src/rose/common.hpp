@@ -59,6 +59,17 @@ namespace rose {
     too_many_pieces,
   };
 
+  enum class Direction {
+    n = 0,
+    ne = 1,
+    e = 2,
+    se = 3,
+    s = 4,
+    sw = 5,
+    w = 6,
+    nw = 7
+  };
+
   struct Color {
     inline static constexpr usize count = 2;
 
