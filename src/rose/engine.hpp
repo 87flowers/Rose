@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rose/common.hpp"
+#include "rose/score.hpp"
 #include "rose/util/time.hpp"
 
 #include <memory>
@@ -10,6 +11,7 @@ namespace rose {
 
   struct EngineOutput;
   struct Game;
+  struct Position;
   struct SearchBase;
   struct SearchLimit;
   struct SearchShared;
@@ -35,6 +37,8 @@ namespace rose {
 
     auto wait() -> void;
     auto stop() -> void;
+
+    auto evaluate(const Position& pos) -> Score;
   };
 
 }  // namespace rose

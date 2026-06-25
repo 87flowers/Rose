@@ -58,6 +58,28 @@ namespace rose {
       return (raw >> sq.raw) & 1;
     }
 
+    constexpr auto shift(Direction dir) const -> Bitboard {
+      switch (dir) {
+      case Direction::n:
+        return Bitboard {raw << 8};
+      case Direction::s:
+        return Bitboard {raw >> 8};
+      case Direction::e:
+        return Bitboard {(raw & ~file_mask(7).raw) << 1};
+      case Direction::w:
+        return Bitboard {(raw & ~file_mask(0).raw) >> 1};
+      case Direction::ne:
+        return Bitboard {(raw & ~file_mask(7).raw) << 9};
+      case Direction::nw:
+        return Bitboard {(raw & ~file_mask(0).raw) << 7};
+      case Direction::se:
+        return Bitboard {(raw & ~file_mask(7).raw) >> 7};
+      case Direction::sw:
+        return Bitboard {(raw & ~file_mask(0).raw) >> 9};
+      }
+      rose_assert(false);
+    }
+
     friend constexpr auto operator~(Bitboard a) -> Bitboard {
       return Bitboard {~a.raw};
     }
