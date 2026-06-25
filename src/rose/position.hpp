@@ -141,16 +141,19 @@ namespace rose {
     mutable Bitboard m_cached_pinned {};
     mutable bool m_valid_pin_info = false;
 
-    auto add_attacks(Color color, Square sq, PieceId id, PieceType ptype) -> void;
-    auto remove_attacks(Color color, PieceId id) -> void;
-    auto toggle_sliders_single(Square sq) -> void;
+    template<eval::concepts::Observer Observer>
+    auto add_attacks(Observer observer, Color color, Square sq, PieceId id, PieceType ptype) -> void;
+    template<eval::concepts::Observer Observer>
+    auto remove_attacks(Observer observer, Color color, Square sq, PieceId id, PieceType ptype) -> void;
+    template<bool piece_removed, eval::concepts::Observer Observer>
+    auto toggle_sliders_single(Observer observer, Square sq) -> void;
 
-    template<bool update_sliders>
-    auto add_piece(Color color, Square sq, PieceId id, PieceType ptype) -> void;
-    template<bool update_sliders>
-    auto remove_piece(Color color, Square sq, PieceId id) -> void;
-    template<bool is_capture>
-    auto move_piece(Color color, Square src, Square dst, PieceId id, PieceType src_ptype, PieceType dst_ptype) -> void;
+    template<bool update_sliders, eval::concepts::Observer Observer>
+    auto add_piece(Observer observer, Color color, Square sq, PieceId id, PieceType ptype) -> void;
+    template<bool update_sliders, eval::concepts::Observer Observer>
+    auto remove_piece(Observer observer, Color color, Square sq, PieceId id, PieceType ptype) -> void;
+    template<bool is_capture, eval::concepts::Observer Observer>
+    auto move_piece(Observer observer, Color color, Square src, Square dst, PieceId id, PieceType src_ptype, PieceType dst_ptype) -> void;
 
   public:
     static auto startpos() -> Position;
@@ -228,6 +231,10 @@ namespace rose {
     template<PieceType ptype>
     auto bitboard_for(Color color) const -> Bitboard {
       return board().bitboard_for<ptype>(color);
+    }
+
+    auto piece_count() const -> usize {
+      return board().occupied_bitboard().popcount();
     }
 
     auto is_valid() const -> bool {

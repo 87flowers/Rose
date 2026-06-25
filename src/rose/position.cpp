@@ -74,24 +74,29 @@ namespace rose {
 #endif
   }
 
-  auto Position::add_attacks(Color color, Square sq, PieceId id, PieceType ptype) -> void {
+  template<eval::concepts::Observer Observer>
+  auto Position::add_attacks(Observer observer, Color color, Square sq, PieceId id, PieceType ptype) -> void {
     const auto [ray_coords, ray_valid] = geometry::superpiece_rays(sq);
     const u8x64 ray_places = ray_coords.swizzle(m_board.to_vector());
     const u8x64 iperm = geometry::superpiece_inverse_rays(sq);
-
     const m8x64 raymask = geometry::superpiece_attacks(ray_places, ray_valid);
-
     const m8x64 attacker_mask = raymask & geometry::attack_mask(color, ptype);
-    const m8x64 add_mask = iperm.swizzle(attacker_mask).andnot(iperm.msb());
 
+    observer.on_add_focus_threats(*this, ptype, sq, attacker_mask.to_bits(), ray_coords, ray_places);
+
+    const m8x64 add_mask = iperm.swizzle(attacker_mask).andnot(iperm.msb());
     m_attack_table[color.to_index()].raw |= expand_mask(add_mask).mask(u16x64::splat(id.to_piece_mask().raw));
   }
 
-  auto Position::remove_attacks(Color color, PieceId id) -> void {
+  template<eval::concepts::Observer Observer>
+  auto Position::remove_attacks(Observer observer, Color color, Square sq, PieceId id, PieceType ptype) -> void {
+    observer.on_remove_focus_threats(*this, ptype, sq);
+
     m_attack_table[color.to_index()].raw &= u16x64::splat(~id.to_piece_mask().raw);
   }
 
-  auto Position::toggle_sliders_single(Square sq) -> void {
+  template<bool piece_removed, eval::concepts::Observer Observer>
+  auto Position::toggle_sliders_single(Observer observer, Square sq) -> void {
     const auto [ray_coords, ray_valid] = geometry::superpiece_rays(sq);
     const u8x64 ray_places = ray_coords.swizzle(m_board.to_vector());
     const u8x64 iperm = geometry::superpiece_inverse_rays_flipped(sq);
@@ -99,6 +104,12 @@ namespace rose {
     const m8x64 sliders = geometry::sliders_from_rays(ray_places);
     const m8x64 raymask = geometry::superpiece_attacks(ray_places, ray_valid);
     const m8x64 visible_sliders = raymask & sliders;
+
+    if constexpr (piece_removed) {
+      observer.on_add_discovered_threats(*this, sliders, raymask, ray_coords, ray_places);
+    } else {
+      observer.on_remove_discovered_threats(*this, sliders, raymask, ray_coords, ray_places);
+    }
 
     u8x64 slider_ids = geometry::slider_broadcast(visible_sliders.mask(ray_places));
     slider_ids = geometry::flip_mask(raymask).mask(slider_ids);
@@ -112,11 +123,11 @@ namespace rose {
     m_attack_table[1].raw ^= color.mask(bits);
   }
 
-  template<bool update_sliders>
-  auto Position::add_piece(Color color, Square sq, PieceId id, PieceType ptype) -> void {
+  template<bool update_sliders, eval::concepts::Observer Observer>
+  auto Position::add_piece(Observer observer, Color color, Square sq, PieceId id, PieceType ptype) -> void {
     if constexpr (update_sliders)
-      toggle_sliders_single(sq);
-    add_attacks(color, sq, id, ptype);
+      toggle_sliders_single<false>(observer, sq);
+    add_attacks(observer, color, sq, id, ptype);
 
     m_piece_list_sq[color.to_index()][id] = sq;
     m_piece_list_ptype[color.to_index()][id] = ptype;
@@ -126,11 +137,11 @@ namespace rose {
     std::memcpy(m_board.mailbox.data(), &board, sizeof(board));
   }
 
-  template<bool update_sliders>
-  auto Position::remove_piece(Color color, Square sq, PieceId id) -> void {
+  template<bool update_sliders, eval::concepts::Observer Observer>
+  auto Position::remove_piece(Observer observer, Color color, Square sq, PieceId id, PieceType ptype) -> void {
     if constexpr (update_sliders)
-      toggle_sliders_single(sq);
-    remove_attacks(color, id);
+      toggle_sliders_single<true>(observer, sq);
+    remove_attacks(observer, color, sq, id, ptype);
 
     m_piece_list_sq[color.to_index()][id] = Square::invalid();
     m_piece_list_ptype[color.to_index()][id] = PieceType::none;
@@ -141,8 +152,9 @@ namespace rose {
     }
   }
 
-  template<bool is_capture>
-  auto Position::move_piece(Color color, Square src_sq, Square dst_sq, PieceId id, PieceType src_ptype, PieceType dst_ptype) -> void {
+  template<bool is_capture, eval::concepts::Observer Observer>
+  auto Position::move_piece(Observer observer, Color color, Square src_sq, Square dst_sq, PieceId id, PieceType src_ptype, PieceType dst_ptype)
+    -> void {
     const auto [src_ray_coords, src_ray_valid] = geometry::superpiece_rays(src_sq);
     const auto [dst_ray_coords, dst_ray_valid] = geometry::superpiece_rays(dst_sq);
 
@@ -446,7 +458,7 @@ namespace rose {
     };
 
     const auto normal = [&] {
-      new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      new_pos.move_piece<false>(observer, m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
       observer.on_move(*this, m_stm, src_place.ptype(), from, to);
       new_pos.m_hash ^= hash::move_piece(from, to, src_place);
       if (src_place.ptype() != PieceType::p) {
@@ -458,9 +470,9 @@ namespace rose {
     };
 
     const auto cap_normal = [&] {
-      new_pos.remove_piece<false>(!m_stm, to, dest_id);
+      new_pos.remove_piece<false>(observer, !m_stm, to, dest_id, dest_place.ptype());
       observer.on_remove(*this, !m_stm, dest_place.ptype(), to);
-      new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      new_pos.move_piece<true>(observer, m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
       observer.on_move(*this, m_stm, src_place.ptype(), from, to);
       new_pos.m_hash ^= hash::remove_piece(to, dest_place);
       new_pos.m_hash ^= hash::move_piece(from, to, src_place);
@@ -470,16 +482,16 @@ namespace rose {
     };
 
     const auto promo = [&](auto ptype) {
-      new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
+      new_pos.move_piece<false>(observer, m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
       observer.on_promote(*this, m_stm, decltype(ptype)::value, from, to);
       new_pos.m_hash ^= hash::promo(from, to, m_stm, decltype(ptype)::value);
       new_pos.m_50mr = 0;
     };
 
     const auto cap_promo = [&](auto ptype) {
-      new_pos.remove_piece<false>(!m_stm, to, dest_id);
+      new_pos.remove_piece<false>(observer, !m_stm, to, dest_id, dest_place.ptype());
       observer.on_remove(*this, !m_stm, dest_place.ptype(), to);
-      new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
+      new_pos.move_piece<true>(observer, m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
       observer.on_promote(*this, m_stm, decltype(ptype)::value, from, to);
       new_pos.m_hash ^= hash::remove_piece(to, dest_place);
       new_pos.m_hash ^= hash::promo(from, to, m_stm, decltype(ptype)::value);
@@ -488,7 +500,7 @@ namespace rose {
     };
 
     const auto double_push = [&] {
-      new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      new_pos.move_piece<false>(observer, m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
       observer.on_move(*this, m_stm, src_place.ptype(), from, to);
       new_pos.m_hash ^= hash::move_piece(from, to, src_place);
       new_pos.m_50mr = 0;
@@ -500,9 +512,9 @@ namespace rose {
       const Square victim = Square::from_file_and_rank(to.file(), from.rank());
       const PieceId victim_id = m_board[victim].id();
 
-      new_pos.remove_piece<true>(!m_stm, victim, victim_id);
+      new_pos.remove_piece<true>(observer, !m_stm, victim, victim_id, PieceType::p);
       observer.on_remove(*this, !m_stm, PieceType::p, victim);
-      new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
+      new_pos.move_piece<false>(observer, m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
       observer.on_move(*this, m_stm, src_place.ptype(), from, to);
       new_pos.m_hash ^= hash::remove_piece(victim, !m_stm, PieceType::p);
       new_pos.m_hash ^= hash::move_piece(from, to, src_place);
@@ -520,13 +532,13 @@ namespace rose {
       const PieceId king_id = m_board[king_src].id();
       const PieceId rook_id = m_board[rook_src].id();
 
-      new_pos.remove_piece<true>(m_stm, king_src, king_id);
+      new_pos.remove_piece<true>(observer, m_stm, king_src, king_id, PieceType::k);
       observer.on_remove(*this, m_stm, PieceType::k, king_src);
-      new_pos.remove_piece<true>(m_stm, rook_src, rook_id);
+      new_pos.remove_piece<true>(observer, m_stm, rook_src, rook_id, PieceType::r);
       observer.on_remove(*this, m_stm, PieceType::r, rook_src);
-      new_pos.add_piece<true>(m_stm, king_dest, king_id, PieceType::k);
+      new_pos.add_piece<true>(observer, m_stm, king_dest, king_id, PieceType::k);
       observer.on_add(*this, m_stm, PieceType::k, king_dest);
-      new_pos.add_piece<true>(m_stm, rook_dest, rook_id, PieceType::r);
+      new_pos.add_piece<true>(observer, m_stm, rook_dest, rook_id, PieceType::r);
       observer.on_add(*this, m_stm, PieceType::r, rook_dest);
 
       new_pos.m_hash ^= hash::move_piece(king_src, king_dest, m_stm, PieceType::k);
