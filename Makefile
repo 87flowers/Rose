@@ -19,7 +19,7 @@ CPPFLAGS += -DFMT_HEADER_ONLY -Ivendor/fmt/include
 CPPFLAGS += -Ivendor/lps/include
 CXXFLAGS := -std=c++26 -march=$(ARCH)
 RELFLAGS := -DNDEBUG -O3 -DROSE_NO_ASSERTS -flto=thin
-DEBFLAGS := -DNDEBUG -O2 -g
+DEBFLAGS := -DNDEBUG -O0 -g
 
 ifdef ARCH_TUNE
   CXXFLAGS += -mtune=$(ARCH_TUNE)

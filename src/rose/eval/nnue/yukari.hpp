@@ -394,9 +394,7 @@ namespace rose::eval::nnue {
       }
 
       auto on_finalize(const Position& pos) -> void {
-        if (refresh) {
-          m_accum = rebuild_accumulator(pos, m_net);
-        }
+        m_accum = rebuild_accumulator(pos, m_net);
       }
     };
 
