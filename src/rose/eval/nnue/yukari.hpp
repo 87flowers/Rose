@@ -136,8 +136,8 @@ namespace rose::eval::nnue {
       if (src.ptype() == PieceType::k || dst.ptype() == PieceType::k)
         return std::nullopt;
 
-      usize from_index = from.to_index();
-      usize to_index = to.to_index();
+      i64 from_index = from.to_index();
+      i64 to_index = to.to_index();
       if (perspective == Color::black) {
         from_index ^= 0b111000;
         to_index ^= 0b111000;
@@ -154,11 +154,11 @@ namespace rose::eval::nnue {
         if (map < 0)
           return std::nullopt;
 
-        const bool up = to > from;
-        const u32 diff = std::abs(to.raw - from.raw);
+        const bool up = to_index > from_index;
+        const u32 diff = std::abs(to_index - from_index);
         const bool id = diff != std::array<u32, 2> {9, 7}[up];
-        const usize attack = 2 * (from.raw % 8) + id - 1;
-        return pawn_offset + map * pawn_index + (from.raw / 8 - 1) * 14 + attack;
+        const usize attack = 2 * (from_index % 8) + id - 1;
+        return pawn_offset + map * pawn_index + (from_index / 8 - 1) * 14 + attack + !friendly * max_offset;
       };
 
       const auto piece_threat = [&](const std::array<usize, 65>& indexes,
@@ -169,8 +169,8 @@ namespace rose::eval::nnue {
         if (map < 0)
           return std::nullopt;
 
-        const u32 below = (attacks[from.to_index()] & to.to_bitboard()).popcount();
-        return offset + map * indexes[64] + indexes[from.to_index()] + below;
+        const u32 below = std::popcount(attacks[from_index].raw & ((u64 {1} << to_index) - 1));
+        return offset + map * indexes[64] + indexes[from_index] + below + !friendly * max_offset;
       };
 
       switch (src.ptype().raw) {
@@ -302,11 +302,11 @@ namespace rose::eval::nnue {
             const Square from = pos.where_is(c, src);
             if (const auto feature0 = threat_feature_index(pos, Color::white, from, to)) {
               threat_add(net, result.values[0], *feature0);
-              fmt::print("white: {} {} {} {} {}\n", pos.place_at(from), from, pos.place_at(to), to, *feature0);
+              // fmt::print("white: {} {} {} {} {}\n", pos.place_at(from), from, pos.place_at(to), to, *feature0);
             }
             if (const auto feature1 = threat_feature_index(pos, Color::black, from, to)) {
               threat_add(net, result.values[1], *feature1);
-              fmt::print("black: {} {} {} {} {}\n", pos.place_at(from), from, pos.place_at(to), to, *feature1);
+              // fmt::print("black: {} {} {} {} {}\n", pos.place_at(from), from, pos.place_at(to), to, *feature1);
             }
           }
         }
