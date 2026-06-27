@@ -13,6 +13,13 @@ although UCI is the preferred protocol.
 
 The Rose project prides itself in only using original self-generated training data for its neural networks.
 
+## Releases
+
+For official releases, please visit: https://github.com/87flowers/Rose/releases
+
+We recommend using the AVX512 build for your operating system if you have a CPU that supports it, as this would be the fastest.
+You can get a speed comparison by running `bench` on each downloaded executable.
+
 ## Building Rose
 
 Building requires Make and a C++26 compiler. Clang is the recommended compiler, and GCC support is not guaranteed.
