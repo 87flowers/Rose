@@ -309,6 +309,7 @@ namespace rose {
     const Bitboard enemy_threatened = position.attack_table(!stm).bitboard_any();
 
     const tt::LookupResult tte = tt_load(position, ply);
+    Move hint_move = tte.move;
 
     // Transposition Table Cutoffs
     if (expected != NodeType::pv && !excluded && tte.is_some() && tte.depth >= depth && [&] {
@@ -373,7 +374,15 @@ namespace rose {
       }
     }
 
-    MovePicker moves {m_sd, position, ss, tte.move};
+    // Internal iterative deepening
+    if (expected == NodeType::pv && depth >= 8 && tte.is_none() && !excluded) {
+      const i32 iid_depth = (depth * 3 - 7) / 4;
+
+      search<NodeType::cut>(ctrl, position, pv, alpha, alpha + 1, ss, ply, iid_depth);
+      hint_move = tt_load(position, ply).move;
+    }
+
+    MovePicker moves {m_sd, position, ss, hint_move};
 
     MoveList fail_low_quiets;
     MoveList fail_low_noisies;
