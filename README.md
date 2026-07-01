@@ -66,3 +66,7 @@ Rose is regularly tested to build with the `mingw-w64-ucrt-x86_64-clang`, `mingw
              <a href="https://github.com/official-clockwork/Clockwork">Clockwork</a>, and many others.
 * <a href="https://github.com/jw1912">jw1912</a> for <a href="https://github.com/jw1912/bullet">bullet</a>, used to train the NNUE networks.
 * The excellent <a href="https://github.com/fmtlib/fmt">{fmt}</a> library, used in this project.
+
+## License
+
+This project is licensed under the GNU Affero General Public License version 3. See the LICENSE file for more information.
