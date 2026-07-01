@@ -353,7 +353,6 @@ namespace rose {
         const i32 reduction = 4 + depth / 3;
 
         const Position null_position = make_null_move(ss, position);
-        ss[1].static_eval = score::none;
         const Score null_score = -search<NodeType::all>(ctrl, null_position, pv, -beta, -beta + 1, ss + 1, ply + 1, depth - reduction);
         unmake_move(ss);
 
@@ -465,7 +464,6 @@ namespace rose {
       searched_moves++;
 
       const Position child_position = make_move(ss, position, mv);
-      ss[1].static_eval = score::none;
       rose_defer {
         unmake_move(ss);
       };
@@ -684,7 +682,6 @@ namespace rose {
       }
 
       const Position child_position = make_move(ss, position, mv);
-      ss[1].static_eval = score::none;
       rose_defer {
         unmake_move(ss);
       };
@@ -738,6 +735,7 @@ namespace rose {
     m_hash_stack.push_back(child_position.hash());
     ss->move = mv;
     ss->conthist = m_sd.continuation_history.get_subtable(!child_position.stm(), child_position.place_at(mv.to()).ptype(), mv);
+    ss[1].static_eval = score::none;
     return child_position;
   }
 
@@ -748,6 +746,7 @@ namespace rose {
     m_hash_stack.push_back(child_position.hash());
     ss->move = Move::none();
     ss->conthist = nullptr;
+    ss[1].static_eval = score::none;
     return child_position;
   }
 
@@ -757,6 +756,7 @@ namespace rose {
     m_hash_stack.pop_back();
     ss->move = Move::none();
     ss->conthist = nullptr;
+    ss[1].static_eval = score::none;
   }
 
 #define rose_search_template(e, T) template struct Search<eval::nnue::T::State>;
