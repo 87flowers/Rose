@@ -378,7 +378,7 @@ namespace rose {
     if (expected == NodeType::pv && depth >= 8 && tte.is_none() && !excluded) {
       const i32 iid_depth = depth - 3;
 
-      search<NodeType::pv>(ctrl, position, pv, alpha, alpha + 1, ss, ply, iid_depth);
+      search<NodeType::pv>(ctrl, position, pv, alpha, beta, ss, ply, iid_depth);
       hint_move = tt_load(position, ply).move;
     }
 
