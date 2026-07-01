@@ -309,6 +309,7 @@ namespace rose {
     const Bitboard enemy_threatened = position.attack_table(!stm).bitboard_any();
 
     const tt::LookupResult tte = tt_load(position, ply);
+    Move hint_move = tte.move;
 
     // Transposition Table Cutoffs
     if (expected != NodeType::pv && !excluded && tte.is_some() && tte.depth >= depth && [&] {
@@ -372,9 +373,15 @@ namespace rose {
           }
         }
       }
+
+      // Internal Iterative Deepening
+      if (depth >= 8 && hint_move.is_none()) {
+        search<expected>(ctrl, position, pv, alpha, beta, ss, ply, (depth * 3 - 7) / 4);
+        hint_move = tt_load(position, ply).move;
+      }
     }
 
-    MovePicker moves {m_sd, position, ss, tte.move};
+    MovePicker moves {m_sd, position, ss, hint_move};
 
     MoveList fail_low_quiets;
     MoveList fail_low_noisies;
