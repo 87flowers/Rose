@@ -375,7 +375,7 @@ namespace rose {
       }
 
       // Internal Iterative Deepening
-      if (depth >= 8 && hint_move.is_none()) {
+      if (depth >= 8 && hint_move.is_none() && expected == NodeType::cut) {
         search<expected>(ctrl, position, pv, alpha, beta, ss, ply, (depth * 3 - 7) / 4);
         hint_move = tt_load(position, ply).move;
       }
