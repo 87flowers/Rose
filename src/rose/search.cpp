@@ -220,6 +220,7 @@ namespace rose {
         m_search_stack = {};
         pv.clear();
         m_nmr_ply = std::nullopt;
+        m_in_iid = false;
 
         const i32 aspiration_depth = std::max(1, depth - aspiration_reduction);
         SearchStack* ss = &m_search_stack[search_stack_offset];
@@ -378,8 +379,15 @@ namespace rose {
     if (!is_root && expected == NodeType::pv && depth >= 8 && hint_move.is_none() && !excluded) {
       const i32 iid_depth = (768 * depth - 1536) / 1024;
 
+      const bool prev_in_iid = m_in_iid;
+      m_in_iid = true;
       search<NodeType::pv>(ctrl, position, pv, alpha, beta, ss, ply, iid_depth);
-      hint_move = tt_load(position, ply).move;
+      m_in_iid = prev_in_iid;
+
+      const auto iid_tte = tt_load(position, ply);
+      hint_move = iid_tte.move;
+      if (m_in_iid && iid_tte.depth >= depth)
+        return iid_tte.score;
     }
 
     MovePicker moves {m_sd, position, ss, hint_move};
