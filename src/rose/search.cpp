@@ -220,6 +220,7 @@ namespace rose {
         m_search_stack = {};
         pv.clear();
         m_nmr_ply = std::nullopt;
+        m_in_iid = false;
 
         const i32 aspiration_depth = std::max(1, depth - aspiration_reduction);
         SearchStack* ss = &m_search_stack[search_stack_offset];
@@ -309,6 +310,7 @@ namespace rose {
     const Bitboard enemy_threatened = position.attack_table(!stm).bitboard_any();
 
     const tt::LookupResult tte = tt_load(position, ply);
+    Move hint_move = tte.move;
 
     // Transposition Table Cutoffs
     if (expected != NodeType::pv && !excluded && tte.is_some() && tte.depth >= depth && [&] {
@@ -373,7 +375,22 @@ namespace rose {
       }
     }
 
-    MovePicker moves {m_sd, position, ss, tte.move};
+    // Internal iterative deepening
+    if (!is_root && expected == NodeType::pv && depth >= 8 && hint_move.is_none() && !excluded) {
+      const i32 iid_depth = (768 * depth - 1536) / 1024;
+
+      const bool prev_in_iid = m_in_iid;
+      m_in_iid = true;
+      search<NodeType::pv>(ctrl, position, pv, alpha, beta, ss, ply, iid_depth);
+      m_in_iid = prev_in_iid;
+
+      const auto iid_tte = tt_load(position, ply);
+      hint_move = iid_tte.move;
+      if (m_in_iid && iid_tte.depth >= depth)
+        return iid_tte.score;
+    }
+
+    MovePicker moves {m_sd, position, ss, hint_move};
 
     MoveList fail_low_quiets;
     MoveList fail_low_noisies;
