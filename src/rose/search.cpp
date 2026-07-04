@@ -459,10 +459,11 @@ namespace rose {
 
         // Multicut
         if (singular_score >= singular_beta && singular_beta >= beta) {
-          return singular_beta;
+          if (expected != NodeType::pv)
+            return singular_beta;
         }
-
-        if (singular_score < singular_beta) {
+        // Extensions
+        else if (singular_score < singular_beta) {
           // Single extension
           extension = 1;
           // Double extension
