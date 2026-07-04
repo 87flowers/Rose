@@ -461,7 +461,7 @@ namespace rose {
         if (singular_score >= singular_beta && singular_beta >= beta) {
           if (expected != NodeType::pv)
             return singular_beta;
-          depth -= depth / 4;
+          depth = depth / 2;
         }
         // Extensions
         else if (singular_score < singular_beta) {
