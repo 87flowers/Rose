@@ -290,7 +290,7 @@ namespace rose {
         return *score;
 
       if (position.is_repetition(m_hash_stack, m_hash_waterline))
-        return 0;
+        return draw_score();
     }
 
     if (ply >= max_depth)

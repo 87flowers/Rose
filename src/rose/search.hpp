@@ -161,6 +161,10 @@ namespace rose {
       return m_shared.stats[m_id];
     }
 
+    auto draw_score() -> Score {
+      return (stats().nodes.load(std::memory_order_relaxed) % 5) - 2;
+    }
+
     auto thread_main() -> void;
 
     auto emergency_move(Line& pv) -> Score;
