@@ -352,7 +352,7 @@ namespace rose {
 
       // Null move reductions
       if (depth >= 4 && m_nmr_ply != ply && ss[-1].move.is_some() && static_eval >= beta) {
-        const i32 reduction = 4 + depth / 3;
+        const i32 reduction = 4 + depth / 3 + improving;
 
         const Position null_position = make_null_move(ss, position);
         const Score null_score = -search<expected.next()>(ctrl, null_position, pv, -beta, -beta + 1, ss + 1, ply + 1, depth - reduction);
