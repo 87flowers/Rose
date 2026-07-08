@@ -355,7 +355,7 @@ namespace rose {
         const i32 reduction = 4 + depth / 3;
 
         const Position null_position = make_null_move(ss, position);
-        const Score null_score = -search<NodeType::all>(ctrl, null_position, pv, -beta, -beta + 1, ss + 1, ply + 1, depth - reduction);
+        const Score null_score = -search<expected.next()>(ctrl, null_position, pv, -beta, -beta + 1, ss + 1, ply + 1, depth - reduction);
         unmake_move(ss);
 
         if (m_shared.stopping)
