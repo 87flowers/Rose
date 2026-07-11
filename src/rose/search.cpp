@@ -354,14 +354,17 @@ namespace rose {
       if (depth >= 4 && m_nmr_ply != ply && ss[-1].move.is_some() && static_eval >= beta) {
         const i32 reduction = 4 + depth / 3;
 
+        const Score bound =
+          !m_nmr_ply.has_value() && tte.is_some() && beta > tte.score && tte.bound == NodeType::all && depth - 2 <= tte.depth ? tte.score : beta;
+
         const Position null_position = make_null_move(ss, position);
-        const Score null_score = -search<expected.next()>(ctrl, null_position, pv, -beta, -beta + 1, ss + 1, ply + 1, depth - reduction);
+        const Score null_score = -search<expected.next()>(ctrl, null_position, pv, -bound, -bound + 1, ss + 1, ply + 1, depth - reduction);
         unmake_move(ss);
 
         if (m_shared.stopping)
           return 0;
 
-        if (null_score >= beta) {
+        if (null_score >= bound) {
           if (m_nmr_ply.has_value()) {
             return null_score;
           } else {
