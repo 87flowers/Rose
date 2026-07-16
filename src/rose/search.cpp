@@ -364,6 +364,8 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
+    ss[2].fail_high_count = 0;
+
     if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Hindsight extension
       if (depth <= 20 && ss[-1].reduction >= 4 && ss[-1].static_eval != score::none && static_eval <= -ss[-1].static_eval) {
@@ -431,6 +433,8 @@ namespace rose {
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
     u32 searched_moves = 0;
+
+    ss[2].fail_high_count = 0;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (mv == ss->excluded)
@@ -537,6 +541,7 @@ namespace rose {
         reduction -= 132_z * history / 1024;
         reduction += 937_z * (expected == NodeType::cut);
         reduction -= 844_z * child_position.is_in_check();
+        reduction += 1024_z * (ss[1].fail_high_count > 3);
 
         const i32 lmr_depth = std::min(std::max(new_depth - reduction / 1024, 0), new_depth) + (expected == NodeType::pv);
 
@@ -588,6 +593,7 @@ namespace rose {
 
           if (score >= beta) {
             actual_node_type = NodeType::cut;
+            ss->fail_high_count++;
             break;
           }
         }
