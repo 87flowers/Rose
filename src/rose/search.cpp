@@ -336,7 +336,7 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
-    ss[2].fail_high_count = 0;
+    ss[1].fail_high_count = 0;
 
     if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Reverse Futility Pruning
@@ -402,7 +402,7 @@ namespace rose {
     NodeType actual_node_type = NodeType::all;
     u32 searched_moves = 0;
 
-    ss[2].fail_high_count = 0;
+    ss[1].fail_high_count = 0;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (mv == ss->excluded)
