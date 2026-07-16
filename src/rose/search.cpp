@@ -504,7 +504,7 @@ namespace rose {
           reduction = 2176 + 256 * log2_depth * log2_searched_moves;
         }
         reduction -= 1024 * (expected == NodeType::pv);
-        reduction -= 512 * ttpv;
+        reduction += 512 * !ttpv;
         reduction -= 128 * history / 1024;
         reduction += 1024 * (expected == NodeType::cut);
         reduction -= 768 * child_position.is_in_check();
