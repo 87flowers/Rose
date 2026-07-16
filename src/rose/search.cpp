@@ -344,11 +344,11 @@ namespace rose {
               case NodeType::none:
                 return false;
               case NodeType::cut:
-                return tte.score >= beta;
+                return tte.score >= static_eval;
               case NodeType::pv:
                 return true;
               case NodeType::all:
-                return tte.score <= alpha;
+                return tte.score <= static_eval;
               }
             }()) {
           return tte.score;
