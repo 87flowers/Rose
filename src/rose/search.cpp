@@ -336,6 +336,8 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
+    ss[2].fail_high_count = 0;
+
     if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Reverse Futility Pruning
       if (depth <= 15 && static_eval - 64 * depth - 4 * depth * depth >= beta) {
@@ -399,6 +401,8 @@ namespace rose {
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
     u32 searched_moves = 0;
+
+    ss[2].fail_high_count = 0;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (mv == ss->excluded)
@@ -505,6 +509,7 @@ namespace rose {
         reduction -= 128 * history / 1024;
         reduction += 1024 * (expected == NodeType::cut);
         reduction -= 768 * child_position.is_in_check();
+        reduction += 1024 * (ss[1].fail_high_count > 3);
 
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
 
@@ -554,6 +559,7 @@ namespace rose {
 
           if (score >= beta) {
             actual_node_type = NodeType::cut;
+            ss->fail_high_count++;
             break;
           }
         }
