@@ -275,9 +275,17 @@ namespace rose {
   auto
     Search<Evaluation>::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply, i32 depth)
       -> Score {
+    // Contracts
+    if constexpr (is_root) {
+      static_assert(expected == NodeType::pv);
+      rose_assert(ply == 0);
+    }
+
+    // QS Dive
     if (depth <= 0)
       return qsearch<expected>(ctrl, position, pv, alpha, beta, ss, ply);
 
+    // Time Management
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
     if (!is_root && is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
       m_shared.stop();
@@ -335,6 +343,11 @@ namespace rose {
                            ss[-2].static_eval != score::none ? static_eval > ss[-2].static_eval :
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
+
+    // Hindsight extension
+    if (!is_root && !excluded && !is_in_check && ss[-1].static_eval != score::none && ss[-1].reduction >= 4096) {
+      depth += static_eval < -ss[-1].static_eval;
+    }
 
     if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Reverse Futility Pruning
@@ -508,7 +521,9 @@ namespace rose {
 
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth);
 
+        ss->reduction = reduction;
         score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, lmr_depth);
+        ss->reduction = 0;
 
         if (score > alpha && lmr_depth < new_depth) {
           i32 research_depth = new_depth;
@@ -621,6 +636,7 @@ namespace rose {
   template<NodeType leaf_expected, typename Controls>
   auto Search<Evaluation>::qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply)
     -> Score {
+    // Time Management
     stats().nodes.fetch_add(1, std::memory_order_relaxed);
     if (is_main_thread() && ctrl.check_hard_termination(stats())) [[unlikely]] {
       m_shared.stop();
