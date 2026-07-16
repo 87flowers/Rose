@@ -337,9 +337,28 @@ namespace rose {
                                                                false;
 
     if (expected != NodeType::pv && !is_in_check && !excluded) {
-      // Reverse Futility Pruning
-      if (depth <= 15 && static_eval - 64 * depth - 4 * depth * depth >= beta) {
+      // Transposition Table Cutoffs
+      const Score estimated_score = [&] {
+        if (tte.is_some() && !score::is_theoretical(tte.score) && [&] {
+              switch (tte.bound.raw) {
+              case NodeType::none:
+                return false;
+              case NodeType::cut:
+                return tte.score >= beta;
+              case NodeType::pv:
+                return true;
+              case NodeType::all:
+                return tte.score <= alpha;
+              }
+            }()) {
+          return tte.score;
+        }
         return static_eval;
+      }();
+
+      // Reverse Futility Pruning
+      if (depth <= 15 && estimated_score - 64 * depth - 4 * depth * depth >= beta) {
+        return estimated_score;
       }
 
       // Razoring
