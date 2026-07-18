@@ -16,7 +16,7 @@ namespace rose::controls {
       return time::Clock::now() - start_time;
     }
 
-    constexpr auto check_soft_termination(const SearchStats& stats, int current_depth) const -> bool {
+    constexpr auto check_soft_termination(const SearchStats& stats, int current_depth, f32 time_multiplier) const -> bool {
       return false;
     }
 
@@ -38,8 +38,8 @@ namespace rose::controls {
       return time::Clock::now() - start_time;
     }
 
-    auto check_soft_termination(const SearchStats& stats, int current_depth) const -> bool {
-      return soft_time <= elapsed();
+    auto check_soft_termination(const SearchStats& stats, int current_depth, f32 time_multiplier) const -> bool {
+      return soft_time * time_multiplier <= elapsed();
     }
 
     auto check_hard_termination(const SearchStats& stats) const -> bool {
@@ -60,7 +60,7 @@ namespace rose::controls {
       return time::Clock::now() - start_time;
     }
 
-    auto check_soft_termination(const SearchStats& stats, int current_depth) const -> bool {
+    auto check_soft_termination(const SearchStats& stats, int current_depth, f32 time_multiplier) const -> bool {
       return soft_nodes <= stats.nodes.load(std::memory_order::relaxed);
     }
 
@@ -85,8 +85,8 @@ namespace rose::controls {
       return time::Clock::now() - start_time;
     }
 
-    auto check_soft_termination(const SearchStats& stats, int current_depth) const -> bool {
-      if (soft_time && *soft_time <= elapsed())
+    auto check_soft_termination(const SearchStats& stats, int current_depth, f32 time_multiplier) const -> bool {
+      if (soft_time && *soft_time * time_multiplier <= elapsed())
         return true;
       if (soft_nodes && *soft_nodes <= stats.nodes.load(std::memory_order::relaxed))
         return true;

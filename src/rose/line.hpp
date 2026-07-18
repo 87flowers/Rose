@@ -26,6 +26,10 @@ namespace rose {
       pv.append(std::move(child.pv));
     }
 
+    auto first_move() const -> Move {
+      return pv.empty() ? Move::none() : pv.front();
+    }
+
     auto to_string(MoveFormat format) const -> std::string {
       std::string output;
       auto iter = pv.begin();
