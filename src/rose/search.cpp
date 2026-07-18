@@ -203,6 +203,7 @@ namespace rose {
     m_evaluation.reset(m_root);
 
     i32 pv_stability = 0;
+    i32 score_stability = 0;
 
     for (i32 depth = 1; depth < max_depth; depth++) {
       Line pv {};
@@ -254,12 +255,18 @@ namespace rose {
         pv_stability = 0;
       }
 
+      if (std::abs(last_score - score) < 25) {
+        score_stability++;
+      } else {
+        score_stability = 0;
+      }
+
       last_score = score;
       last_pv = pv;
       last_depth = depth;
 
       if (is_main_thread()) {
-        const f32 time_multiplier = std::clamp(1.0 - pv_stability * 0.05, 0.7, 1.0);
+        const f32 time_multiplier = std::clamp(1.0 - pv_stability * 0.05, 0.7, 1.0) * std::clamp(1.0 - score_stability * 0.05, 0.7, 1.0);
 
         if (ctrl.check_soft_termination(stats(), depth, time_multiplier))
           break;
