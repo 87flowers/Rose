@@ -82,6 +82,10 @@ namespace rose {
       return (raw ^ 0x3000) >= 0x7000;
     }
 
+    constexpr auto is_quiet() const -> bool {
+      return is_some() && !is_noisy();
+    }
+
     constexpr auto is_castle() const -> bool {
       return flags() == MoveFlags::castle_aside || flags() == MoveFlags::castle_hside;
     }

@@ -133,6 +133,10 @@ namespace rose {
       return raw == none;
     }
 
+    constexpr auto is_some() const -> bool {
+      return raw != none;
+    }
+
     constexpr auto to_index() const -> usize {
       return std::to_underlying(raw);
     }

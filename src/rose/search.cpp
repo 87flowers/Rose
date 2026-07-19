@@ -342,6 +342,16 @@ namespace rose {
             return tte.score <= alpha;
           }
         }()) {
+      if (tte.score >= beta && tte.move.is_quiet() && position.ptype_at(tte.move.from()).is_some()) {
+        const i32 quiet_bonus = std::min(150 * depth - 75, 1536);
+        const i32 cont_bonus = std::min(150 * depth - 75, 1536);
+
+        m_sd.quiet_history.update(stm, enemy_threatened, tte.move, quiet_bonus);
+        for (i32 i : conthists_indexes)
+          if (ss[-i].conthist)
+            ss[-i].conthist->update(stm, position.ptype_at(tte.move.from()), tte.move, cont_bonus);
+      }
+
       return tte.score;
     }
 
@@ -542,7 +552,7 @@ namespace rose {
 
             for (i32 i : conthists_indexes)
               if (ss[-i].conthist)
-                ss[-i].conthist->update(stm, position.place_at(mv.from()).ptype(), mv, score <= alpha ? -cont_malus : cont_bonus);
+                ss[-i].conthist->update(stm, position.ptype_at(mv.from()), mv, score <= alpha ? -cont_malus : cont_bonus);
           }
         }
       }
@@ -610,12 +620,12 @@ namespace rose {
         m_sd.quiet_history.update(stm, enemy_threatened, best_move, quiet_bonus);
         for (i32 i : conthists_indexes)
           if (ss[-i].conthist)
-            ss[-i].conthist->update(stm, position.place_at(best_move.from()).ptype(), best_move, cont_bonus);
+            ss[-i].conthist->update(stm, position.ptype_at(best_move.from()), best_move, cont_bonus);
         for (const Move quiet : fail_low_quiets) {
           m_sd.quiet_history.update(stm, enemy_threatened, quiet, -quiet_malus);
           for (i32 i : conthists_indexes)
             if (ss[-i].conthist)
-              ss[-i].conthist->update(stm, position.place_at(quiet.from()).ptype(), quiet, -cont_malus);
+              ss[-i].conthist->update(stm, position.ptype_at(quiet.from()), quiet, -cont_malus);
         }
       }
     }
