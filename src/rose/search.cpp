@@ -630,9 +630,6 @@ namespace rose {
         const i32 cont_bonus = 768 * std::min(150 * depth - 75, 1536) / 1024;
 
         m_sd.quiet_history.update(!stm, ss[-1].enemy_threatened, prev_move, quiet_bonus);
-        for (i32 i : conthists_indexes)
-          if (ss[-i - 1].conthist)
-            ss[-i - 1].conthist->update(!stm, ss[-1].move_ptype, prev_move, cont_bonus);
       }
     }
 
