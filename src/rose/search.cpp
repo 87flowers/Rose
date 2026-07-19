@@ -344,12 +344,7 @@ namespace rose {
         }()) {
       if (tte.score >= beta && tte.move.is_quiet() && position.ptype_at(tte.move.from()).is_some()) {
         const i32 quiet_bonus = std::min(120 * depth - 50, 736);
-        const i32 cont_bonus = std::min(120 * depth - 50, 736);
-
         m_sd.quiet_history.update(stm, enemy_threatened, tte.move, quiet_bonus);
-        for (i32 i : conthists_indexes)
-          if (ss[-i].conthist)
-            ss[-i].conthist->update(stm, position.ptype_at(tte.move.from()), tte.move, cont_bonus);
       }
 
       return tte.score;
