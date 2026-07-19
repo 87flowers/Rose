@@ -623,13 +623,10 @@ namespace rose {
       }
     }
 
-    if (!is_root && actual_node_type == NodeType::all && expected != NodeType::all) {
-      const Move prev_move = ss[-1].move;
-      if (!prev_move.is_noisy()) {
+    if (!is_root && actual_node_type == NodeType::all && searched_moves > 0 && ss[-1].move.is_some() && depth >= 3) {
+      if (!ss[-1].move.is_noisy()) {
         const i32 quiet_bonus = 768 * std::min(150 * depth - 75, 1536) / 1024;
-        const i32 cont_bonus = 768 * std::min(150 * depth - 75, 1536) / 1024;
-
-        m_sd.quiet_history.update(!stm, ss[-1].enemy_threatened, prev_move, quiet_bonus);
+        m_sd.quiet_history.update(!stm, ss[-1].enemy_threatened, ss[-1].move, quiet_bonus);
       }
     }
 
