@@ -326,6 +326,8 @@ namespace rose {
     const Color stm = position.stm();
     const Bitboard enemy_threatened = position.attack_table(!stm).bitboard_any();
 
+    ss->enemy_threatened = enemy_threatened;
+
     const tt::LookupResult tte = tt_load(position, ply);
     Move hint_move = tte.move;
 
@@ -620,6 +622,13 @@ namespace rose {
       }
     }
 
+    if (!is_root && actual_node_type == NodeType::all && searched_moves > 0 && ss[-1].move.is_some() && depth >= 3) {
+      if (!ss[-1].move.is_noisy()) {
+        const i32 quiet_bonus = 768 * std::min(150 * depth - 75, 1536) / 1024;
+        m_sd.quiet_history.update(!stm, ss[-1].enemy_threatened, ss[-1].move, quiet_bonus);
+      }
+    }
+
     if (!excluded) {
       tt_store(position,
                ply,
@@ -768,6 +777,7 @@ namespace rose {
     const Position child_position = position.move(mv, m_evaluation.observer());
     m_hash_stack.push_back(child_position.hash());
     ss->move = mv;
+    ss->move_ptype = position.ptype_at(mv.from());
     ss->conthist = m_sd.continuation_history.get_subtable(!child_position.stm(), child_position.place_at(mv.to()).ptype(), mv);
     ss[1].static_eval = score::none;
     return child_position;
@@ -779,6 +789,7 @@ namespace rose {
     const Position child_position = position.null_move();
     m_hash_stack.push_back(child_position.hash());
     ss->move = Move::none();
+    ss->move_ptype = PieceType::none;
     ss->conthist = nullptr;
     ss[1].static_eval = score::none;
     return child_position;
@@ -789,6 +800,7 @@ namespace rose {
     m_evaluation.pop();
     m_hash_stack.pop_back();
     ss->move = Move::none();
+    ss->move_ptype = PieceType::none;
     ss->conthist = nullptr;
     ss[1].static_eval = score::none;
   }
