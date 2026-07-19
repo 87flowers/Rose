@@ -92,8 +92,10 @@ namespace rose {
   struct SearchStack {
     Move move = Move::none();
     Move excluded = Move::none();
+    PieceType move_ptype = PieceType::none;
     Score static_eval = score::none;
     ContinuationHistorySubtable* conthist = nullptr;
+    Bitboard enemy_threatened {};
   };
 
   struct SearchData {
