@@ -353,7 +353,7 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
-    if (expected != NodeType::pv && !is_in_check && !excluded) {
+    if (expected != NodeType::pv && !is_in_check && !excluded && !m_in_iid) {
       // Reverse Futility Pruning
       if (depth <= 15 && static_eval - 64 * depth - 4 * depth * depth >= beta) {
         return static_eval;
