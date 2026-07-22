@@ -34,6 +34,10 @@ namespace rose {
       return raw == pv || raw == cut;
     }
 
+    constexpr auto is_pv_or_all() const -> bool {
+      return raw == pv || raw == all;
+    }
+
     constexpr auto narrow() const -> NodeType {
       rose_assert(raw != none);
       switch (raw) {

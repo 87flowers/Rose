@@ -522,7 +522,7 @@ namespace rose {
         reduction -= 128 * history / 1024;
         reduction += 1024 * (expected == NodeType::cut);
         reduction -= 768 * child_position.is_in_check();
-        reduction += 512 * (tte.is_some() && tte.score <= alpha);
+        reduction += 512 * (tte.is_some() && tte.score <= alpha && tte.bound.is_pv_or_all());
 
         const i32 lmr_depth = std::clamp(new_depth - reduction / 1024, 0, new_depth) + (expected == NodeType::pv);
 
