@@ -486,6 +486,8 @@ namespace rose {
           extension += expected != NodeType::pv && singular_score <= singular_beta - 20;
           // Triple extension
           extension += expected != NodeType::pv && singular_score <= singular_beta - 120;
+          // Quadruple extension
+          extension += expected != NodeType::pv && tte.move.is_quiet() && singular_score <= singular_beta - 420;
         }
         // Negative extension
         else if (expected == NodeType::cut) {
