@@ -353,6 +353,24 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
+    const Score score_estimate = [&] {
+      if (tte.is_some() && [&] {
+            switch (tte.bound.raw) {
+            case NodeType::none:
+              return false;
+            case NodeType::cut:
+              return tte.score >= static_eval;
+            case NodeType::pv:
+              return true;
+            case NodeType::all:
+              return tte.score <= static_eval;
+            }
+          }()) {
+        return tte.score;
+      }
+      return static_eval;
+    }();
+
     if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Reverse Futility Pruning
       if (depth <= 15 && static_eval - 64 * depth - 4 * depth * depth >= beta) {
@@ -368,7 +386,7 @@ namespace rose {
       }
 
       // Null move reductions
-      if (depth >= 4 && m_nmr_ply != ply && ss[-1].move.is_some() && static_eval >= beta) {
+      if (depth >= 4 && m_nmr_ply != ply && ss[-1].move.is_some() && score_estimate >= beta) {
         const i32 reduction = 4 + depth / 3;
 
         const Position null_position = make_null_move(ss, position);
