@@ -437,7 +437,7 @@ namespace rose {
 
       if (!score::is_loss(best_score) && !is_in_check && !is_root) {
         // Late Move Pruning
-        if (!mv.is_noisy() && searched_moves >= (4 + depth * depth) / (2 - improving) + history / 10454) {
+        if (!mv.is_noisy() && searched_moves >= (4 + depth * depth) / (2 - improving) + history / 20480) {
           moves.skip_quiet();
           continue;
         }
