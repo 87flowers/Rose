@@ -696,7 +696,8 @@ namespace rose {
     alpha = std::max(alpha, best_score);
 
     MovePicker moves {m_sd, position, ss, Move::none()};
-    moves.skip_quiet();
+    if (!is_in_check)
+      moves.skip_quiet();
 
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
@@ -742,6 +743,10 @@ namespace rose {
           }
         }
       }
+
+      // Limit evasions
+      if (is_in_check && !score::is_loss(best_score))
+        moves.skip_quiet();
     }
 
     return best_score;
