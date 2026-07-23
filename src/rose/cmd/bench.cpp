@@ -1,3 +1,4 @@
+#include "rose/dbg.hpp"
 #include "rose/engine.hpp"
 #include "rose/engine_output.hpp"
 #include "rose/search.hpp"
@@ -72,6 +73,8 @@ namespace rose::bench {
 
     engine.wait();
 
+    dbg::clear();
+
     const time::TimePoint start_time = time::Clock::now();
     const SearchLimit limit {
       .has_other = true,
@@ -100,6 +103,9 @@ namespace rose::bench {
     }
 
     const time::FloatSeconds elapsed = time::Clock::now() - start_time;
+
+    dbg::print();
+
     fmt::print("Bench: {} nodes {} nps\n", nodes_total, time::nps<u64>(nodes_total, elapsed));
     std::fflush(stdout);
   }
