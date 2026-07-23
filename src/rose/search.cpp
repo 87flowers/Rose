@@ -552,7 +552,8 @@ namespace rose {
       }
       // PVS Full Window Search
       if (expected == NodeType::pv && (searched_moves == 1 || score > alpha)) {
-        score = -search<NodeType::pv>(ctrl, child_position, child_pv, -beta, -alpha, ss + 1, ply + 1, new_depth);
+        const i32 min_depth = (mv == tte.move && tte.depth > 1) ? 1 : 0;
+        score = -search<NodeType::pv>(ctrl, child_position, child_pv, -beta, -alpha, ss + 1, ply + 1, std::max(min_depth, new_depth));
       }
 
       if (m_shared.stopping)
