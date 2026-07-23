@@ -1,6 +1,7 @@
 #include "rose/search.hpp"
 
 #include "rose/common.hpp"
+#include "rose/dbg.hpp"
 #include "rose/engine_output.hpp"
 #include "rose/eval/nnue/arch.hpp"
 #include "rose/game.hpp"
@@ -436,7 +437,7 @@ namespace rose {
 
       if (!score::is_loss(best_score) && !is_in_check && !is_root) {
         // Late Move Pruning
-        if (!mv.is_noisy() && searched_moves >= (4 + depth * depth) / (2 - improving)) {
+        if (!mv.is_noisy() && searched_moves >= (4 + depth * depth) / (2 - improving) + history / 10454) {
           moves.skip_quiet();
           continue;
         }
