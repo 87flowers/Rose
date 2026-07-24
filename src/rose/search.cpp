@@ -301,6 +301,8 @@ namespace rose {
       return 0;
     }
 
+    ss->best_move = Move::none();
+
     // Repetition Detection
     if (!is_root) {
       if (const auto score = position.is_fifty_move_draw(ply))
@@ -413,9 +415,10 @@ namespace rose {
     MoveList fail_low_noisies;
 
     Score best_score = score::none;
-    Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
     u32 searched_moves = 0;
+
+    ss->best_move = Move::none();
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (mv == ss->excluded)
@@ -487,12 +490,19 @@ namespace rose {
           // Triple extension
           extension += expected != NodeType::pv && singular_score <= singular_beta - 120;
         }
+        // Alternative move
+        else if (singular_score > tte.score && ss->best_move.is_some()) {
+          extension = -3;
+          depth -= 1;
+        }
         // Negative extension
         else if (expected == NodeType::cut) {
           extension = -2;
         } else if (tte.score <= alpha) {
           extension = -1;
         }
+
+        ss->best_move = Move::none();
       }
 
       searched_moves++;
@@ -564,7 +574,7 @@ namespace rose {
         if (score > alpha) {
           actual_node_type = NodeType::pv;
           alpha = score;
-          best_move = mv;
+          ss->best_move = mv;
 
           if constexpr (expected == NodeType::pv)
             pv.write(mv, std::move(child_pv));
@@ -576,7 +586,7 @@ namespace rose {
         }
       }
 
-      if (mv != best_move) {
+      if (mv != ss->best_move) {
         if (mv.is_noisy()) {
           fail_low_noisies.push_back(mv);
         } else {
@@ -591,7 +601,7 @@ namespace rose {
       return position.is_in_check() ? score::mated(ply) : 0;
     }
 
-    if (best_move.is_some()) {
+    if (ss->best_move.is_some()) {
       const i32 noisy_bonus = std::min(150 * depth - 75, 1536);
       const i32 noisy_malus = std::min(75 * depth - 30, 1024);
 
@@ -601,16 +611,16 @@ namespace rose {
       const i32 cont_bonus = std::min(150 * depth - 75, 1536);
       const i32 cont_malus = std::min(75 * depth - 30, 1024);
 
-      if (best_move.is_noisy()) {
-        m_sd.noisy_history.update(stm, position.ptype_at(best_move.from()), best_move, noisy_bonus);
+      if (ss->best_move.is_noisy()) {
+        m_sd.noisy_history.update(stm, position.ptype_at(ss->best_move.from()), ss->best_move, noisy_bonus);
         for (const Move noisy : fail_low_noisies) {
           m_sd.noisy_history.update(stm, position.ptype_at(noisy.from()), noisy, -noisy_malus);
         }
       } else {
-        m_sd.quiet_history.update(stm, enemy_threatened, best_move, quiet_bonus);
+        m_sd.quiet_history.update(stm, enemy_threatened, ss->best_move, quiet_bonus);
         for (i32 i : conthists_indexes)
           if (ss[-i].conthist)
-            ss[-i].conthist->update(stm, position.place_at(best_move.from()).ptype(), best_move, cont_bonus);
+            ss[-i].conthist->update(stm, position.place_at(ss->best_move.from()).ptype(), ss->best_move, cont_bonus);
         for (const Move quiet : fail_low_quiets) {
           m_sd.quiet_history.update(stm, enemy_threatened, quiet, -quiet_malus);
           for (i32 i : conthists_indexes)
@@ -627,7 +637,7 @@ namespace rose {
                  .depth = depth,
                  .bound = actual_node_type,
                  .score = best_score,
-                 .move = best_move,
+                 .move = ss->best_move,
                });
     }
 
@@ -643,6 +653,8 @@ namespace rose {
       m_shared.stop();
       return 0;
     }
+
+    ss->best_move = Move::none();
 
     // Repetition Detection
     {
@@ -699,8 +711,9 @@ namespace rose {
     if (!is_in_check)
       moves.skip_quiet();
 
-    Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
+
+    ss->best_move = Move::none();
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (!score::is_loss(best_score) && !is_in_check) {
@@ -733,7 +746,7 @@ namespace rose {
         if (score > alpha) {
           actual_node_type = NodeType::pv;
           alpha = score;
-          best_move = mv;
+          ss->best_move = mv;
           if constexpr (leaf_expected == NodeType::pv)
             pv.write(mv, std::move(child_pv));
 
