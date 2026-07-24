@@ -51,6 +51,10 @@ namespace rose {
       }
     }
 
+    auto unset_tt_move() -> void {
+      m_tt_move = Move::none();
+    }
+
   private:
     auto generate_noisy() -> void;
     auto generate_quiet() -> void;

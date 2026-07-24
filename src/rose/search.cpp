@@ -417,6 +417,7 @@ namespace rose {
     Score best_score = score::none;
     NodeType actual_node_type = NodeType::all;
     u32 searched_moves = 0;
+    bool disable_singular_extensions = false;
 
     ss->best_move = Move::none();
 
@@ -469,7 +470,8 @@ namespace rose {
 
       i32 extension = 0;
       // Singular Extensions
-      if (!is_root && depth >= 7 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
+      if (!is_root && depth >= 7 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut() &&
+          !disable_singular_extensions) {
         const Score singular_beta = std::max(score::min_score, tte.score - 2 * depth);
         const i32 singular_depth = depth / 2;
 
@@ -492,8 +494,10 @@ namespace rose {
         }
         // Alternative move
         else if (singular_score > tte.score && ss->best_move.is_some()) {
-          extension = -3;
-          depth -= 1;
+          moves.unset_tt_move();
+          ss->best_move = Move::none();
+          disable_singular_extensions = true;
+          continue;
         }
         // Negative extension
         else if (expected == NodeType::cut) {
