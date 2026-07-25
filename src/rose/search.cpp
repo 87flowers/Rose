@@ -485,7 +485,7 @@ namespace rose {
           // Double extension
           extension += singular_score <= singular_beta - 20 - 400 * (expected == NodeType::pv);
           // Triple extension
-          extension += singular_score <= singular_beta - 120 - 550 * (expected == NodeType::pv);
+          extension += singular_score <= singular_beta - 120 - 800 * (expected == NodeType::pv);
         }
         // Negative extension
         else if (expected == NodeType::cut) {
