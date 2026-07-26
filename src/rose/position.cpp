@@ -508,8 +508,6 @@ namespace rose {
       new_pos.m_hash ^= hash::move_piece(from, to, src_place);
 
       new_pos.m_50mr = 0;
-      check_src_castling_rights();
-      check_dest_castling_rights();
     };
 
     const auto castle = [&](u8 king_dest_file, u8 rook_dest_file) {
@@ -636,6 +634,130 @@ namespace rose {
                 new_pos.calc_hash_slow());
 
     return new_pos;
+  }
+
+  auto Position::hash_after(Hash prev, Move m) const -> Hash {
+    Hash new_hash = prev;
+    RookInfo new_rook_info = m_rook_info;
+
+    if (m_enpassant.is_valid()) {
+      new_hash ^= hash::enpassant_table[m_enpassant.file()];
+    }
+
+    const Square from = m.from();
+    const Square to = m.to();
+    const Place src_place = m_board[from];
+    const Place dest_place = m_board[to];
+
+    const auto check_src_castling_rights = [&] {
+      new_rook_info.unset(m_stm, from);
+      if (src_place.ptype() == PieceType::k) {
+        new_rook_info.clear(m_stm);
+      }
+    };
+
+    const auto check_dest_castling_rights = [&] {
+      new_rook_info.unset(!m_stm, to);
+    };
+
+    const auto normal = [&] {
+      new_hash ^= hash::move_piece(from, to, src_place);
+      check_src_castling_rights();
+    };
+
+    const auto cap_normal = [&] {
+      new_hash ^= hash::remove_piece(to, dest_place);
+      new_hash ^= hash::move_piece(from, to, src_place);
+      check_src_castling_rights();
+      check_dest_castling_rights();
+    };
+
+    const auto promo = [&](auto ptype) {
+      new_hash ^= hash::promo(from, to, m_stm, decltype(ptype)::value);
+    };
+
+    const auto cap_promo = [&](auto ptype) {
+      new_hash ^= hash::remove_piece(to, dest_place);
+      new_hash ^= hash::promo(from, to, m_stm, decltype(ptype)::value);
+      check_dest_castling_rights();
+    };
+
+    const auto double_push = [&] {
+      new_hash ^= hash::move_piece(from, to, src_place);
+      const Square new_enpassant {narrow_cast<u8>((from.raw + to.raw) >> 1)};
+      new_hash ^= hash::enpassant_table[new_enpassant.file()];
+    };
+
+    const auto enpassant = [&] {
+      const Square victim = Square::from_file_and_rank(to.file(), from.rank());
+      new_hash ^= hash::remove_piece(victim, !m_stm, PieceType::p);
+      new_hash ^= hash::move_piece(from, to, src_place);
+    };
+
+    const auto castle = [&](u8 king_dest_file, u8 rook_dest_file) {
+      const Square king_dest {narrow_cast<u8>((from.raw & 0x38) | king_dest_file)};
+      const Square rook_dest {narrow_cast<u8>((from.raw & 0x38) | rook_dest_file)};
+      const Square king_src = m.from();
+      const Square rook_src = m.to();
+
+      new_hash ^= hash::move_piece(king_src, king_dest, m_stm, PieceType::k);
+      new_hash ^= hash::move_piece(rook_src, rook_dest, m_stm, PieceType::r);
+
+      new_rook_info.clear(m_stm);
+    };
+
+#define MF(x) (static_cast<int>(MoveFlags::x) >> 12)
+    switch (static_cast<int>(m.flags()) >> 12) {
+    case MF(normal):
+      normal();
+      break;
+    case MF(double_push):
+      double_push();
+      break;
+    case MF(castle_aside):
+      castle(2, 3);
+      break;
+    case MF(castle_hside):
+      castle(6, 5);
+      break;
+    case MF(promo_q):
+      promo(std::integral_constant<PieceType, PieceType::q> {});
+      break;
+    case MF(promo_n):
+      promo(std::integral_constant<PieceType, PieceType::n> {});
+      break;
+    case MF(promo_r):
+      promo(std::integral_constant<PieceType, PieceType::r> {});
+      break;
+    case MF(promo_b):
+      promo(std::integral_constant<PieceType, PieceType::b> {});
+      break;
+    case MF(cap_normal):
+      cap_normal();
+      break;
+    case MF(enpassant):
+      enpassant();
+      break;
+    case MF(cap_promo_q):
+      cap_promo(std::integral_constant<PieceType, PieceType::q> {});
+      break;
+    case MF(cap_promo_n):
+      cap_promo(std::integral_constant<PieceType, PieceType::n> {});
+      break;
+    case MF(cap_promo_r):
+      cap_promo(std::integral_constant<PieceType, PieceType::r> {});
+      break;
+    case MF(cap_promo_b):
+      cap_promo(std::integral_constant<PieceType, PieceType::b> {});
+      break;
+    }
+#undef MF
+
+    new_hash ^= hash::castle_table[m_rook_info.to_index()];
+    new_hash ^= hash::castle_table[new_rook_info.to_index()];
+    new_hash ^= hash::move;
+
+    return new_hash;
   }
 
   auto Position::calc_hash_slow() const -> Hash {
