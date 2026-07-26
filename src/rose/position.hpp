@@ -130,7 +130,6 @@ namespace rose {
     Byteboard m_board {};
     std::array<PieceList<Square>, 2> m_piece_list_sq {};
     std::array<PieceList<PieceType>, 2> m_piece_list_ptype {};
-    u64 m_hash {};
     RookInfo m_rook_info {};
     u16 m_50mr {};
     u16 m_ply {};
@@ -173,10 +172,6 @@ namespace rose {
 
     constexpr auto piece_list_type(Color color) const -> PieceList<PieceType> {
       return m_piece_list_ptype[color.to_index()];
-    }
-
-    constexpr auto hash() const -> Hash {
-      return m_hash;
     }
 
     constexpr auto rook_info() const -> RookInfo {

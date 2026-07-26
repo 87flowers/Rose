@@ -148,6 +148,8 @@ namespace rose {
         m_hash_stack = g.hash_stack();
         m_hash_waterline = std::max<usize>(1, m_hash_stack.size()) - 1;
 
+        rose_assert(m_hash_stack.back() == m_root.calc_hash_slow());
+
         const auto ctrl = is_main_thread() ? calc_ctrl(m_shared.search_start_time, m_shared.search_main_limits, m_root.stm()) :
                                              controls::None {.start_time = m_shared.search_start_time};
 
@@ -171,7 +173,7 @@ namespace rose {
     // If we didn't complete depth 1 we have to scrounge up a move.
 
     // Try the TT first
-    const auto tte = tt_load(m_root, 0);
+    const auto tte = tt_load(m_hash_stack.back(), 0);
     if (m_root.is_legal(tte.move)) {
       pv.write(tte.move);
       return tte.score;
@@ -326,7 +328,7 @@ namespace rose {
     const Color stm = position.stm();
     const Bitboard enemy_threatened = position.attack_table(!stm).bitboard_any();
 
-    const tt::LookupResult tte = tt_load(position, ply);
+    const tt::LookupResult tte = tt_load(m_hash_stack.back(), ply);
     Move hint_move = tte.move;
 
     // Transposition Table Cutoffs
@@ -401,7 +403,7 @@ namespace rose {
       search<NodeType::pv>(ctrl, position, pv, alpha, beta, ss, ply, iid_depth);
       m_in_iid = prev_in_iid;
 
-      const auto iid_tte = tt_load(position, ply);
+      const auto iid_tte = tt_load(m_hash_stack.back(), ply);
       hint_move = iid_tte.move;
       if (m_in_iid && iid_tte.depth >= depth)
         return iid_tte.score;
@@ -621,7 +623,7 @@ namespace rose {
     }
 
     if (!excluded) {
-      tt_store(position,
+      tt_store(m_hash_stack.back(),
                ply,
                tt::LookupResult {
                  .depth = depth,
@@ -666,7 +668,7 @@ namespace rose {
 
     const bool is_in_check = position.is_in_check();
 
-    const tt::LookupResult tte = tt_load(position, ply);
+    const tt::LookupResult tte = tt_load(m_hash_stack.back(), ply);
 
     // Transposition Table Cutoffs
     if (leaf_expected != NodeType::pv && tte.is_some() && [&] {
@@ -758,20 +760,20 @@ namespace rose {
   }
 
   template<eval::concepts::State Evaluation>
-  auto Search<Evaluation>::tt_load(const Position& position, i32 ply) -> tt::LookupResult {
-    return m_shared.transposition_table.load(position.hash(), ply);
+  auto Search<Evaluation>::tt_load(Hash hash, i32 ply) -> tt::LookupResult {
+    return m_shared.transposition_table.load(hash, ply);
   }
 
   template<eval::concepts::State Evaluation>
-  auto Search<Evaluation>::tt_store(const Position& position, i32 ply, tt::LookupResult lr) -> void {
-    m_shared.transposition_table.store(position.hash(), ply, lr);
+  auto Search<Evaluation>::tt_store(Hash hash, i32 ply, tt::LookupResult lr) -> void {
+    m_shared.transposition_table.store(hash, ply, lr);
   }
 
   template<eval::concepts::State Evaluation>
   auto Search<Evaluation>::make_move(SearchStack* ss, const Position& position, Move mv) -> Position {
     m_evaluation.push();
+    m_hash_stack.push_back(position.hash_after(m_hash_stack.back(), mv));
     const Position child_position = position.move(mv, m_evaluation.observer());
-    m_hash_stack.push_back(child_position.hash());
     ss->move = mv;
     ss->conthist = m_sd.continuation_history.get_subtable(!child_position.stm(), child_position.place_at(mv.to()).ptype(), mv);
     ss[1].static_eval = score::none;
@@ -781,8 +783,8 @@ namespace rose {
   template<eval::concepts::State Evaluation>
   auto Search<Evaluation>::make_null_move(SearchStack* ss, const Position& position) -> Position {
     m_evaluation.push();
+    m_hash_stack.push_back(position.hash_after_null_move(m_hash_stack.back()));
     const Position child_position = position.null_move();
-    m_hash_stack.push_back(child_position.hash());
     ss->move = Move::none();
     ss->conthist = nullptr;
     ss[1].static_eval = score::none;

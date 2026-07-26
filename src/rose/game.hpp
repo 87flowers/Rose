@@ -11,9 +11,9 @@ namespace rose {
 
   struct Game {
   private:
-    std::vector<Position> m_position_stack;
     std::vector<Move> m_move_stack;
     std::vector<Hash> m_hash_stack;
+    std::vector<Position> m_position_stack;
 
   public:
     Game() {
@@ -49,18 +49,18 @@ namespace rose {
     }
 
     auto set_position(const Position& new_pos) -> void {
-      m_position_stack.clear();
       m_move_stack.clear();
       m_hash_stack.clear();
+      m_position_stack.clear();
 
+      m_hash_stack.push_back(new_pos.calc_hash_slow());
       m_position_stack.push_back(new_pos);
-      m_hash_stack.push_back(new_pos.hash());
     }
 
     auto move(Move m) -> void {
-      m_position_stack.emplace_back(m_position_stack.back().move(m));
       m_move_stack.push_back(m);
-      m_hash_stack.push_back(m_position_stack.back().hash());
+      m_hash_stack.push_back(m_position_stack.back().hash_after(m_hash_stack.back(), m));
+      m_position_stack.emplace_back(m_position_stack.back().move(m));
     }
 
     auto unmove() -> void {

@@ -399,9 +399,11 @@ namespace rose {
 
   auto Position::is_repetition(const std::vector<u64>& hash_stack, usize hash_waterline) const -> bool {
     const int height = static_cast<int>(hash_stack.size()) - 1;
+    const Hash current_hash = hash_stack[height];
+
     usize clones = 0;
     for (int i = height - 4; i >= 0; i -= 2) {
-      if (hash_stack[i] == m_hash) {
+      if (hash_stack[i] == current_hash) {
         const usize clone_limit = i < hash_waterline ? 2 : 1;
         clones++;
         if (clones >= clone_limit)
@@ -418,10 +420,7 @@ namespace rose {
     new_pos.m_cached_pinned = {};
     new_pos.m_cached_masked_attack_table = {};
 
-    if (new_pos.m_enpassant.is_valid()) {
-      new_pos.m_hash ^= hash::enpassant_table[new_pos.m_enpassant.file()];
-      new_pos.m_enpassant = Square::invalid();
-    }
+    new_pos.m_enpassant = Square::invalid();
 
     const Square from = m.from();
     const Square to = m.to();
@@ -448,7 +447,6 @@ namespace rose {
     const auto normal = [&] {
       new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
       observer.on_move(*this, m_stm, src_place.ptype(), from, to);
-      new_pos.m_hash ^= hash::move_piece(from, to, src_place);
       if (src_place.ptype() != PieceType::p) {
         new_pos.m_50mr++;
       } else {
@@ -462,8 +460,6 @@ namespace rose {
       observer.on_remove(*this, !m_stm, dest_place.ptype(), to);
       new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
       observer.on_move(*this, m_stm, src_place.ptype(), from, to);
-      new_pos.m_hash ^= hash::remove_piece(to, dest_place);
-      new_pos.m_hash ^= hash::move_piece(from, to, src_place);
       new_pos.m_50mr = 0;
       check_src_castling_rights();
       check_dest_castling_rights();
@@ -472,7 +468,6 @@ namespace rose {
     const auto promo = [&](auto ptype) {
       new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
       observer.on_promote(*this, m_stm, decltype(ptype)::value, from, to);
-      new_pos.m_hash ^= hash::promo(from, to, m_stm, decltype(ptype)::value);
       new_pos.m_50mr = 0;
     };
 
@@ -481,8 +476,6 @@ namespace rose {
       observer.on_remove(*this, !m_stm, dest_place.ptype(), to);
       new_pos.move_piece<true>(m_stm, from, to, src_id, src_place.ptype(), decltype(ptype)::value);
       observer.on_promote(*this, m_stm, decltype(ptype)::value, from, to);
-      new_pos.m_hash ^= hash::remove_piece(to, dest_place);
-      new_pos.m_hash ^= hash::promo(from, to, m_stm, decltype(ptype)::value);
       new_pos.m_50mr = 0;
       check_dest_castling_rights();
     };
@@ -490,10 +483,8 @@ namespace rose {
     const auto double_push = [&] {
       new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
       observer.on_move(*this, m_stm, src_place.ptype(), from, to);
-      new_pos.m_hash ^= hash::move_piece(from, to, src_place);
       new_pos.m_50mr = 0;
       new_pos.m_enpassant = Square {narrow_cast<u8>((from.raw + to.raw) >> 1)};
-      new_pos.m_hash ^= hash::enpassant_table[new_pos.m_enpassant.file()];
     };
 
     const auto enpassant = [&] {
@@ -504,8 +495,6 @@ namespace rose {
       observer.on_remove(*this, !m_stm, PieceType::p, victim);
       new_pos.move_piece<false>(m_stm, from, to, src_id, src_place.ptype(), src_place.ptype());
       observer.on_move(*this, m_stm, src_place.ptype(), from, to);
-      new_pos.m_hash ^= hash::remove_piece(victim, !m_stm, PieceType::p);
-      new_pos.m_hash ^= hash::move_piece(from, to, src_place);
 
       new_pos.m_50mr = 0;
     };
@@ -526,9 +515,6 @@ namespace rose {
       observer.on_add(*this, m_stm, PieceType::k, king_dest);
       new_pos.add_piece<true>(m_stm, rook_dest, rook_id, PieceType::r);
       observer.on_add(*this, m_stm, PieceType::r, rook_dest);
-
-      new_pos.m_hash ^= hash::move_piece(king_src, king_dest, m_stm, PieceType::k);
-      new_pos.m_hash ^= hash::move_piece(rook_src, rook_dest, m_stm, PieceType::r);
 
       new_pos.m_50mr++;
       new_pos.m_rook_info.clear(m_stm);
@@ -581,23 +567,10 @@ namespace rose {
     }
 #undef MF
 
-    new_pos.m_hash ^= hash::castle_table[m_rook_info.to_index()];
-    new_pos.m_hash ^= hash::castle_table[new_pos.m_rook_info.to_index()];
-    new_pos.m_hash ^= hash::move;
-
     new_pos.m_ply++;
     new_pos.m_stm = !m_stm;
 
     observer.on_finalize(new_pos);
-
-    rose_assert(new_pos.m_hash == new_pos.calc_hash_slow(),
-                "{} [{:016x}] : {} : {} [{:016x} {:016x}]",
-                to_string(MoveFormat::frc),
-                m_hash,
-                m.to_string(MoveFormat::frc),
-                new_pos.to_string(MoveFormat::frc),
-                new_pos.m_hash,
-                new_pos.calc_hash_slow());
 
     return new_pos;
   }
@@ -614,24 +587,13 @@ namespace rose {
     new_pos.m_cached_masked_attack_table = {};
 
     if (new_pos.m_enpassant.is_valid()) {
-      new_pos.m_hash ^= hash::enpassant_table[new_pos.m_enpassant.file()];
       new_pos.m_enpassant = Square::invalid();
     }
 
     new_pos.m_50mr++;
 
-    new_pos.m_hash ^= hash::move;
-
     new_pos.m_ply++;
     new_pos.m_stm = !m_stm;
-
-    rose_assert(new_pos.m_hash == new_pos.calc_hash_slow(),
-                "{} [{:016x}] : {} : (null move) [{:016x} {:016x}]",
-                to_string(MoveFormat::frc),
-                m_hash,
-                new_pos.to_string(MoveFormat::frc),
-                new_pos.m_hash,
-                new_pos.calc_hash_slow());
 
     return new_pos;
   }
@@ -1022,7 +984,6 @@ namespace rose {
     }
 
     result.m_attack_table = result.calc_attacks_slow();
-    result.m_hash = result.calc_hash_slow();
 
     return result;
   }
