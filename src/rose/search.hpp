@@ -175,8 +175,8 @@ namespace rose {
 
     auto eval(const Position& position) -> Score;
 
-    auto tt_load(Hash hash, i32 ply) -> tt::LookupResult;
-    auto tt_store(Hash hash, i32 ply, tt::LookupResult lr) -> void;
+    auto tt_load() -> tt::LookupResult;
+    auto tt_store(tt::LookupResult lr) -> void;
 
     [[nodiscard]] auto make_move(SearchStack* ss, const Position& position, Move mv) -> Position;
     [[nodiscard]] auto make_null_move(SearchStack* ss, const Position& position) -> Position;

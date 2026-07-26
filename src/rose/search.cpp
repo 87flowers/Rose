@@ -173,7 +173,7 @@ namespace rose {
     // If we didn't complete depth 1 we have to scrounge up a move.
 
     // Try the TT first
-    const auto tte = tt_load(m_hash_stack.back(), 0);
+    const auto tte = tt_load();
     if (m_root.is_legal(tte.move)) {
       pv.write(tte.move);
       return tte.score;
@@ -328,7 +328,7 @@ namespace rose {
     const Color stm = position.stm();
     const Bitboard enemy_threatened = position.attack_table(!stm).bitboard_any();
 
-    const tt::LookupResult tte = tt_load(m_hash_stack.back(), ply);
+    const tt::LookupResult tte = tt_load();
     Move hint_move = tte.move;
 
     // Transposition Table Cutoffs
@@ -403,7 +403,7 @@ namespace rose {
       search<NodeType::pv>(ctrl, position, pv, alpha, beta, ss, ply, iid_depth);
       m_in_iid = prev_in_iid;
 
-      const auto iid_tte = tt_load(m_hash_stack.back(), ply);
+      const auto iid_tte = tt_load();
       hint_move = iid_tte.move;
       if (m_in_iid && iid_tte.depth >= depth)
         return iid_tte.score;
@@ -623,14 +623,12 @@ namespace rose {
     }
 
     if (!excluded) {
-      tt_store(m_hash_stack.back(),
-               ply,
-               tt::LookupResult {
-                 .depth = depth,
-                 .bound = actual_node_type,
-                 .score = best_score,
-                 .move = best_move,
-               });
+      tt_store(tt::LookupResult {
+        .depth = depth,
+        .bound = actual_node_type,
+        .score = best_score,
+        .move = best_move,
+      });
     }
 
     return best_score;
@@ -668,7 +666,7 @@ namespace rose {
 
     const bool is_in_check = position.is_in_check();
 
-    const tt::LookupResult tte = tt_load(m_hash_stack.back(), ply);
+    const tt::LookupResult tte = tt_load();
 
     // Transposition Table Cutoffs
     if (leaf_expected != NodeType::pv && tte.is_some() && [&] {
@@ -760,13 +758,17 @@ namespace rose {
   }
 
   template<eval::concepts::State Evaluation>
-  auto Search<Evaluation>::tt_load(Hash hash, i32 ply) -> tt::LookupResult {
-    return m_shared.transposition_table.load(hash, ply);
+  auto Search<Evaluation>::tt_load() -> tt::LookupResult {
+    rose_assert(m_hash_stack.size() > m_hash_waterline);
+    const i32 ply = static_cast<i32>(m_hash_stack.size() - 1 - m_hash_waterline);
+    return m_shared.transposition_table.load(m_hash_stack.back(), ply);
   }
 
   template<eval::concepts::State Evaluation>
-  auto Search<Evaluation>::tt_store(Hash hash, i32 ply, tt::LookupResult lr) -> void {
-    m_shared.transposition_table.store(hash, ply, lr);
+  auto Search<Evaluation>::tt_store(tt::LookupResult lr) -> void {
+    rose_assert(m_hash_stack.size() > m_hash_waterline);
+    const i32 ply = static_cast<i32>(m_hash_stack.size() - 1 - m_hash_waterline);
+    m_shared.transposition_table.store(m_hash_stack.back(), ply, lr);
   }
 
   template<eval::concepts::State Evaluation>
