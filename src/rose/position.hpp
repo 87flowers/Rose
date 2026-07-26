@@ -260,6 +260,7 @@ namespace rose {
     }
 
     auto hash_after(Hash prev, Move m) const -> Hash;
+    auto hash_after_null_move(Hash prev) const -> Hash;
     auto calc_hash_slow() const -> Hash;
 
     auto pin_info() const -> std::tuple<const std::array<PieceMask, 64>&, Bitboard>;

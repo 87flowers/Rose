@@ -760,6 +760,18 @@ namespace rose {
     return new_hash;
   }
 
+  auto Position::hash_after_null_move(Hash prev) const -> Hash {
+    Hash new_hash = prev;
+
+    if (m_enpassant.is_valid()) {
+      new_hash ^= hash::enpassant_table[m_enpassant.file()];
+    }
+
+    new_hash ^= hash::move;
+
+    return new_hash;
+  }
+
   auto Position::calc_hash_slow() const -> Hash {
     Hash result = 0;
     for (u8 sq = 0; sq < 64; sq++)
