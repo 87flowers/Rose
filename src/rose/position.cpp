@@ -8,17 +8,14 @@
 #include "rose/move.hpp"
 #include "rose/movegen.hpp"
 #include "rose/rays.hpp"
-#include "rose/score.hpp"
 #include "rose/square.hpp"
 #include "rose/util/assert.hpp"
 #include "rose/util/string.hpp"
 
-#include <algorithm>
 #include <array>
 #include <fmt/format.h>
 #include <string_view>
 #include <utility>
-#include <vector>
 
 namespace rose {
 
@@ -375,34 +372,6 @@ namespace rose {
   auto Position::has_no_legal_moves_slow() const -> bool {
     const MoveList moves = generate_all_moves(*this);
     return moves.size() == 0;
-  }
-
-  auto Position::is_stalemate_slow() const -> bool {
-    return !is_in_check() && has_no_legal_moves_slow();
-  }
-
-  auto Position::is_fifty_move_draw(i32 ply) const -> std::optional<Score> {
-    if (fifty_move_clock() < 100)
-      return std::nullopt;
-    if (is_in_check() && has_no_legal_moves_slow()) [[unlikely]]
-      return score::mated(ply);
-    return 0;
-  }
-
-  auto Position::is_repetition(const std::vector<u64>& hash_stack, usize hash_waterline) const -> bool {
-    const int height = static_cast<int>(hash_stack.size()) - 1;
-    const Hash current_hash = hash_stack[height];
-
-    usize clones = 0;
-    for (int i = height - 4; i >= 0; i -= 2) {
-      if (hash_stack[i] == current_hash) {
-        const usize clone_limit = i < hash_waterline ? 2 : 1;
-        clones++;
-        if (clones >= clone_limit)
-          return true;
-      }
-    }
-    return false;
   }
 
   template<eval::concepts::Observer Observer>

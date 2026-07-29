@@ -1,9 +1,8 @@
 #pragma once
 
-#include "rose/common.hpp"
+#include "rose/is_draw.hpp"
 #include "rose/move.hpp"
 #include "rose/position.hpp"
-#include "rose/util/assert.hpp"
 
 #include <vector>
 
@@ -45,7 +44,8 @@ namespace rose {
     }
 
     auto is_draw_slow() const -> bool {
-      return position().is_stalemate_slow() || position().is_fifty_move_draw() == 0 || position().is_repetition(hash_stack(), hash_stack().size());
+      const Position& pos = position();
+      return draw::is_stalemate(pos) || draw::is_fifty_move_draw(pos, 0) == 0 || draw::is_repetition(hash_stack(), hash_stack().size());
     }
 
     auto set_position(const Position& new_pos) -> void {

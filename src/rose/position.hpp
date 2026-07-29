@@ -7,14 +7,12 @@
 #include "rose/eval/null_observer.hpp"
 #include "rose/hash.hpp"
 #include "rose/move.hpp"
-#include "rose/score.hpp"
 #include "rose/square.hpp"
 #include "rose/util/tokenizer.hpp"
 
 #include <string>
 #include <tuple>
 #include <type_traits>
-#include <vector>
 
 namespace rose {
 
@@ -242,9 +240,6 @@ namespace rose {
     auto is_legal(Move m) const -> bool;
 
     auto has_no_legal_moves_slow() const -> bool;
-    auto is_stalemate_slow() const -> bool;
-    auto is_fifty_move_draw(i32 ply = 0) const -> std::optional<Score>;
-    auto is_repetition(const std::vector<u64>& hash_stack, usize hash_waterline) const -> bool;
 
     template<eval::concepts::Observer Observer>
     auto move(Move m, Observer observer) const -> Position;

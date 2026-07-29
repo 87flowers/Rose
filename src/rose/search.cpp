@@ -305,10 +305,10 @@ namespace rose {
 
     // Repetition Detection
     if (!is_root) {
-      if (const auto score = position.is_fifty_move_draw(ply))
+      if (const auto score = draw::is_fifty_move_draw(position, ply))
         return *score;
 
-      if (position.is_repetition(m_hash_stack, m_hash_waterline))
+      if (draw::is_repetition(m_hash_stack, m_hash_waterline))
         return 0;
     }
 
@@ -646,10 +646,10 @@ namespace rose {
 
     // Repetition Detection
     {
-      if (const auto score = position.is_fifty_move_draw(ply))
+      if (const auto score = draw::is_fifty_move_draw(position, ply))
         return *score;
 
-      if (position.is_repetition(m_hash_stack, m_hash_waterline))
+      if (draw::is_repetition(m_hash_stack, m_hash_waterline))
         return 0;
     }
 
