@@ -188,18 +188,10 @@ namespace rose {
       m_attack_table[1].raw ^= src_color.mask(src_bits) ^ dst_color.mask(dst_bits);
     }
 
-    switch (color.raw) {
-    case Color::white:
-      m_attack_table[0].raw = m_attack_table[0].raw.andnot(id_bit) | add_mask.mask(id_bit);
-      m_piece_list_sq[0][id] = dst_sq;
-      m_piece_list_ptype[0][id] = dst_ptype;
-      break;
-    case Color::black:
-      m_attack_table[1].raw = m_attack_table[1].raw.andnot(id_bit) | add_mask.mask(id_bit);
-      m_piece_list_sq[1][id] = dst_sq;
-      m_piece_list_ptype[1][id] = dst_ptype;
-      break;
-    }
+    const usize col = color.to_index();
+    m_attack_table[col].raw = m_attack_table[col].raw.andnot(id_bit) | add_mask.mask(id_bit);
+    m_piece_list_sq[col][id] = dst_sq;
+    m_piece_list_ptype[col][id] = dst_ptype;
   }
 
   auto Position::startpos() -> Position {
