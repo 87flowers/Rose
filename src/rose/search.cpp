@@ -356,6 +356,11 @@ namespace rose {
                                                                false;
 
     if (expected != NodeType::pv && !is_in_check && !excluded) {
+      // Hindsight extension
+      if (depth <= 20 && ss[-1].reduction >= 4 && ss[-1].static_eval != score::none && static_eval <= -ss[-1].static_eval) {
+        depth++;
+      }
+
       // Reverse Futility Pruning
       if (depth <= 15 && static_eval - 64 * depth - 4 * depth * depth >= beta) {
         return static_eval;
@@ -527,7 +532,9 @@ namespace rose {
 
         const i32 lmr_depth = std::min(std::max(new_depth - reduction / 1024, 0), new_depth) + (expected == NodeType::pv);
 
+        ss->reduction = new_depth - lmr_depth;
         score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, lmr_depth);
+        ss->reduction = 0;
 
         if (score > alpha && lmr_depth < new_depth) {
           i32 research_depth = new_depth;

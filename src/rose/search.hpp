@@ -93,6 +93,7 @@ namespace rose {
     Move move = Move::none();
     Move excluded = Move::none();
     Score static_eval = score::none;
+    i32 reduction = 0;
     ContinuationHistorySubtable* conthist = nullptr;
   };
 
