@@ -294,6 +294,8 @@ namespace rose {
   auto
     Search<Evaluation>::search(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply, i32 depth)
       -> Score {
+    const i32 original_depth = depth;
+
     if (depth <= 0)
       return qsearch<expected>(ctrl, position, pv, alpha, beta, ss, ply);
 
@@ -631,7 +633,7 @@ namespace rose {
 
     if (!excluded) {
       tt_store(tt::LookupResult {
-        .depth = depth,
+        .depth = original_depth,
         .bound = actual_node_type,
         .score = best_score,
         .move = best_move,
