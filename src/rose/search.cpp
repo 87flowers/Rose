@@ -362,7 +362,7 @@ namespace rose {
       }
 
       // Hindsight reduction
-      if (depth >= 3 && ss[-1].reduction >= 1 && ss[-1].static_eval != score::none && static_eval >= -ss[-1].static_eval + 400) {
+      if (depth >= 6 && ss[-1].reduction >= 2 && ss[-1].static_eval != score::none && static_eval >= -ss[-1].static_eval + 300) {
         depth--;
       }
 
