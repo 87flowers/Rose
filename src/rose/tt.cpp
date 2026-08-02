@@ -90,9 +90,6 @@ namespace rose::tt {
       }
     }
 
-    if (lr.move.is_none())
-      lr.move = best_entry.move();
-
     bucket.entries[best_index] = Entry {ply, lr, m_age};
     bucket.set_fragment(best_index, fragment);
   }
