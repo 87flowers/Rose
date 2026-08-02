@@ -73,7 +73,7 @@ namespace rose::tt {
 
     const auto retention_score = [this](const Entry& e) {
       constexpr int max_age = Entry::age_mask + 1;
-      return e.depth() - (max_age + m_age - e.age()) * 4;
+      return e.depth() - (max_age + m_age - e.age()) % max_age * 4;
     };
 
     if (best_entry.bound() != NodeType::none) {
