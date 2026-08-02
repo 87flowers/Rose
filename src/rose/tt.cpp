@@ -71,7 +71,7 @@ namespace rose::tt {
     Entry best_entry = bucket.entries[0];
     usize best_index = 0;
 
-    const auto replacement_score = [this](const Entry& e) {
+    const auto retention_score = [this](const Entry& e) {
       constexpr int max_age = Entry::age_mask + 1;
       return e.depth() - (max_age + m_age - e.age()) * 4;
     };
@@ -83,7 +83,7 @@ namespace rose::tt {
           best_index = j;
           break;
         }
-        if (replacement_score(entry) < replacement_score(best_entry)) {
+        if (retention_score(entry) < retention_score(best_entry)) {
           best_entry = entry;
           best_index = j;
         }
