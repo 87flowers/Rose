@@ -64,25 +64,37 @@ namespace rose::tt {
       if (lr.move.is_none())
         lr.move = entry.move();
 
-      entry = Entry {ply, lr};
+      entry = Entry {ply, lr, m_age};
       return;
     }
 
-    for (usize j = 0; j < bucket.entries.size(); j++) {
-      Entry& entry = bucket.entries[j];
-      if (entry.bound() == NodeType::none) {
-        entry = Entry {ply, lr};
-        bucket.set_fragment(j, fragment);
-        return;
+    Entry best_entry = bucket.entries[0];
+    usize best_index = 0;
+
+    const auto replacement_score = [this](const Entry& e) {
+      constexpr int max_age = Entry::age_mask + 1;
+      return e.depth() - (max_age + m_age - e.age()) * 4;
+    };
+
+    if (best_entry.bound() != NodeType::none) {
+      for (usize j = 1; j < bucket.entries.size(); j++) {
+        Entry& entry = bucket.entries[j];
+        if (entry.bound() == NodeType::none) {
+          best_index = j;
+          break;
+        }
+        if (replacement_score(entry) < replacement_score(best_entry)) {
+          best_entry = entry;
+          best_index = j;
+        }
       }
     }
 
-    {
-      const usize j = hash % bucket.entries.size();
-      Entry& entry = bucket.entries[j];
-      entry = Entry {ply, lr};
-      bucket.set_fragment(j, fragment);
-    }
+    if (lr.move.is_none())
+      lr.move = best_entry.move();
+
+    bucket.entries[best_index] = Entry {ply, lr, m_age};
+    bucket.set_fragment(best_index, fragment);
   }
 
   auto TT::print(u64 hash) const -> void {
@@ -96,6 +108,7 @@ namespace rose::tt {
     if (const usize j = bucket.lookup_fragment(fragment); j < bucket.entries.size()) {
       const Entry& entry = bucket.entries[j];
       fmt::print("entry raw:   {:016x}\n", entry.raw);
+      fmt::print("entry age:   {}\n", entry.age());
       fmt::print("entry depth: {}\n", entry.depth());
       fmt::print("entry score: {}\n", entry.score(0));
       fmt::print("entry bound: {}\n", entry.bound());

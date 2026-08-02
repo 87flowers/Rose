@@ -34,24 +34,34 @@ namespace rose::tt {
     // u16 move
     // u8 depth
     // u2 bounds
-    // u22 unused
+    // u5 age
+    // u17 unused
+    static inline constexpr usize age_shift = 17;
     static inline constexpr usize bounds_shift = 22;
     static inline constexpr usize depth_shift = 24;
     static inline constexpr usize move_shift = 32;
     static inline constexpr usize score_shift = 48;
 
+    static inline constexpr usize age_width = 5;
+    static inline constexpr int age_mask = (1 << age_width) - 1;
+
     u64 raw = 0;
 
-    constexpr Entry(i32 ply, LookupResult lr) {
+    constexpr Entry(i32 ply, LookupResult lr, int age) {
       const i32 tt_score = score::adjust_plys_to_mate(lr.score, -ply);
       const i32 tt_depth = std::clamp(lr.depth, 0, 255);
       const u64 tt_bound = std::to_underlying(lr.bound.raw);
 
       raw = 0;
+      raw |= static_cast<u64>(age & age_mask) << age_shift;
       raw |= static_cast<u64>(tt_bound) << bounds_shift;
       raw |= static_cast<u64>(tt_depth) << depth_shift;
       raw |= static_cast<u64>(lr.move.raw) << move_shift;
       raw |= static_cast<u64>(tt_score) << score_shift;
+    }
+
+    constexpr inline auto age() const -> int {
+      return static_cast<int>((raw >> age_shift) & 0x1F);
     }
 
     constexpr inline auto bound() const -> NodeType {
@@ -123,6 +133,7 @@ namespace rose::tt {
     static auto table_alloc(std::size_t m_count) -> Bucket*;
     static auto table_free(Bucket* ptr) -> void;
 
+    int m_age = 0;
     usize m_count;
     std::unique_ptr<Bucket, decltype(&table_free)> m_table;
 
@@ -140,6 +151,10 @@ namespace rose::tt {
     }
 
     auto clear() -> void;
+
+    auto increment_age() -> void {
+      m_age = (m_age + 1) & Entry::age_mask;
+    }
 
     auto load(u64 hash, int ply) const -> LookupResult;
     auto store(u64 hash, int ply, LookupResult lr) -> void;
