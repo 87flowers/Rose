@@ -72,6 +72,7 @@ namespace rose::tt {
       Entry& entry = bucket.entries[j];
       if (entry.bound() == NodeType::none) {
         entry = Entry {ply, lr};
+        bucket.set_fragment(j, fragment);
         return;
       }
     }
@@ -80,6 +81,7 @@ namespace rose::tt {
       const usize j = hash % bucket.entries.size();
       Entry& entry = bucket.entries[j];
       entry = Entry {ply, lr};
+      bucket.set_fragment(j, fragment);
     }
   }
 

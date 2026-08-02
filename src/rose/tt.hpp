@@ -104,7 +104,7 @@ namespace rose::tt {
     }
 
     auto lookup_fragment(u64 fragment) const -> usize {
-      constexpr u64 bits = u64 {1} | (u64 {1} << fragment_width) | (u64 {1} << (fragment_width * 2));
+      constexpr u64 bits = u64 {1} | (u64 {1} << fragment_width) | (u64 {1} << (fragment_width * 2)) | (u64 {1} << (fragment_width * 3));
       const u64 needle = bits * fragment;
       const u64 zeros = fragments ^ needle;
       const u64 matches = (zeros - bits) & ~zeros & (bits << (fragment_width - 1));
