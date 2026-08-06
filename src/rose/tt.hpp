@@ -67,7 +67,7 @@ namespace rose::tt {
 
     constexpr inline auto eval() const -> Score {
       const usize sext_shift = 64 - 16;
-      return static_cast<Score>(static_cast<i64>(raw >> score_shift << sext_shift) >> sext_shift);
+      return static_cast<Score>(static_cast<i64>(raw >> eval_shift << sext_shift) >> sext_shift);
     }
 
     constexpr inline auto age() const -> int {
