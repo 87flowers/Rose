@@ -5,6 +5,7 @@
 #include "rose/node_type.hpp"
 #include "rose/score.hpp"
 
+#include <bit>
 #include <memory>
 
 namespace rose::tt {
@@ -33,33 +34,34 @@ namespace rose::tt {
     // u16 move
     // u8 depth
     // u2 bounds
-    // u22 fragment
-    static inline constexpr usize fragment_width = 22;
+    // u5 age
+    // u17 unused
+    static inline constexpr usize age_shift = 17;
     static inline constexpr usize bounds_shift = 22;
     static inline constexpr usize depth_shift = 24;
     static inline constexpr usize move_shift = 32;
     static inline constexpr usize score_shift = 48;
-    static inline constexpr u64 fragment_mask = (static_cast<u64>(1) << fragment_width) - 1;
+
+    static inline constexpr usize age_width = 5;
+    static inline constexpr int age_mask = (1 << age_width) - 1;
 
     u64 raw = 0;
 
-    constexpr Entry(u64 fragment, i32 ply, LookupResult lr) {
+    constexpr Entry(i32 ply, LookupResult lr, int age) {
       const i32 tt_score = score::adjust_plys_to_mate(lr.score, -ply);
       const i32 tt_depth = std::clamp(lr.depth, 0, 255);
       const u64 tt_bound = std::to_underlying(lr.bound.raw);
 
-      rose_assert((fragment & fragment_mask) == fragment);
-
       raw = 0;
-      raw |= fragment;
+      raw |= static_cast<u64>(age & age_mask) << age_shift;
       raw |= static_cast<u64>(tt_bound) << bounds_shift;
       raw |= static_cast<u64>(tt_depth) << depth_shift;
       raw |= static_cast<u64>(lr.move.raw) << move_shift;
       raw |= static_cast<u64>(tt_score) << score_shift;
     }
 
-    constexpr inline auto fragment() const -> u64 {
-      return raw & fragment_mask;
+    constexpr inline auto age() const -> int {
+      return static_cast<int>((raw >> age_shift) & 0x1F);
     }
 
     constexpr inline auto bound() const -> NodeType {
@@ -79,7 +81,7 @@ namespace rose::tt {
       return score::adjust_plys_to_mate(tt_score, +ply);
     }
 
-    constexpr auto toResult(i32 ply) const -> LookupResult {
+    constexpr auto to_result(i32 ply) const -> LookupResult {
       return {
         .depth = depth(),
         .bound = bound(),
@@ -91,17 +93,49 @@ namespace rose::tt {
 
   static_assert(sizeof(Entry) == sizeof(u64));
 
+  struct Bucket {
+    static inline constexpr usize entry_count = 3;
+    static inline constexpr usize fragment_width = 21;
+    static inline constexpr u64 fragment_mask = (u64 {1} << fragment_width) - 1;
+    static_assert(entry_count * fragment_width < 64);
+
+    std::array<Entry, entry_count> entries;
+    u64 fragments;
+
+    auto fragment(usize index) const -> u64 {
+      const usize shift = index * fragment_width;
+      return (fragments >> shift) & fragment_mask;
+    }
+
+    auto set_fragment(usize index, u64 fragment) -> void {
+      const usize shift = index * fragment_width;
+      fragments &= ~(fragment_mask << shift);
+      fragments |= fragment << shift;
+    }
+
+    auto lookup_fragment(u64 fragment) const -> usize {
+      constexpr u64 bits = u64 {1} | (u64 {1} << fragment_width) | (u64 {1} << (fragment_width * 2)) | (u64 {1} << (fragment_width * 3));
+      const u64 needle = bits * fragment;
+      const u64 zeros = fragments ^ needle;
+      const u64 matches = (zeros - bits) & ~zeros & (bits << (fragment_width - 1));
+      return static_cast<usize>(std::countr_zero(matches) / fragment_width);
+    }
+  };
+
+  static_assert(sizeof(Bucket) == sizeof(u64) * 4);
+
   constexpr inline auto mb_to_count(usize mb) -> usize {
-    return mb * 1024 * 1024 / sizeof(Entry);
+    return mb * 1024 * 1024 / sizeof(Bucket);
   }
 
   struct TT {
   private:
-    static auto table_alloc(std::size_t m_count) -> Entry*;
-    static auto table_free(Entry* ptr) -> void;
+    static auto table_alloc(std::size_t m_count) -> Bucket*;
+    static auto table_free(Bucket* ptr) -> void;
 
+    int m_age = 0;
     usize m_count;
-    std::unique_ptr<Entry, decltype(&table_free)> m_table;
+    std::unique_ptr<Bucket, decltype(&table_free)> m_table;
 
   public:
     explicit TT(usize mb) :
@@ -117,6 +151,10 @@ namespace rose::tt {
     }
 
     auto clear() -> void;
+
+    auto increment_age() -> void {
+      m_age = (m_age + 1) & Entry::age_mask;
+    }
 
     auto load(u64 hash, int ply) const -> LookupResult;
     auto store(u64 hash, int ply, LookupResult lr) -> void;

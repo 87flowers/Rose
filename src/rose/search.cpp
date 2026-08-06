@@ -156,6 +156,9 @@ namespace rose {
         m_shared.stopping = false;
         stats().reset();
 
+        if (is_main_thread())
+          m_shared.transposition_table.increment_age();
+
         (void)m_shared.started_barrier.arrive();
 
         std::visit(
