@@ -350,7 +350,7 @@ namespace rose {
       return tte.score;
     }
 
-    const i32 static_eval = [&, this] {
+    const Score static_eval = [&, this] {
       if (is_in_check)
         return score::none;
       if (ss->static_eval != score::none)
@@ -703,7 +703,7 @@ namespace rose {
       return tte.score;
     }
 
-    const i32 static_eval = [&, this] {
+    const Score static_eval = [&, this] {
       if (is_in_check)
         return score::none;
       if (ss->static_eval != score::none)
