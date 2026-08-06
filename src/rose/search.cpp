@@ -350,7 +350,15 @@ namespace rose {
       return tte.score;
     }
 
-    const i32 static_eval = ss->static_eval != score::none ? ss->static_eval : is_in_check ? score::none : eval(position);
+    const i32 static_eval = [&, this] {
+      if (is_in_check)
+        return score::none;
+      if (ss->static_eval != score::none)
+        return ss->static_eval;
+      if (tte.eval != score::none)
+        return tte.eval;
+      return eval(position);
+    }();
     ss->static_eval = static_eval;
 
     const bool improving = is_in_check                       ? false :
@@ -637,6 +645,7 @@ namespace rose {
         .depth = depth,
         .bound = actual_node_type,
         .score = best_score,
+        .eval = static_eval,
         .move = best_move,
       });
     }
@@ -694,7 +703,15 @@ namespace rose {
       return tte.score;
     }
 
-    const Score static_eval = ss->static_eval != score::none ? ss->static_eval : is_in_check ? score::none : eval(position);
+    const i32 static_eval = [&, this] {
+      if (is_in_check)
+        return score::none;
+      if (ss->static_eval != score::none)
+        return ss->static_eval;
+      if (tte.eval != score::none)
+        return tte.eval;
+      return eval(position);
+    }();
     ss->static_eval = static_eval;
 
     Score best_score = is_in_check ? score::mated(ply) : static_eval;
