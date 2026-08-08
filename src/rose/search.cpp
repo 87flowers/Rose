@@ -357,17 +357,7 @@ namespace rose {
         return ss->static_eval;
       if (tte.eval != score::none)
         return tte.eval;
-
-      const Score static_eval = eval(position);
-      if (tte.is_none())
-        tt_store(tt::LookupResult {
-          .depth = 0,
-          .bound = NodeType::none,
-          .score = score::none,
-          .eval = static_eval,
-          .move = Move::none(),
-        });
-      return static_eval;
+      return eval(position);
     }();
     ss->static_eval = static_eval;
 
@@ -720,17 +710,7 @@ namespace rose {
         return ss->static_eval;
       if (tte.eval != score::none)
         return tte.eval;
-
-      const Score static_eval = eval(position);
-      if (tte.is_none())
-        tt_store(tt::LookupResult {
-          .depth = 0,
-          .bound = NodeType::none,
-          .score = score::none,
-          .eval = static_eval,
-          .move = Move::none(),
-        });
-      return static_eval;
+      return eval(position);
     }();
     ss->static_eval = static_eval;
 
