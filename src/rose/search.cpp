@@ -780,6 +780,7 @@ namespace rose {
       .depth = 0,
       .bound = actual_node_type,
       .score = best_score,
+      .eval = static_eval,
       .move = best_move,
     });
 
