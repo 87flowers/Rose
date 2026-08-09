@@ -9,6 +9,7 @@
 #include "rose/position.hpp"
 #include "rose/search.hpp"
 #include "rose/tt.hpp"
+#include "rose/tune.hpp"
 #include "rose/util/string.hpp"
 #include "rose/util/time.hpp"
 #include "rose/util/tokenizer.hpp"
@@ -221,6 +222,7 @@ namespace rose {
     fmt::print("option name Hash type spin default {} min 1 max {}\n", tt::default_hash_size_mb, tt::maximum_hash_size_mb);
     fmt::print("option name Threads type spin default 1 min 1 max {}\n", max_threads);
     fmt::print("option name UCI_Chess960 type check default false\n");
+    tune::uci_print_options();
     fmt::print("uciok\n");
   }
 
@@ -255,6 +257,8 @@ namespace rose {
       } else {
         return print_unrecognised_token("setoption", value);
       }
+    } else if (tune::uci_parse_option(name, value)) {
+      return;
     } else {
       return print_unrecognised_token("setoption", name);
     }
