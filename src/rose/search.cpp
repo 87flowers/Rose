@@ -87,7 +87,7 @@ namespace rose {
 
     const time::Milliseconds remaining_time_ms {remaining_time.value_or(0)};
     const time::Milliseconds increment_ms {increment.value_or(0)};
-    const int movestogo = limits.movestogo.value_or(tune::search0);
+    const int movestogo = limits.movestogo.value_or(16_z);
 
     time::Milliseconds safe_remaining_ms = std::max(remaining_time_ms - margin_ms, zero_ms);
 
@@ -98,7 +98,7 @@ namespace rose {
       safe_remaining_ms = std::min(safe_remaining_ms, movetime_ms);
     }
 
-    const auto hard_limit = std::min<time::Milliseconds>(safe_remaining_ms / movestogo * tune::search1 + increment_ms / 3, safe_remaining_ms);
+    const auto hard_limit = std::min<time::Milliseconds>(safe_remaining_ms / movestogo * 7_z + increment_ms / 3, safe_remaining_ms);
     const auto soft_limit = std::min<time::Milliseconds>(safe_remaining_ms / movestogo + increment_ms / 3, safe_remaining_ms);
 
     return {hard_limit, soft_limit};
@@ -215,7 +215,7 @@ namespace rose {
       Line pv {};
       Score alpha = -score::infinity;
       Score beta = score::infinity;
-      Score delta = tune::search2;
+      Score delta = 17_z;
       Score score = score::none;
 
       if (depth >= 4) {
@@ -261,7 +261,7 @@ namespace rose {
         pv_stability = 0;
       }
 
-      if (std::abs(last_score - score) < tune::search3) {
+      if (std::abs(last_score - score) < 28_z) {
         score_stability++;
       } else {
         score_stability = 0;
@@ -272,8 +272,8 @@ namespace rose {
       last_depth = depth;
 
       if (is_main_thread()) {
-        const f32 time_multiplier = std::clamp(1.0 - pv_stability * tune::search4, tune::search5, tune::search6) *
-                                    std::clamp(1.0 - score_stability * tune::search7, tune::search8, tune::search9);
+        const f32 time_multiplier = std::clamp(1.0 - pv_stability * 0.05116902193882232_z, 0.592028611604442_z, 1.0855072225856215_z) *
+                                    std::clamp(1.0 - score_stability * 0.04828987665300888_z, 0.667434450591335_z, 1.1385035397539525_z);
 
         if (ctrl.check_soft_termination(stats(), depth, time_multiplier))
           break;
@@ -375,12 +375,12 @@ namespace rose {
       }
 
       // Reverse Futility Pruning
-      if (depth <= 15 && static_eval - tune::search10 * depth - tune::search11 * depth * depth >= beta) {
+      if (depth <= 15 && static_eval - 59_z * depth - 4_z * depth * depth >= beta) {
         return static_eval;
       }
 
       // Razoring
-      if (depth <= 4 && static_eval + tune::search12 * depth < alpha) {
+      if (depth <= 4 && static_eval + 548_z * depth < alpha) {
         const Score razor_score = qsearch<expected.narrow()>(ctrl, position, pv, alpha, beta, ss, ply);
         if (razor_score <= alpha) {
           return razor_score;
@@ -389,7 +389,7 @@ namespace rose {
 
       // Null move reductions
       if (depth >= 4 && m_nmr_ply != ply && ss[-1].move.is_some() && static_eval >= beta) {
-        const i32 reduction = (tune::search13 + depth * tune::search14) / 1024;
+        const i32 reduction = (4754_z + depth * 344_z) / 1024;
 
         const Position null_position = make_null_move(ss, position);
         const Score null_score = -search<expected.next()>(ctrl, null_position, pv, -beta, -beta + 1, ss + 1, ply + 1, depth - reduction);
@@ -414,7 +414,7 @@ namespace rose {
 
     // Internal iterative deepening
     if (!is_root && expected == NodeType::pv && depth >= 8 && hint_move.is_none() && !excluded) {
-      const i32 iid_depth = (tune::search15 * depth - tune::search16) / 1024;
+      const i32 iid_depth = (794_z * depth - 1525_z) / 1024;
 
       const bool prev_in_iid = m_in_iid;
       m_in_iid = true;
@@ -456,31 +456,30 @@ namespace rose {
 
       if (!score::is_loss(best_score) && !is_in_check && !is_root) {
         // Late Move Pruning
-        if (!mv.is_noisy() &&
-            searched_moves >= i64 {tune::search17 + tune::search18 * depth * depth} * (tune::search19 + tune::search20 * improving) / (1024 * 1024)) {
+        if (!mv.is_noisy() && searched_moves >= i64 {4415_z + 953_z * depth * depth} * (526_z + 550_z * improving) / (1024 * 1024)) {
           moves.skip_quiet();
           continue;
         }
 
         // Futility Pruning
-        if (!mv.is_noisy() && depth <= 6 && std::abs(alpha) < 2000 && static_eval + tune::search21 + depth * tune::search22 <= alpha) {
+        if (!mv.is_noisy() && depth <= 6 && std::abs(alpha) < 2000 && static_eval + 267_z + depth * 104_z <= alpha) {
           moves.skip_quiet();
           continue;
         }
 
         // History Pruning
-        if (!mv.is_noisy() && depth <= 4 && history < tune::search23 * depth * depth) {
+        if (!mv.is_noisy() && depth <= 4 && history < -1007_z * depth * depth) {
           moves.skip_quiet();
           continue;
         }
 
         // Quiet SEE Pruning
-        if (!mv.is_noisy() && depth <= 11 && !see::see(position, mv, 32_z - tune::search24 * depth - tune::search25 * history / 1024)) {
+        if (!mv.is_noisy() && depth <= 11 && !see::see(position, mv, 32_z - 49_z * depth - 34_z * history / 1024)) {
           continue;
         }
 
         // Noisy SEE Pruning
-        if (mv.is_noisy() && depth <= 11 && !see::see(position, mv, tune::search26 * depth)) {
+        if (mv.is_noisy() && depth <= 11 && !see::see(position, mv, -73_z * depth)) {
           continue;
         }
       }
@@ -504,9 +503,9 @@ namespace rose {
           // Single extension
           extension = 1;
           // Double extension
-          extension += expected != NodeType::pv && singular_score <= singular_beta - tune::search27;
+          extension += expected != NodeType::pv && singular_score <= singular_beta - 21_z;
           // Triple extension
-          extension += expected != NodeType::pv && singular_score <= singular_beta - tune::search28;
+          extension += expected != NodeType::pv && singular_score <= singular_beta - 131_z;
         }
         // Negative extension
         else if (expected == NodeType::cut) {
@@ -535,14 +534,14 @@ namespace rose {
         i32 reduction;
 
         if (mv.is_noisy()) {
-          reduction = tune::search29 + tune::search30 * log2_depth * log2_searched_moves;
+          reduction = 1021_z + 180_z * log2_depth * log2_searched_moves;
         } else {
-          reduction = tune::search31 + tune::search32 * log2_depth * log2_searched_moves;
+          reduction = 2255_z + 214_z * log2_depth * log2_searched_moves;
         }
-        reduction -= tune::search33 * (expected == NodeType::pv);
-        reduction -= tune::search34 * history / 1024;
-        reduction += tune::search35 * (expected == NodeType::cut);
-        reduction -= tune::search36 * child_position.is_in_check();
+        reduction -= 970_z * (expected == NodeType::pv);
+        reduction -= 132_z * history / 1024;
+        reduction += 937_z * (expected == NodeType::cut);
+        reduction -= 844_z * child_position.is_in_check();
 
         const i32 lmr_depth = std::min(std::max(new_depth - reduction / 1024, 0), new_depth) + (expected == NodeType::pv);
 
@@ -560,8 +559,8 @@ namespace rose {
 
           // Post-LMR continuation history update
           if (!mv.is_noisy() && (score <= alpha || score >= beta)) {
-            const i32 cont_bonus = std::min(tune::search37 * depth - tune::search38, tune::search39);
-            const i32 cont_malus = std::min(tune::search40 * depth - tune::search41, tune::search42);
+            const i32 cont_bonus = std::min(163_z * depth - 74_z, 1529_z);
+            const i32 cont_malus = std::min(78_z * depth - 29_z, 1073_z);
 
             for (i32 i : conthists_indexes)
               if (ss[-i].conthist)
@@ -615,14 +614,14 @@ namespace rose {
     }
 
     if (best_move.is_some()) {
-      const i32 noisy_bonus = std::min(tune::search43 * depth - tune::search44, tune::search45);
-      const i32 noisy_malus = std::min(tune::search46 * depth - tune::search47, tune::search48);
+      const i32 noisy_bonus = std::min(153_z * depth - 76_z, 1614_z);
+      const i32 noisy_malus = std::min(65_z * depth - 28_z, 944_z);
 
-      const i32 quiet_bonus = std::min(tune::search49 * depth - tune::search50, tune::search51);
-      const i32 quiet_malus = std::min(tune::search52 * depth - tune::search53, tune::search54);
+      const i32 quiet_bonus = std::min(164_z * depth - 87_z, 1705_z);
+      const i32 quiet_malus = std::min(83_z * depth - 28_z, 897_z);
 
-      const i32 cont_bonus = std::min(tune::search55 * depth - tune::search56, tune::search57);
-      const i32 cont_malus = std::min(tune::search58 * depth - tune::search59, tune::search60);
+      const i32 cont_bonus = std::min(137_z * depth - 74_z, 1463_z);
+      const i32 cont_malus = std::min(98_z * depth - 34_z, 1123_z);
 
       if (best_move.is_noisy()) {
         m_sd.noisy_history.update(stm, position.ptype_at(best_move.from()), best_move, noisy_bonus);
@@ -739,7 +738,7 @@ namespace rose {
           continue;
 
         // QS Futility Pruning
-        const Score futility = static_eval + tune::search61;
+        const Score futility = static_eval + 167_z;
         if (futility <= alpha && !see::see(position, mv, 1)) {
           best_score = std::max(best_score, futility);
           continue;
