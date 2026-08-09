@@ -3,7 +3,7 @@ local function replace_tunables(code, name_prefix, udl_postfix)
   local counter = 0
 
   local function replace(num)
-    local name = name_prefix .. counter
+    local name = name_prefix .. string.format("%02d", counter)
     counter = counter + 1
 
     local type = ""
@@ -44,7 +44,9 @@ local function do_file(path, name_prefix)
 
   for k, v in pairs(mapping) do
     local value = tonumber(v.value)
-    print("x(" .. v.type .. ", " .. k .. ", " .. v.value .. ", " .. 0 .. ", " .. value * 2 .. ", " .. value * 0.1  .. ", " .. 0.002 .. ") \\")
+    local a = 0
+    local b = value * 2
+    print("x(" .. v.type .. ", " .. k .. ", " .. v.value .. ", " .. math.min(a, b) .. ", " .. math.max(a, b) .. ", " .. math.abs(value * 0.1)  .. ", " .. 0.002 .. ") \\")
   end
 end
 
