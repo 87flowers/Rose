@@ -15,7 +15,7 @@ namespace rose::tune {
   for_each_rose_tunable(rose_define_tunable_template);
 #undef rose_define_tunable_template
 
-  auto uci_print_options();
+  auto uci_print_options() -> void;
   auto uci_parse_option(std::string_view name, std::string_view value) -> bool;
 
 }  // namespace rose::tune

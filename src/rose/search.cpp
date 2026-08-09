@@ -473,7 +473,7 @@ namespace rose {
         }
 
         // Quiet SEE Pruning
-        if (!mv.is_noisy() && depth <= 11 && !see::see(position, mv, 32z - 48_z * depth - 32_z * history / 1024)) {
+        if (!mv.is_noisy() && depth <= 11 && !see::see(position, mv, 32_z - 48_z * depth - 32_z * history / 1024)) {
           continue;
         }
 

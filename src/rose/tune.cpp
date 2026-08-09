@@ -4,11 +4,13 @@
 
 #include <algorithm>
 #include <fmt/format.h>
+#include <type_traits>
 
 namespace rose::tune {
 
-  auto uci_print_options() {
-#define rose_print_tuneable_template(T, n, v, min, max, ...) fmt::print("option name {} type spin default {} min {} max {}\n", #n, v, min, max);
+  auto uci_print_options() -> void {
+#define rose_print_tuneable_template(T, n, v, min, max, ...)                                                                                         \
+  fmt::print("option name {} type {} default {} min {} max {}\n", #n, std::is_same_v<T, f64> ? "string" : "spin", v, min, max);
     for_each_rose_tunable(rose_print_tuneable_template)
 #undef rose_print_tuneable_template
   }
