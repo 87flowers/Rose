@@ -408,6 +408,11 @@ namespace rose {
           }
         }
       }
+
+      // TT Beta-ProbCut
+      if (depth >= 7 && tte.is_some() && tte.depth >= depth - 4 && tte.bound.is_pv_or_cut() && tte.score >= beta + 420) {
+        return beta + 420;
+      }
     }
 
     // Internal iterative deepening
