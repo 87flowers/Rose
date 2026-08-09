@@ -69,6 +69,10 @@ namespace rose {
     return parse_integer<u64>(str);
   }
 
+  auto parse_i32(std::string_view str) -> std::optional<i32> {
+    return parse_integer<i32>(str);
+  }
+
   auto parse_usize(std::string_view str) -> std::optional<usize> {
     return parse_integer<usize>(str);
   }

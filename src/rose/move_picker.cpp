@@ -4,6 +4,7 @@
 #include "rose/movegen.hpp"
 #include "rose/search.hpp"
 #include "rose/see.hpp"
+#include "rose/tune.hpp"
 #include "rose/util/static_vector.hpp"
 
 #include <algorithm>
@@ -38,7 +39,7 @@ namespace rose {
     case Stage::emit_good_noisy:
       while (m_current_index < m_moves.size()) {
         const Move mv = m_moves[m_current_index++];
-        if (!see::see(m_position, mv, -150)) {
+        if (!see::see(m_position, mv, -150_z)) {
           m_bad_noisies.push_back(mv);
           continue;
         }
@@ -103,7 +104,7 @@ namespace rose {
 
     const Color stm = m_position.stm();
 
-    constexpr std::array<i32, 8> victim_score {{0, 10000, 100, 300, 0, 350, 500, 900}};
+    constexpr std::array<i32, 8> victim_score {{0, 10000_z, 100_z, 300_z, 0, 350_z, 500_z, 900_z}};
 
     for (isize i = 0; i < m_moves.size(); i++) {
       const Move mv = m_moves[i];
@@ -111,7 +112,7 @@ namespace rose {
       const PieceType attacker = m_position.ptype_at(mv.from());
 
       i32 score = 0;
-      score += victim_score[victim.to_index()] * 8;
+      score += victim_score[victim.to_index()] * 8_z;
       score += m_sd.noisy_history.get(stm, attacker, mv);
 
       scores[i] = score * 256 - i;
