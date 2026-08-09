@@ -185,7 +185,7 @@ namespace rose {
 
   static_assert(sizeof(PieceType) == sizeof(u8));
 
-  constexpr auto operator""_z(unsigned long long value) -> long long {
+  constexpr auto operator""_z(unsigned long long value) -> unsigned long long {
     return value;
   }
 
