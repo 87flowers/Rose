@@ -16,7 +16,8 @@ namespace rose::tt {
   struct LookupResult {
     i32 depth = 0;
     NodeType bound = NodeType::none;
-    i32 score = 0;
+    Score score = score::none;
+    Score eval = score::none;
     Move move = Move::none();
 
     auto is_none() const -> bool {
@@ -35,7 +36,9 @@ namespace rose::tt {
     // u8 depth
     // u2 bounds
     // u5 age
-    // u17 unused
+    // u1 unused
+    // i16 eval
+    static inline constexpr usize eval_shift = 0;
     static inline constexpr usize age_shift = 17;
     static inline constexpr usize bounds_shift = 22;
     static inline constexpr usize depth_shift = 24;
@@ -51,8 +54,10 @@ namespace rose::tt {
       const i32 tt_score = score::adjust_plys_to_mate(lr.score, -ply);
       const i32 tt_depth = std::clamp(lr.depth, 0, 255);
       const u64 tt_bound = std::to_underlying(lr.bound.raw);
+      const u64 tt_eval = static_cast<u64>(lr.eval) & 0xFFFF;
 
       raw = 0;
+      raw |= static_cast<u64>(tt_eval) << eval_shift;
       raw |= static_cast<u64>(age & age_mask) << age_shift;
       raw |= static_cast<u64>(tt_bound) << bounds_shift;
       raw |= static_cast<u64>(tt_depth) << depth_shift;
@@ -60,8 +65,13 @@ namespace rose::tt {
       raw |= static_cast<u64>(tt_score) << score_shift;
     }
 
+    constexpr inline auto eval() const -> Score {
+      const usize sext_shift = 64 - 16;
+      return static_cast<Score>(static_cast<i64>(raw >> eval_shift << sext_shift) >> sext_shift);
+    }
+
     constexpr inline auto age() const -> int {
-      return static_cast<int>((raw >> age_shift) & 0x1F);
+      return static_cast<int>((raw >> age_shift) & age_mask);
     }
 
     constexpr inline auto bound() const -> NodeType {
@@ -76,8 +86,8 @@ namespace rose::tt {
       return Move {static_cast<u16>(raw >> move_shift)};
     }
 
-    constexpr inline auto score(i32 ply) const -> i32 {
-      const i32 tt_score = static_cast<i32>(static_cast<i64>(raw) >> score_shift);
+    constexpr inline auto score(i32 ply) const -> Score {
+      const Score tt_score = static_cast<Score>(static_cast<i64>(raw) >> score_shift);
       return score::adjust_plys_to_mate(tt_score, +ply);
     }
 
@@ -86,6 +96,7 @@ namespace rose::tt {
         .depth = depth(),
         .bound = bound(),
         .score = score(ply),
+        .eval = eval(),
         .move = move(),
       };
     }
