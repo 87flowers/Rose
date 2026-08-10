@@ -503,9 +503,9 @@ namespace rose {
           // Single extension
           extension = 1;
           // Double extension
-          extension += expected != NodeType::pv && singular_score <= singular_beta - 21_z;
+          extension += singular_score <= singular_beta - 21_z - 200_z * (expected == NodeType::pv);
           // Triple extension
-          extension += expected != NodeType::pv && singular_score <= singular_beta - 131_z;
+          extension += singular_score <= singular_beta - 131_z - 200_z * (expected == NodeType::pv);
         }
         // Negative extension
         else if (expected == NodeType::cut) {
