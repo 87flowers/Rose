@@ -32,6 +32,7 @@ namespace rose {
     const SearchStack* m_ss;
     MoveGen m_movegen;
     Move m_tt_move;
+    i32 m_see_threshold;
 
     bool m_skip_quiet = false;
     usize m_current_index = 0;
@@ -39,7 +40,7 @@ namespace rose {
     MoveList m_bad_noisies;
 
   public:
-    MovePicker(const SearchData& sd, const Position& position, const SearchStack* ss, Move tt_move);
+    MovePicker(const SearchData& sd, const Position& position, const SearchStack* ss, Move tt_move, i32 see_threshold);
 
     auto next() -> Move;
 
@@ -49,6 +50,10 @@ namespace rose {
         m_stage = Stage::emit_bad_noisy;
         m_current_index = 0;
       }
+    }
+
+    auto is_in_bad_noisy_stage() const -> bool {
+      return m_stage == Stage::emit_bad_noisy;
     }
 
   private:

@@ -12,12 +12,13 @@
 
 namespace rose {
 
-  MovePicker::MovePicker(const SearchData& sd, const Position& position, const SearchStack* ss, Move tt_move) :
+  MovePicker::MovePicker(const SearchData& sd, const Position& position, const SearchStack* ss, Move tt_move, i32 see_threshold) :
       m_sd(sd),
       m_position(position),
       m_ss(ss),
       m_movegen(position),
-      m_tt_move(tt_move) {
+      m_tt_move(tt_move),
+      m_see_threshold(see_threshold) {
   }
 
   auto MovePicker::next() -> Move {
@@ -39,7 +40,7 @@ namespace rose {
     case Stage::emit_good_noisy:
       while (m_current_index < m_moves.size()) {
         const Move mv = m_moves[m_current_index++];
-        if (!see::see(m_position, mv, -163_z)) {
+        if (!see::see(m_position, mv, m_see_threshold)) {
           m_bad_noisies.push_back(mv);
           continue;
         }
