@@ -16,6 +16,7 @@ namespace rose::tt {
   struct LookupResult {
     i32 depth = 0;
     NodeType bound = NodeType::none;
+    bool was_pv = false;
     Score score = score::none;
     Score eval = score::none;
     Move move = Move::none();
@@ -36,9 +37,10 @@ namespace rose::tt {
     // u8 depth
     // u2 bounds
     // u5 age
-    // u1 unused
+    // u1 was_pv
     // i16 eval
     static inline constexpr usize eval_shift = 0;
+    static inline constexpr usize was_pv_shift = 16;
     static inline constexpr usize age_shift = 17;
     static inline constexpr usize bounds_shift = 22;
     static inline constexpr usize depth_shift = 24;
@@ -58,6 +60,7 @@ namespace rose::tt {
 
       raw = 0;
       raw |= static_cast<u64>(tt_eval) << eval_shift;
+      raw |= static_cast<u16>(lr.was_pv) << was_pv_shift;
       raw |= static_cast<u64>(age & age_mask) << age_shift;
       raw |= static_cast<u64>(tt_bound) << bounds_shift;
       raw |= static_cast<u64>(tt_depth) << depth_shift;
@@ -78,6 +81,10 @@ namespace rose::tt {
       return static_cast<NodeType::Underlying>((raw >> bounds_shift) & 3);
     }
 
+    constexpr inline auto was_pv() const -> bool {
+      return static_cast<bool>((raw >> was_pv_shift) & 1);
+    }
+
     constexpr inline auto depth() const -> u8 {
       return static_cast<u8>(raw >> depth_shift);
     }
@@ -95,6 +102,7 @@ namespace rose::tt {
       return {
         .depth = depth(),
         .bound = bound(),
+        .was_pv = was_pv(),
         .score = score(ply),
         .eval = eval(),
         .move = move(),

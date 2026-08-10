@@ -537,7 +537,7 @@ namespace rose {
         } else {
           reduction = 2255_z + 214_z * log2_depth * log2_searched_moves;
         }
-        reduction -= 970_z * (expected == NodeType::pv);
+        reduction -= 970_z * (expected == NodeType::pv || tte.was_pv);
         reduction -= 132_z * history / 1024;
         reduction += 937_z * (expected == NodeType::cut);
         reduction -= 844_z * child_position.is_in_check();
@@ -645,6 +645,7 @@ namespace rose {
       tt_store(tt::LookupResult {
         .depth = depth,
         .bound = actual_node_type,
+        .was_pv = tte.was_pv || expected == NodeType::pv,
         .score = best_score,
         .eval = static_eval,
         .move = best_move,
@@ -780,6 +781,7 @@ namespace rose {
     tt_store(tt::LookupResult {
       .depth = 0,
       .bound = actual_node_type,
+      .was_pv = tte.was_pv,
       .score = best_score,
       .eval = static_eval,
       .move = best_move,
