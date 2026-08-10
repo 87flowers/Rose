@@ -363,14 +363,20 @@ namespace rose {
     }();
     ss->static_eval = static_eval;
 
-    const bool improving = is_in_check                       ? false :
-                           ss[-2].static_eval != score::none ? static_eval > ss[-2].static_eval :
-                           ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
-                                                               false;
+    const i32 improvement = is_in_check                       ? 0 :
+                            ss[-2].static_eval != score::none ? static_eval - ss[-2].static_eval :
+                            ss[-4].static_eval != score::none ? static_eval - ss[-4].static_eval :
+                                                                0;
+    const bool improving = improvement > 0;
+
+    const i32 enemy_worsening = is_in_check                       ? 0 :
+                                ss[-1].static_eval != score::none ? static_eval + ss[-1].static_eval :
+                                ss[-3].static_eval != score::none ? static_eval + ss[-3].static_eval :
+                                                                    false;
 
     if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Hindsight extension
-      if (depth <= 20 && ss[-1].reduction >= 4 && ss[-1].static_eval != score::none && static_eval <= -ss[-1].static_eval) {
+      if (depth <= 20 && ss[-1].reduction >= 4 && enemy_worsening < 0) {
         depth++;
       }
 
