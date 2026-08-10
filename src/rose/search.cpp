@@ -369,14 +369,16 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
-    if (expected != NodeType::pv && !is_in_check && !excluded) {
+    if (!is_root && !is_in_check && !excluded) {
       // Hindsight history update
       if (ss[-1].move.is_quiet() && ss[-1].static_eval != score::none) {
         const i32 difference = static_eval + ss[-1].static_eval;
         const i32 bonus = std::clamp(-4096_z * difference, -8192_z, 131072_z) / 1024;
         m_sd.quiet_history.update(!stm, ss[-1].enemy_threatened, ss[-1].move, bonus);
       }
+    }
 
+    if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Hindsight extension
       if (depth <= 20 && ss[-1].reduction >= 4 && ss[-1].static_eval != score::none && static_eval <= -ss[-1].static_eval) {
         depth++;
