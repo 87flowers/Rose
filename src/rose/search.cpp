@@ -21,6 +21,7 @@
 #include <bit>
 #include <fmt/format.h>
 #include <memory>
+#include <optional>
 #include <thread>
 #include <variant>
 
@@ -410,49 +411,6 @@ namespace rose {
           }
         }
       }
-
-      if (depth >= 6 && !score::is_theoretical(beta) && expected == NodeType::cut && tte.move.is_none()) {
-        const Score probcut_beta = beta + 400_z;
-        const i32 probcut_depth = depth - 4;
-        const i32 probcut_see_threshold = probcut_beta - static_eval;
-
-        MovePicker moves {m_sd, position, ss, Move::none(), probcut_see_threshold};
-        moves.skip_quiet();
-
-        for (Move mv = moves.next(); mv.is_some() && !moves.is_in_bad_noisy_stage(); mv = moves.next()) {
-          const Score score = [&, this] {
-            const Position child_position = make_move(ss, position, mv);
-            rose_defer {
-              unmake_move(ss);
-            };
-
-            Line child_pv {};
-            Score score = -qsearch<expected.next()>(ctrl, child_position, child_pv, -probcut_beta, -probcut_beta + 1, ss + 1, ply + 1);
-
-            if (m_shared.stopping)
-              return 0;
-
-            if (score >= probcut_beta)
-              score = -search<expected.next()>(ctrl, child_position, child_pv, -probcut_beta, -probcut_beta + 1, ss + 1, ply + 1, probcut_depth);
-
-            return score;
-          }();
-
-          if (m_shared.stopping)
-            return 0;
-
-          if (score >= probcut_beta) {
-            tt_store(tt::LookupResult {
-              .depth = probcut_depth,
-              .bound = NodeType::cut,
-              .score = score,
-              .eval = static_eval,
-              .move = mv,
-            });
-            return score;
-          }
-        }
-      }
     }
 
     // Internal iterative deepening
@@ -468,6 +426,18 @@ namespace rose {
       hint_move = iid_tte.move;
       if (m_in_iid && iid_tte.depth >= depth)
         return iid_tte.score;
+    }
+
+    // ProbCut
+    if (expected == NodeType::cut && depth >= 8 && hint_move.is_none() && !excluded && !ss->probcut_see_threshold.has_value()) {
+      const Score probcut_beta = beta + 200_z;
+
+      ss->probcut_see_threshold = probcut_beta - static_eval;
+      const Score score = search<expected>(ctrl, position, pv, probcut_beta - 1, probcut_beta, ss, ply, depth - 4);
+      ss->probcut_see_threshold = std::nullopt;
+
+      if (score >= probcut_beta)
+        return score;
     }
 
     MovePicker moves {m_sd, position, ss, hint_move, -163_z};
@@ -767,7 +737,7 @@ namespace rose {
     }
     alpha = std::max(alpha, best_score);
 
-    MovePicker moves {m_sd, position, ss, Move::none(), -163_z};
+    MovePicker moves {m_sd, position, ss, Move::none(), ss->probcut_see_threshold.value_or(-163_z)};
     if (!is_in_check)
       moves.skip_quiet();
 
