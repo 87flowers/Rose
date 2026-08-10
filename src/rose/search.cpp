@@ -332,6 +332,7 @@ namespace rose {
     const bool is_in_check = position.is_in_check();
     const Color stm = position.stm();
     const Bitboard enemy_threatened = position.attack_table(!stm).bitboard_any();
+    ss->enemy_threatened = enemy_threatened;
 
     const tt::LookupResult tte = tt_load();
     Move hint_move = tte.move;
@@ -369,6 +370,13 @@ namespace rose {
                                                                false;
 
     if (expected != NodeType::pv && !is_in_check && !excluded) {
+      // Hindsight history update
+      if (ss[-1].move.is_quiet() && ss[-1].static_eval != score::none) {
+        const i32 difference = static_eval + ss[-1].static_eval;
+        const i32 bonus = std::clamp(-8192_z * difference, -16384_z, 262144_z) / 1024;
+        m_sd.quiet_history.update(!stm, ss[-1].enemy_threatened, ss[-1].move, bonus);
+      }
+
       // Hindsight extension
       if (depth <= 20 && ss[-1].reduction >= 4 && ss[-1].static_eval != score::none && static_eval <= -ss[-1].static_eval) {
         depth++;
@@ -552,7 +560,7 @@ namespace rose {
         if (score > alpha && lmr_depth < new_depth) {
           i32 research_depth = new_depth;
           if (!is_root) {
-            research_depth += score > best_score + 64;
+            research_depth += score > best_score + 64_z;
           }
 
           score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, research_depth);
