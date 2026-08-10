@@ -373,7 +373,7 @@ namespace rose {
       // Hindsight history update
       if (ss[-1].move.is_quiet() && ss[-1].static_eval != score::none) {
         const i32 difference = static_eval + ss[-1].static_eval;
-        const i32 bonus = std::clamp(-8192_z * difference, -16384_z, 262144_z) / 1024;
+        const i32 bonus = std::clamp(-4096_z * difference, -8192_z, 131072_z) / 1024;
         m_sd.quiet_history.update(!stm, ss[-1].enemy_threatened, ss[-1].move, bonus);
       }
 
