@@ -427,6 +427,15 @@ namespace rose {
         return iid_tte.score;
     }
 
+    // ProbCut
+    const Score probcut_beta = beta + 200_z;
+    if (expected == NodeType::cut && depth >= 8 && hint_move.is_none() && !excluded && static_eval >= probcut_beta) {
+      const Score score = search<expected>(ctrl, position, pv, probcut_beta - 1, probcut_beta, ss, ply, depth - 4);
+
+      if (score >= probcut_beta)
+        return score;
+    }
+
     MovePicker moves {m_sd, position, ss, hint_move};
 
     MoveList fail_low_quiets;
