@@ -543,7 +543,7 @@ namespace rose {
         reduction += 937_z * (expected == NodeType::cut);
         reduction -= 844_z * child_position.is_in_check();
 
-        const i32 lmr_depth = std::min(std::max(new_depth - reduction / 1024, 0), new_depth) + (expected == NodeType::pv);
+        const i32 lmr_depth = std::min(std::max(new_depth - reduction / 1024, 0), new_depth + 1) + (expected == NodeType::pv);
 
         ss->reduction = new_depth - lmr_depth;
         score = -search<expected.next()>(ctrl, child_position, child_pv, -alpha - 1, -alpha, ss + 1, ply + 1, lmr_depth);
