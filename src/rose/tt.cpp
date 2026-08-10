@@ -55,6 +55,11 @@ namespace rose::tt {
   }
 
   auto TT::store(u64 hash, int ply, LookupResult lr) -> void {
+    const auto retention_score = [this](const Entry& e) {
+      constexpr int max_age = Entry::age_mask + 1;
+      return e.depth() - (max_age + m_age - e.age()) % max_age * 4;
+    };
+
     const auto [index, fragment] = split_hash(m_count, hash);
     Bucket& bucket = m_table.get()[index];
 
@@ -64,17 +69,14 @@ namespace rose::tt {
       if (lr.move.is_none())
         lr.move = entry.move();
 
-      entry = Entry {ply, lr, m_age};
+      if ((entry.bound() != NodeType::pv && lr.bound == NodeType::pv && lr.depth > 0) || (lr.depth * 3 >= retention_score(entry) * 2))
+        entry = Entry {ply, lr, m_age};
+
       return;
     }
 
     Entry best_entry = bucket.entries[0];
     usize best_index = 0;
-
-    const auto retention_score = [this](const Entry& e) {
-      constexpr int max_age = Entry::age_mask + 1;
-      return e.depth() - (max_age + m_age - e.age()) % max_age * 4;
-    };
 
     if (best_entry.bound() != NodeType::none) {
       for (usize j = 1; j < bucket.entries.size(); j++) {
