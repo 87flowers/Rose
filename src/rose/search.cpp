@@ -184,7 +184,7 @@ namespace rose {
     }
 
     // Otherwise, rely on our move ordering to pick a move.
-    MovePicker moves {m_sd, m_root, &m_search_stack[search_stack_offset], Move::none()};
+    MovePicker moves {m_sd, m_root, &m_search_stack[search_stack_offset], Move::none(), -163};
     pv.write(moves.next());
     return 0;
   }
@@ -410,6 +410,41 @@ namespace rose {
           }
         }
       }
+
+      if (depth >= 6 && !score::is_theoretical(beta)) {
+        const Score probcut_beta = beta + 400_z;
+        const i32 probcut_depth = depth - 4;
+        const i32 probcut_see_threshold = probcut_beta - static_eval;
+
+        MovePicker moves {m_sd, position, ss, Move::none(), probcut_see_threshold};
+        moves.skip_quiet();
+
+        for (Move mv = moves.next(); mv.is_some() && !moves.is_in_bad_noisy_stage(); mv = moves.next()) {
+          const Position child_position = make_move(ss, position, mv);
+          rose_defer {
+            unmake_move(ss);
+          };
+
+          Line child_pv {};
+          Score score;
+
+          score = -qsearch<expected.next()>(ctrl, child_position, child_pv, -probcut_beta, -probcut_beta + 1, ss + 1, ply + 1);
+
+          if (m_shared.stopping)
+            return 0;
+
+          if (score >= probcut_beta) {
+            score = -search<expected.next()>(ctrl, child_position, child_pv, -probcut_beta, -probcut_beta + 1, ss + 1, ply + 1, probcut_depth);
+
+            if (m_shared.stopping)
+              return 0;
+          }
+
+          if (score >= probcut_beta) {
+            return score;
+          }
+        }
+      }
     }
 
     // Internal iterative deepening
@@ -427,7 +462,7 @@ namespace rose {
         return iid_tte.score;
     }
 
-    MovePicker moves {m_sd, position, ss, hint_move};
+    MovePicker moves {m_sd, position, ss, hint_move, -163_z};
 
     MoveList fail_low_quiets;
     MoveList fail_low_noisies;
@@ -724,7 +759,7 @@ namespace rose {
     }
     alpha = std::max(alpha, best_score);
 
-    MovePicker moves {m_sd, position, ss, Move::none()};
+    MovePicker moves {m_sd, position, ss, Move::none(), -163_z};
     if (!is_in_check)
       moves.skip_quiet();
 
