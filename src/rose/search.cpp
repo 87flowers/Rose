@@ -427,6 +427,8 @@ namespace rose {
         return iid_tte.score;
 
       // IID ProbCut
+      if (iid_score >= beta + 300_z)
+        return beta + 300_z;
       if (iid_score <= alpha - 300_z)
         return alpha - 300_z;
     }
