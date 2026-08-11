@@ -69,7 +69,7 @@ namespace rose::tt {
       if (lr.move.is_none())
         lr.move = entry.move();
 
-      if ((entry.bound() != NodeType::pv && lr.bound == NodeType::pv && lr.depth > 0) || (lr.depth >= retention_score(entry)))
+      if ((entry.bound() != NodeType::pv && lr.bound == NodeType::pv && lr.depth > 0) || (lr.depth * 2 >= retention_score(entry)))
         entry = Entry {ply, lr, m_age};
 
       return;
