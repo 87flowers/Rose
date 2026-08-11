@@ -411,8 +411,8 @@ namespace rose {
         }
       }
 
-      if (depth >= 6 && !score::is_theoretical(beta) && !is_in_check && !excluded && expected == NodeType::cut) {
-        const Score probcut_beta = beta + 400_z;
+      if (depth >= 6 && !score::is_theoretical(beta) && !is_in_check && expected == NodeType::cut && !hint_move.is_quiet()) {
+        const Score probcut_beta = beta + 256_z;
         const i32 probcut_depth = depth - 4;
         const i32 probcut_see_threshold = probcut_beta - static_eval;
 
@@ -420,6 +420,9 @@ namespace rose {
         moves.skip_quiet();
 
         for (Move mv = moves.next(); mv.is_some() && !moves.is_in_bad_noisy_stage(); mv = moves.next()) {
+          if (mv == ss->excluded)
+            continue;
+
           const Score score = [&, this] {
             const Position child_position = make_move(ss, position, mv);
             rose_defer {
@@ -443,7 +446,7 @@ namespace rose {
 
           if (score >= probcut_beta) {
             tt_store(tt::LookupResult {
-              .depth = probcut_depth,
+              .depth = probcut_depth + 1,
               .bound = NodeType::cut,
               .score = score,
               .eval = static_eval,
