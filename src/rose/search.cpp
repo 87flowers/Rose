@@ -411,7 +411,7 @@ namespace rose {
         }
       }
 
-      if (depth >= 6 && !score::is_theoretical(beta) && !is_in_check && expected == NodeType::cut && tte.move.is_none()) {
+      if (depth >= 6 && !score::is_theoretical(beta) && !is_in_check && !excluded && expected == NodeType::cut) {
         const Score probcut_beta = beta + 400_z;
         const i32 probcut_depth = depth - 4;
         const i32 probcut_see_threshold = probcut_beta - static_eval;
