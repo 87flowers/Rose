@@ -411,18 +411,18 @@ namespace rose {
         }
       }
 
-      // Alpha ProbCut
-      const Score probcut_alpha = alpha - 200_z - 50_z * depth;
-      if (expected == NodeType::all && depth >= 8 && hint_move.is_none() && static_eval <= probcut_alpha && !ss->in_alpha_probcut) {
-        ss->in_alpha_probcut = true;
+      // ProbCut
+      const Score probcut_beta = beta + 200_z + 10_z * depth;
+      if (expected == NodeType::all && depth >= 8 && hint_move.is_none() && static_eval >= probcut_beta && !ss->in_beta_probcut) {
+        ss->in_beta_probcut = true;
 
-        Score score = qsearch<expected>(ctrl, position, pv, probcut_alpha, probcut_alpha + 1, ss, ply);
-        if (score <= probcut_alpha)
-          score = search<expected>(ctrl, position, pv, probcut_alpha, probcut_alpha + 1, ss, ply, depth - 4);
+        Score score = qsearch<expected>(ctrl, position, pv, probcut_beta - 1, probcut_beta, ss, ply);
+        if (score >= probcut_beta)
+          score = search<expected>(ctrl, position, pv, probcut_beta - 1, probcut_beta, ss, ply, depth - 4);
 
-        ss->in_alpha_probcut = false;
+        ss->in_beta_probcut = false;
 
-        if (score <= probcut_alpha)
+        if (score >= probcut_beta)
           return score;
       }
     }
