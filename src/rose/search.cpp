@@ -424,9 +424,6 @@ namespace rose {
 
         if (score >= probcut_beta)
           return score;
-
-        if (hint_move.is_none())
-          hint_move = tt_load().move;
       }
     }
 
