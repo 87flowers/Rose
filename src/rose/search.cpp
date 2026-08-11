@@ -413,7 +413,7 @@ namespace rose {
 
       // ProbCut
       const Score probcut_beta = beta + 200_z + 10_z * depth;
-      if (expected == NodeType::all && depth >= 8 && hint_move.is_none() && static_eval >= probcut_beta && !ss->in_beta_probcut) {
+      if (expected == NodeType::cut && depth >= 8 && hint_move.is_none() && static_eval >= probcut_beta && !ss->in_beta_probcut) {
         ss->in_beta_probcut = true;
 
         Score score = qsearch<expected>(ctrl, position, pv, probcut_beta - 1, probcut_beta, ss, ply);
