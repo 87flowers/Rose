@@ -410,6 +410,15 @@ namespace rose {
           }
         }
       }
+
+      // Alpha ProbCut
+      const Score probcut_alpha = alpha - 700_z;
+      if (expected == NodeType::all && depth >= 8 && hint_move.is_none() && static_eval < probcut_alpha) {
+        const Score score = search<expected>(ctrl, position, pv, probcut_alpha, probcut_alpha + 1, ss, ply, depth - 4);
+
+        if (score <= probcut_alpha)
+          return probcut_alpha;
+      }
     }
 
     // Internal iterative deepening
@@ -424,15 +433,6 @@ namespace rose {
       hint_move = iid_tte.move;
       if (m_iid_iteration > 0 && iid_tte.depth >= depth)
         return iid_tte.score;
-    }
-
-    // Alpha ProbCut
-    const Score probcut_alpha = alpha - 200_z;
-    if (expected == NodeType::all && depth >= 8 && hint_move.is_none() && !excluded && static_eval < probcut_alpha) {
-      const Score score = search<expected>(ctrl, position, pv, probcut_alpha, probcut_alpha + 1, ss, ply, depth - 4);
-
-      if (score <= probcut_alpha)
-        return score;
     }
 
     MovePicker moves {m_sd, position, ss, hint_move};
