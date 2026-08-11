@@ -410,52 +410,13 @@ namespace rose {
           }
         }
       }
+    }
 
-      if (depth >= 6 && !score::is_theoretical(beta) && !is_in_check && expected == NodeType::cut && !hint_move.is_quiet()) {
-        const Score probcut_beta = beta + 256_z;
-        const i32 probcut_depth = depth - 4;
-        const i32 probcut_see_threshold = probcut_beta - static_eval;
-
-        MovePicker moves {m_sd, position, ss, Move::none(), probcut_see_threshold};
-        moves.skip_quiet();
-
-        for (Move mv = moves.next(); mv.is_some() && !moves.is_in_bad_noisy_stage(); mv = moves.next()) {
-          if (mv == ss->excluded)
-            continue;
-
-          const Score score = [&, this] {
-            const Position child_position = make_move(ss, position, mv);
-            rose_defer {
-              unmake_move(ss);
-            };
-
-            Line child_pv {};
-            Score score = -qsearch<expected.next()>(ctrl, child_position, child_pv, -probcut_beta, -probcut_beta + 1, ss + 1, ply + 1);
-
-            if (m_shared.stopping)
-              return 0;
-
-            if (score >= probcut_beta)
-              score = -search<expected.next()>(ctrl, child_position, child_pv, -probcut_beta, -probcut_beta + 1, ss + 1, ply + 1, probcut_depth);
-
-            return score;
-          }();
-
-          if (m_shared.stopping)
-            return 0;
-
-          if (score >= probcut_beta) {
-            tt_store(tt::LookupResult {
-              .depth = probcut_depth + 1,
-              .bound = NodeType::cut,
-              .score = score,
-              .eval = static_eval,
-              .move = mv,
-            });
-            return score;
-          }
-        }
-      }
+    // TT ProbCut in Check
+    const Score tt_probcut_beta = beta + 360;
+    if (is_in_check && !excluded && expected != NodeType::pv && tte.depth >= depth - 4 && tte.bound == NodeType::cut &&
+        !score::is_theoretical(tte.score) && !score::is_theoretical(beta) && tte.score >= tt_probcut_beta) {
+      return tt_probcut_beta;
     }
 
     // Internal iterative deepening
