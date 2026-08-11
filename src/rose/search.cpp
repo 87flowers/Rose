@@ -427,10 +427,12 @@ namespace rose {
         return iid_tte.score;
 
       // IID ProbCut
-      if (iid_score >= beta + 300_z)
-        return beta + 300_z;
-      if (iid_score <= alpha - 300_z)
-        return alpha - 300_z;
+      if (!m_in_iid) {
+        if (iid_score >= beta + 300_z)
+          return iid_score;
+        if (iid_score <= alpha - 400_z)
+          return iid_score;
+      }
     }
 
     MovePicker moves {m_sd, position, ss, hint_move};
