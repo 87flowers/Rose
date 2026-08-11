@@ -229,7 +229,7 @@ namespace rose {
         m_search_stack = {};
         pv.clear();
         m_nmr_ply = std::nullopt;
-        m_in_iid = false;
+        m_iid_depth = 0;
 
         const i32 aspiration_depth = std::max(1, depth - aspiration_reduction);
         SearchStack* ss = &m_search_stack[search_stack_offset];
@@ -416,14 +416,13 @@ namespace rose {
     if (!is_root && expected == NodeType::pv && depth >= 8 && hint_move.is_none() && !excluded) {
       const i32 iid_depth = (794_z * depth - 1525_z) / 1024;
 
-      const bool prev_in_iid = m_in_iid;
-      m_in_iid = true;
+      m_iid_depth++;
       search<NodeType::pv>(ctrl, position, pv, alpha, beta, ss, ply, iid_depth);
-      m_in_iid = prev_in_iid;
+      m_iid_depth--;
 
       const auto iid_tte = tt_load();
       hint_move = iid_tte.move;
-      if (m_in_iid && iid_tte.depth >= depth)
+      if (m_iid_depth > 0 && iid_tte.depth >= depth)
         return iid_tte.score;
     }
 
