@@ -646,7 +646,7 @@ namespace rose {
       tt_store(tt::LookupResult {
         .depth = depth,
         .bound = actual_node_type,
-        .was_pv = tte.was_pv || expected == NodeType::pv,
+        .was_pv = tte.was_pv || (expected == NodeType::pv && actual_node_type == NodeType::pv),
         .score = best_score,
         .eval = static_eval,
         .move = best_move,
