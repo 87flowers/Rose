@@ -138,7 +138,7 @@ namespace rose {
 
     SearchData m_sd;
     std::optional<i32> m_nmr_ply;
-    bool m_in_iid = false;
+    i32 m_iid_iteration = 0;
 
   public:
     template<typename Network>
