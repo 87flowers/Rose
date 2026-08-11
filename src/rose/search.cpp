@@ -417,13 +417,17 @@ namespace rose {
       const i32 iid_depth = (794_z * depth - 1525_z) / 1024;
 
       m_iid_depth++;
-      search<NodeType::pv>(ctrl, position, pv, alpha, beta, ss, ply, iid_depth);
+      const Score iid_score = search<NodeType::pv>(ctrl, position, pv, alpha, beta, ss, ply, iid_depth);
       m_iid_depth--;
 
       const auto iid_tte = tt_load();
       hint_move = iid_tte.move;
       if (m_iid_depth > 0 && iid_tte.depth >= depth)
         return iid_tte.score;
+
+      // IID Probcut
+      if (iid_score >= beta + 200_z + 128_z * m_iid_depth)
+        return iid_score;
     }
 
     MovePicker moves {m_sd, position, ss, hint_move};
