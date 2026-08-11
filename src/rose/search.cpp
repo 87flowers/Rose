@@ -413,9 +413,15 @@ namespace rose {
 
       // Alpha ProbCut
       const Score probcut_alpha = alpha - 300_z - 200_z * depth;
-      if (expected == NodeType::all && depth >= 8 && hint_move.is_none() && static_eval < alpha && !ss->in_alpha_probcut) {
+      if (expected == NodeType::all && depth >= 8 && hint_move.is_none() && static_eval <= probcut_alpha && !ss->in_alpha_probcut) {
+        Score score;
+        score = qsearch<expected>(ctrl, position, pv, probcut_alpha, probcut_alpha + 1, ss, ply);
+
+        if (score <= probcut_alpha)
+          return score;
+
         ss->in_alpha_probcut = true;
-        const Score score = search<expected>(ctrl, position, pv, probcut_alpha, probcut_alpha + 1, ss, ply, depth - 4);
+        score = search<expected>(ctrl, position, pv, probcut_alpha, probcut_alpha + 1, ss, ply, depth - 4);
         ss->in_alpha_probcut = false;
 
         if (score <= probcut_alpha)
