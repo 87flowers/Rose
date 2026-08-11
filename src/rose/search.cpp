@@ -537,7 +537,8 @@ namespace rose {
         } else {
           reduction = 2255_z + 214_z * log2_depth * log2_searched_moves;
         }
-        reduction -= 970_z * (expected == NodeType::pv || tte.was_pv);
+        reduction -= 970_z * (expected == NodeType::pv);
+        reduction += 256_z * !tte.was_pv;
         reduction -= 132_z * history / 1024;
         reduction += 937_z * (expected == NodeType::cut);
         reduction -= 844_z * child_position.is_in_check();
