@@ -368,7 +368,7 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
-    if (expected != NodeType::pv && !is_in_check && !excluded) {
+    if (expected != NodeType::pv && !is_in_check && !excluded && !ss->in_beta_probcut) {
       // Hindsight extension
       if (depth <= 20 && ss[-1].reduction >= 4 && ss[-1].static_eval != score::none && static_eval <= -ss[-1].static_eval) {
         depth++;
@@ -413,7 +413,7 @@ namespace rose {
 
       // ProbCut
       const Score probcut_beta = beta + 200_z + 10_z * depth;
-      if (expected == NodeType::cut && depth >= 8 && hint_move.is_none() && static_eval >= probcut_beta && !ss->in_beta_probcut) {
+      if (expected == NodeType::cut && depth >= 8 && hint_move.is_none() && static_eval >= probcut_beta) {
         ss->in_beta_probcut = true;
 
         Score score = qsearch<expected>(ctrl, position, pv, probcut_beta - 1, probcut_beta, ss, ply);
@@ -476,7 +476,7 @@ namespace rose {
         }
 
         // Futility Pruning
-        if (!mv.is_noisy() && depth <= 6 && std::abs(alpha) < 2000 && static_eval + 267_z + depth * 104_z <= alpha) {
+        if (!mv.is_noisy() && depth <= 6 && std::abs(alpha) < 2000 && static_eval + 267_z + depth * 104_z <= alpha && !ss->in_beta_probcut) {
           moves.skip_quiet();
           continue;
         }
@@ -753,7 +753,7 @@ namespace rose {
 
         // QS Futility Pruning
         const Score futility = static_eval + 167_z;
-        if (futility <= alpha && !see::see(position, mv, 1)) {
+        if (futility <= alpha && !see::see(position, mv, 1) && !ss->in_beta_probcut) {
           best_score = std::max(best_score, futility);
           continue;
         }
