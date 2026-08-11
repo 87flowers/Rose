@@ -337,7 +337,7 @@ namespace rose {
     Move hint_move = tte.move;
 
     // Transposition Table Cutoffs
-    if (expected != NodeType::pv && !excluded && tte.is_some() && tte.depth >= depth && [&] {
+    if (expected != NodeType::pv && !excluded && tte.is_some() && tte.depth >= depth && ss->enable_pruning && [&] {
           switch (tte.bound.raw) {
           case NodeType::none:
             return false;
@@ -368,7 +368,7 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
-    if (expected != NodeType::pv && !is_in_check && !excluded) {
+    if (expected != NodeType::pv && !is_in_check && !excluded && ss->enable_pruning) {
       // Hindsight extension
       if (depth <= 20 && ss[-1].reduction >= 4 && ss[-1].static_eval != score::none && static_eval <= -ss[-1].static_eval) {
         depth++;
@@ -414,7 +414,9 @@ namespace rose {
       // Alpha ProbCut
       const Score probcut_alpha = alpha - 300_z - 500_z * depth;
       if (expected == NodeType::all && depth >= 8 && hint_move.is_none() && static_eval < alpha) {
+        ss->enable_pruning = false;
         const Score score = search<expected>(ctrl, position, pv, probcut_alpha, probcut_alpha + 1, ss, ply, depth - 4);
+        ss->enable_pruning = true;
 
         if (score <= probcut_alpha)
           return score;
