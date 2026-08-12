@@ -208,8 +208,8 @@ namespace rose {
 
     m_evaluation.reset(m_root);
 
-    i32 pv_stability = 0;
-    i32 score_stability = 0;
+    i32 pv_last_unstable = 0;
+    i32 score_last_unstable = 0;
 
     for (i32 depth = 1; depth < max_depth; depth++) {
       Line pv {};
@@ -217,6 +217,7 @@ namespace rose {
       Score beta = score::infinity;
       Score delta = 17_z;
       Score score = score::none;
+      Score average_score = score::none;
 
       if (depth >= 4) {
         alpha = last_score - delta;
@@ -255,23 +256,21 @@ namespace rose {
       if (m_shared.stopping)
         break;
 
-      if (last_pv.first_move() == pv.first_move()) {
-        pv_stability++;
-      } else {
-        pv_stability = 0;
-      }
+      average_score = average_score == score::none ? score : (average_score + score) / 2;
 
-      if (std::abs(last_score - score) < 28_z) {
-        score_stability++;
-      } else {
-        score_stability = 0;
-      }
+      if (last_pv.first_move() != pv.first_move())
+        pv_last_unstable = depth;
+      if (std::abs(average_score - score) >= 28_z)
+        score_last_unstable = depth;
 
       last_score = score;
       last_pv = pv;
       last_depth = depth;
 
       if (is_main_thread()) {
+        const i32 pv_stability = depth - pv_last_unstable;
+        const i32 score_stability = depth - score_last_unstable;
+
         const f32 time_multiplier = std::clamp(1.0 - pv_stability * 0.05116902193882232_z, 0.592028611604442_z, 1.0855072225856215_z) *
                                     std::clamp(1.0 - score_stability * 0.04828987665300888_z, 0.667434450591335_z, 1.1385035397539525_z);
 
