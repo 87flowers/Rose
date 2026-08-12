@@ -258,14 +258,12 @@ namespace rose {
 
       if (last_pv.first_move() != pv.first_move())
         pv_last_unstable = depth;
-      if (std::abs(average_score - score) >= 28_z)
+      if (std::abs(last_score - score) >= 28_z)
         score_last_unstable = depth;
 
       last_score = score;
       last_pv = pv;
       last_depth = depth;
-
-      average_score = average_score == score::none ? score : (average_score + score) / 2;
 
       if (is_main_thread()) {
         const i32 pv_stability = depth - pv_last_unstable;
