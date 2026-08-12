@@ -368,7 +368,7 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
-    if (expected != NodeType::pv && !is_in_check && !excluded) {
+    if (expected != NodeType::pv && !is_in_check && !excluded && !score::is_theoretical(alpha) && !score::is_theoretical(beta)) {
       // Hindsight extension
       if (depth <= 20 && ss[-1].reduction >= 4 && ss[-1].static_eval != score::none && static_eval <= -ss[-1].static_eval) {
         depth++;
