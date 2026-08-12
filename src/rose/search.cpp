@@ -217,7 +217,6 @@ namespace rose {
       Score beta = score::infinity;
       Score delta = 17_z;
       Score score = score::none;
-      Score average_score = score::none;
 
       if (depth >= 4) {
         alpha = last_score - delta;
