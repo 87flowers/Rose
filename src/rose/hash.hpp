@@ -8,6 +8,13 @@
 
 namespace rose {
   using Hash = u64;
+
+  struct Hashes {
+    Hash full;
+    std::array<Hash, Color::count> color;
+
+    constexpr auto operator==(const Hashes&) const -> bool = default;
+  };
 }  // namespace rose
 
 namespace rose::hash {
@@ -30,6 +37,10 @@ namespace rose::hash {
   inline auto promo(Square from, Square to, Color color, PieceType dest_ptype) -> Hash {
     const usize color_index = color.to_index() << 3;
     return piece_table[color_index + PieceType::p][from.raw] ^ piece_table[color_index + dest_ptype.raw][to.raw];
+  }
+
+  inline auto add_piece(Square sq, Place place) -> Hash {
+    return piece_table[place.raw >> 4][sq.raw];
   }
 
   inline auto remove_piece(Square sq, Place place) -> Hash {

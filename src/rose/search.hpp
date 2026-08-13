@@ -127,7 +127,7 @@ namespace rose {
 
     Position m_root;
     std::vector<Move> m_move_stack;
-    std::vector<Hash> m_hash_stack;
+    std::vector<Hashes> m_hash_stack;
     usize m_hash_waterline;
 
     inline static constexpr usize search_stack_offset = 8;
