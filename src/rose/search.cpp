@@ -559,7 +559,7 @@ namespace rose {
 
             for (i32 i : conthists_indexes)
               if (ss[-i].conthist)
-                ss[-i].conthist->update(stm, position.place_at(mv.from()).ptype(), mv, score <= alpha ? -cont_malus : cont_bonus);
+                ss[-i].conthist->update(stm, position.ptype_at(mv.from()), mv, score <= alpha ? -cont_malus : cont_bonus);
           }
         }
       }
@@ -627,12 +627,12 @@ namespace rose {
         m_sd.quiet_history.update(stm, enemy_threatened, best_move, quiet_bonus);
         for (i32 i : conthists_indexes)
           if (ss[-i].conthist)
-            ss[-i].conthist->update(stm, position.place_at(best_move.from()).ptype(), best_move, cont_bonus);
+            ss[-i].conthist->update(stm, position.ptype_at(best_move.from()), best_move, cont_bonus);
         for (const Move quiet : fail_low_quiets) {
           m_sd.quiet_history.update(stm, enemy_threatened, quiet, -quiet_malus);
           for (i32 i : conthists_indexes)
             if (ss[-i].conthist)
-              ss[-i].conthist->update(stm, position.place_at(quiet.from()).ptype(), quiet, -cont_malus);
+              ss[-i].conthist->update(stm, position.ptype_at(quiet.from()), quiet, -cont_malus);
         }
       }
     }
@@ -809,7 +809,7 @@ namespace rose {
     m_hash_stack.push_back(position.hash_after(m_hash_stack.back(), mv));
     const Position child_position = position.move(mv, m_evaluation.observer());
     ss->move = mv;
-    ss->conthist = m_sd.continuation_history.get_subtable(!child_position.stm(), child_position.place_at(mv.to()).ptype(), mv);
+    ss->conthist = m_sd.continuation_history.get_subtable(!child_position.stm(), child_position.ptype_at(mv.to()), mv);
     ss[1].static_eval = score::none;
     return child_position;
   }

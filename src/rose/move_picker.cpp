@@ -135,7 +135,7 @@ namespace rose {
 
     for (isize i = 0; i < m_moves.size(); i++) {
       const Move mv = m_moves[i];
-      const PieceType ptype = m_position.place_at(mv.from()).ptype();
+      const PieceType ptype = m_position.ptype_at(mv.from());
 
       i32 score = 0;
       score += m_sd.quiet_history.get(stm, threats, mv);

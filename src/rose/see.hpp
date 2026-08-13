@@ -26,7 +26,7 @@ namespace rose::see {
       return value(PieceType::p);
     }
 
-    Score score = value(pos.place_at(mv.to()).ptype());
+    Score score = value(pos.ptype_at(mv.to()));
     if (mv.is_promo()) {
       score += value(mv.ptype()) - value(PieceType::p);
     }
@@ -42,7 +42,7 @@ namespace rose::see {
       return false;
     }
 
-    score -= value(mv.is_promo() ? mv.ptype() : pos.place_at(mv.from()).ptype());
+    score -= value(mv.is_promo() ? mv.ptype() : pos.ptype_at(mv.from()));
     stm = !stm;
 
     if (score >= 0) {
