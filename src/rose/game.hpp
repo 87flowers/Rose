@@ -45,7 +45,7 @@ namespace rose {
 
     auto is_draw_slow() const -> bool {
       const Position& pos = position();
-      return draw::is_stalemate(pos) || draw::is_fifty_move_draw(pos, 0) == 0 || draw::is_repetition(hash_stack(), hash_stack().size());
+      return draw::is_stalemate(pos) || draw::is_fifty_move_draw(pos, 0) == 0 || draw::is_repetition(pos, hash_stack(), hash_stack().size());
     }
 
     auto set_position(const Position& new_pos) -> void {
