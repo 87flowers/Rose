@@ -31,6 +31,7 @@ namespace rose {
 
     case Stage::generate_noisy:
       generate_noisy();
+      sort_noisy();
 
       m_stage = Stage::emit_good_noisy;
       m_current_index = 0;
@@ -60,6 +61,7 @@ namespace rose {
       }
 
       generate_quiet();
+      sort_quiet();
 
       m_stage = Stage::emit_quiet;
       m_current_index = 0;
@@ -95,10 +97,45 @@ namespace rose {
     }
   }
 
+  auto MovePicker::resort() -> void {
+    switch (m_stage) {
+    case Stage::tt_move:
+      return;
+
+    case Stage::generate_noisy:
+      return;
+
+    case Stage::emit_good_noisy:
+      if (m_current_index < m_moves.size()) {
+        sort_noisy();
+      }
+      return;
+
+    case Stage::generate_quiet:
+      return;
+
+    case Stage::emit_quiet:
+      if (m_current_index < m_moves.size()) {
+        sort_quiet();
+      }
+      return;
+
+    case Stage::emit_bad_noisy:
+      return;
+
+    case Stage::end:
+    default:
+      return;
+    }
+  }
+
   auto MovePicker::generate_noisy() -> void {
     m_moves.clear();
     m_movegen.generate_noisy(m_moves);
+    m_current_index = 0;
+  }
 
+  auto MovePicker::sort_noisy() -> void {
     StaticVector<i32, max_legal_moves> scores;
     scores.resize(m_moves.size());
 
@@ -106,7 +143,7 @@ namespace rose {
 
     const std::array<i32, 8> victim_score {{0, 9480_z, 103_z, 280_z, 0, 355_z, 474_z, 1009_z}};
 
-    for (isize i = 0; i < m_moves.size(); i++) {
+    for (isize i = m_current_index; i < m_moves.size(); i++) {
       const Move mv = m_moves[i];
       const PieceType victim = m_position.ptype_at(mv.to());
       const PieceType attacker = m_position.ptype_at(mv.from());
@@ -118,22 +155,23 @@ namespace rose {
       scores[i] = score * 256 - i;
     }
 
-    std::ranges::sort(std::ranges::zip_view(m_moves, scores), [](auto&& a, auto&& b) {
-      return std::get<1>(a) > std::get<1>(b);
-    });
+    sort_with_scores(scores);
   }
 
   auto MovePicker::generate_quiet() -> void {
     m_moves.clear();
     m_movegen.generate_quiet(m_moves);
+    m_current_index = 0;
+  }
 
+  auto MovePicker::sort_quiet() -> void {
     StaticVector<i32, max_legal_moves> scores;
     scores.resize(m_moves.size());
 
     const Color stm = m_position.stm();
     const Bitboard threats = m_position.attack_table(!stm).bitboard_any();
 
-    for (isize i = 0; i < m_moves.size(); i++) {
+    for (isize i = m_current_index; i < m_moves.size(); i++) {
       const Move mv = m_moves[i];
       const PieceType ptype = m_position.place_at(mv.from()).ptype();
 
@@ -146,9 +184,15 @@ namespace rose {
       scores[i] = score * 256 - i;
     }
 
-    std::ranges::sort(std::ranges::zip_view(m_moves, scores), [](auto&& a, auto&& b) {
-      return std::get<1>(a) > std::get<1>(b);
-    });
+    sort_with_scores(scores);
+  }
+
+  auto MovePicker::sort_with_scores(StaticVector<i32, max_legal_moves>& scores) -> void {
+    std::ranges::sort(std::ranges::zip_view(std::ranges::subrange(m_moves.begin() + m_current_index, m_moves.end()),
+                                            std::ranges::subrange(scores.begin() + m_current_index, scores.end())),
+                      [](auto&& a, auto&& b) {
+                        return std::get<1>(a) > std::get<1>(b);
+                      });
   }
 
 }  // namespace rose

@@ -43,6 +43,8 @@ namespace rose {
 
     auto next() -> Move;
 
+    auto resort() -> void;
+
     auto skip_quiet() -> void {
       m_skip_quiet = true;
       if (is_in_quiet_stage()) {
@@ -53,7 +55,11 @@ namespace rose {
 
   private:
     auto generate_noisy() -> void;
+    auto sort_noisy() -> void;
     auto generate_quiet() -> void;
+    auto sort_quiet() -> void;
+
+    auto sort_with_scores(StaticVector<i32, max_legal_moves>& scores) -> void;
   };
 
 }  // namespace rose

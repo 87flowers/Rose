@@ -591,6 +591,10 @@ namespace rose {
             break;
           }
         }
+
+        if (is_root) {
+          moves.resort();
+        }
       }
 
       if (mv != best_move) {
