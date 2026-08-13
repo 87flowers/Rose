@@ -249,9 +249,9 @@ namespace rose {
       return move(m, eval::NullObserver {});
     }
 
-    auto hash_after(Hash prev, Move m) const -> Hash;
-    auto hash_after_null_move(Hash prev) const -> Hash;
-    auto calc_hash_slow() const -> Hash;
+    auto hashes_after(Hashes prev, Move m) const -> Hashes;
+    auto hashes_after_null_move(Hashes prev) const -> Hashes;
+    auto calc_hashes_slow() const -> Hashes;
 
     auto pin_info() const -> std::tuple<const std::array<PieceMask, 64>&, Bitboard>;
     auto calc_pin_info_slow() const -> std::tuple<std::array<PieceMask, 64>, Bitboard>;

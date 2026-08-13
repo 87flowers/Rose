@@ -149,7 +149,7 @@ namespace rose {
         m_hash_stack = g.hash_stack();
         m_hash_waterline = std::max<usize>(1, m_hash_stack.size()) - 1;
 
-        rose_assert(m_hash_stack.back() == m_root.calc_hash_slow());
+        rose_assert(m_hash_stack.back() == m_root.calc_hashes_slow());
 
         const auto ctrl = is_main_thread() ? calc_ctrl(m_shared.search_start_time, m_shared.search_main_limits, m_root.stm()) :
                                              controls::None {.start_time = m_shared.search_start_time};
@@ -793,20 +793,20 @@ namespace rose {
   auto Search<Evaluation>::tt_load() -> tt::LookupResult {
     rose_assert(m_hash_stack.size() > m_hash_waterline);
     const i32 ply = static_cast<i32>(m_hash_stack.size() - 1 - m_hash_waterline);
-    return m_shared.transposition_table.load(m_hash_stack.back(), ply);
+    return m_shared.transposition_table.load(m_hash_stack.back().full, ply);
   }
 
   template<eval::concepts::State Evaluation>
   auto Search<Evaluation>::tt_store(tt::LookupResult lr) -> void {
     rose_assert(m_hash_stack.size() > m_hash_waterline);
     const i32 ply = static_cast<i32>(m_hash_stack.size() - 1 - m_hash_waterline);
-    m_shared.transposition_table.store(m_hash_stack.back(), ply, lr);
+    m_shared.transposition_table.store(m_hash_stack.back().full, ply, lr);
   }
 
   template<eval::concepts::State Evaluation>
   auto Search<Evaluation>::make_move(SearchStack* ss, const Position& position, Move mv) -> Position {
     m_evaluation.push();
-    m_hash_stack.push_back(position.hash_after(m_hash_stack.back(), mv));
+    m_hash_stack.push_back(position.hashes_after(m_hash_stack.back(), mv));
     const Position child_position = position.move(mv, m_evaluation.observer());
     ss->move = mv;
     ss->conthist = m_sd.continuation_history.get_subtable(!child_position.stm(), child_position.ptype_at(mv.to()), mv);
@@ -817,7 +817,7 @@ namespace rose {
   template<eval::concepts::State Evaluation>
   auto Search<Evaluation>::make_null_move(SearchStack* ss, const Position& position) -> Position {
     m_evaluation.push();
-    m_hash_stack.push_back(position.hash_after_null_move(m_hash_stack.back()));
+    m_hash_stack.push_back(position.hashes_after_null_move(m_hash_stack.back()));
     const Position child_position = position.null_move();
     ss->move = Move::none();
     ss->conthist = nullptr;

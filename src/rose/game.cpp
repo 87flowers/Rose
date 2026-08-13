@@ -21,8 +21,8 @@ namespace rose {
   }
 
   auto Game::print_hash_stack() const -> void {
-    for (const u64 h : m_hash_stack)
-      fmt::print("{:016x}\n", h);
+    for (const Hashes h : m_hash_stack)
+      fmt::print("{:016x}\n", h.full);
   }
 
 }  // namespace rose

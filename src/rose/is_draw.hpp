@@ -22,12 +22,12 @@ namespace rose::draw {
     return 0;
   }
 
-  inline auto is_repetition(const Position& pos, const std::vector<Hash>& hash_stack, usize hash_waterline) -> bool {
+  inline auto is_repetition(const Position& pos, const std::vector<Hashes>& hash_stack, usize hash_waterline) -> bool {
     const int height = static_cast<int>(hash_stack.size()) - 1;
     const int end = std::min<int>(pos.fifty_move_clock(), height);
 
-    const auto hash_at = [&hash_stack, height](int i) {
-      return hash_stack[height - i];
+    const auto hash_at = [&hash_stack, height](int i) -> Hash {
+      return hash_stack[height - i].full;
     };
     const Hash current_hash = hash_at(0);
 
@@ -42,5 +42,27 @@ namespace rose::draw {
     }
     return false;
   }
+
+  //  inline auto is_upcoming_repetition(const Position& pos, const std::vector<Hash>& hash_stack, usize hash_waterline) -> bool {
+  //    const int height = static_cast<int>(hash_stack.size()) - 1;
+  //    const int end = std::min<int>(pos.fifty_move_clock(), height);
+  //
+  //    const auto hash_at = [&hash_stack, height](int i) {
+  //      return hash_stack[height - i];
+  //    };
+  //    const Hash current_hash = hash_at(0);
+  //
+  //    usize clones = 0;
+  //    for (int i = 4; i <= end; i += 2) {
+  //      const Hash diff = hash_at(i) ^ current_hash;
+  //      if () {
+  //        const usize clone_limit = (height - i) < hash_waterline ? 2 : 1;
+  //        clones++;
+  //        if (clones >= clone_limit)
+  //          return true;
+  //      }
+  //    }
+  //    return false;
+  //  }
 
 }  // namespace rose::draw
