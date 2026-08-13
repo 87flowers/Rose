@@ -561,12 +561,12 @@ namespace rose {
     return new_pos;
   }
 
-  auto Position::hash_after(Hash prev, Move m) const -> Hash {
-    Hash new_hash = prev;
+  auto Position::hashes_after(Hashes prev, Move m) const -> Hashes {
+    Hashes new_hash = prev;
     RookInfo new_rook_info = m_rook_info;
 
     if (m_enpassant.is_valid()) {
-      new_hash ^= hash::enpassant_table[m_enpassant.file()];
+      new_hash.toggle_enpassant(m_enpassant);
     }
 
     const Square from = m.from();
@@ -586,47 +586,56 @@ namespace rose {
     };
 
     const auto normal = [&] {
-      new_hash ^= hash::move_piece(from, to, src_place);
+      new_hash.toggle_piece(from, src_place);
+      new_hash.toggle_piece(to, src_place);
       check_src_castling_rights();
     };
 
     const auto cap_normal = [&] {
-      new_hash ^= hash::remove_piece(to, dest_place);
-      new_hash ^= hash::move_piece(from, to, src_place);
+      new_hash.toggle_piece(to, dest_place);
+      new_hash.toggle_piece(from, src_place);
+      new_hash.toggle_piece(to, src_place);
       check_src_castling_rights();
       check_dest_castling_rights();
     };
 
     const auto promo = [&](auto ptype) {
-      new_hash ^= hash::promo(from, to, m_stm, decltype(ptype)::value);
+      new_hash.toggle_piece(from, src_place);
+      new_hash.toggle_piece(to, m_stm, decltype(ptype)::value);
     };
 
     const auto cap_promo = [&](auto ptype) {
-      new_hash ^= hash::remove_piece(to, dest_place);
-      new_hash ^= hash::promo(from, to, m_stm, decltype(ptype)::value);
+      new_hash.toggle_piece(to, dest_place);
+      new_hash.toggle_piece(from, src_place);
+      new_hash.toggle_piece(to, m_stm, decltype(ptype)::value);
       check_dest_castling_rights();
     };
 
     const auto double_push = [&] {
-      new_hash ^= hash::move_piece(from, to, src_place);
+      new_hash.toggle_piece(from, src_place);
+      new_hash.toggle_piece(to, src_place);
+
       const Square new_enpassant {narrow_cast<u8>((from.raw + to.raw) >> 1)};
-      new_hash ^= hash::enpassant_table[new_enpassant.file()];
+      new_hash.toggle_enpassant(new_enpassant);
     };
 
     const auto enpassant = [&] {
       const Square victim = Square::from_file_and_rank(to.file(), from.rank());
-      new_hash ^= hash::remove_piece(victim, !m_stm, PieceType::p);
-      new_hash ^= hash::move_piece(from, to, src_place);
+      new_hash.toggle_piece(victim, !m_stm, PieceType::p);
+      new_hash.toggle_piece(from, src_place);
+      new_hash.toggle_piece(to, src_place);
     };
 
     const auto castle = [&](u8 king_dest_file, u8 rook_dest_file) {
-      const Square king_dest {narrow_cast<u8>((from.raw & 0x38) | king_dest_file)};
-      const Square rook_dest {narrow_cast<u8>((from.raw & 0x38) | rook_dest_file)};
+      const Square king_dst {narrow_cast<u8>((from.raw & 0x38) | king_dest_file)};
+      const Square rook_dst {narrow_cast<u8>((from.raw & 0x38) | rook_dest_file)};
       const Square king_src = m.from();
       const Square rook_src = m.to();
 
-      new_hash ^= hash::move_piece(king_src, king_dest, m_stm, PieceType::k);
-      new_hash ^= hash::move_piece(rook_src, rook_dest, m_stm, PieceType::r);
+      new_hash.toggle_piece(king_src, m_stm, PieceType::k);
+      new_hash.toggle_piece(king_dst, m_stm, PieceType::k);
+      new_hash.toggle_piece(rook_src, m_stm, PieceType::r);
+      new_hash.toggle_piece(rook_dst, m_stm, PieceType::r);
 
       new_rook_info.clear(m_stm);
     };
@@ -678,34 +687,39 @@ namespace rose {
     }
 #undef MF
 
-    new_hash ^= hash::castle_table[m_rook_info.to_index()];
-    new_hash ^= hash::castle_table[new_rook_info.to_index()];
-    new_hash ^= hash::move;
+    new_hash.toggle_castle(m_rook_info.to_index());
+    new_hash.toggle_castle(new_rook_info.to_index());
+    new_hash.toggle_stm();
 
     return new_hash;
   }
 
-  auto Position::hash_after_null_move(Hash prev) const -> Hash {
-    Hash new_hash = prev;
+  auto Position::hashes_after_null_move(Hashes prev) const -> Hashes {
+    Hashes new_hash = prev;
 
     if (m_enpassant.is_valid()) {
-      new_hash ^= hash::enpassant_table[m_enpassant.file()];
+      new_hash.toggle_enpassant(m_enpassant);
     }
 
-    new_hash ^= hash::move;
+    new_hash.toggle_stm();
 
     return new_hash;
   }
 
-  auto Position::calc_hash_slow() const -> Hash {
-    Hash result = 0;
-    for (u8 sq = 0; sq < 64; sq++)
-      result ^= hash::piece_table[m_board[Square {sq}].raw >> 4][sq];
+  auto Position::calc_hashes_slow() const -> Hashes {
+    Hashes result {};
+
+    for (u8 i = 0; i < 64; i++) {
+      const Square sq {i};
+      result.toggle_piece(sq, m_board[sq]);
+    }
+
     if (m_enpassant.is_valid())
-      result ^= hash::enpassant_table[m_enpassant.file()];
-    result ^= hash::castle_table[m_rook_info.to_index()];
+      result.toggle_enpassant(m_enpassant);
+    result.toggle_castle(m_rook_info.to_index());
     if (m_stm == Color::black)
-      result ^= hash::move;
+      result.toggle_stm();
+
     return result;
   }
 

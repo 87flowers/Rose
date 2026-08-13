@@ -18,27 +18,42 @@ namespace rose::hash {
 
   inline constexpr Hash move = ~Hash {0};
 
-  inline auto move_piece(Square from, Square to, Place src_place) -> Hash {
-    return piece_table[src_place.raw >> 4][from.raw] ^ piece_table[src_place.raw >> 4][to.raw];
-  }
-
-  inline auto move_piece(Square from, Square to, Color color, PieceType ptype) -> Hash {
-    const usize color_index = color.to_index() << 3;
-    return piece_table[color_index + ptype.raw][from.raw] ^ piece_table[color_index + ptype.raw][to.raw];
-  }
-
-  inline auto promo(Square from, Square to, Color color, PieceType dest_ptype) -> Hash {
-    const usize color_index = color.to_index() << 3;
-    return piece_table[color_index + PieceType::p][from.raw] ^ piece_table[color_index + dest_ptype.raw][to.raw];
-  }
-
-  inline auto remove_piece(Square sq, Place place) -> Hash {
-    return piece_table[place.raw >> 4][sq.raw];
-  }
-
-  inline auto remove_piece(Square sq, Color color, PieceType ptype) -> Hash {
-    const usize color_index = color.to_index() << 3;
-    return piece_table[color_index + ptype.raw][sq.raw];
-  }
-
 }  // namespace rose::hash
+
+namespace rose {
+  struct Hashes {
+    Hash full = 0;
+    Hash pawn = 0;
+
+    constexpr auto operator==(const Hashes&) const -> bool = default;
+
+    inline auto toggle_enpassant(Square enpassant) -> void {
+      full ^= hash::enpassant_table[enpassant.file()];
+    }
+
+    inline auto toggle_castle(usize index) -> void {
+      full ^= hash::castle_table[index];
+    }
+
+    inline auto toggle_piece(Square sq, Place place) -> void {
+      toggle_piece(place.color(), place.ptype(), hash::piece_table[place.raw >> 4][sq.raw]);
+    }
+
+    inline auto toggle_piece(Square sq, Color color, PieceType ptype) -> void {
+      const usize color_index = color.to_index() << 3;
+      toggle_piece(color, ptype, hash::piece_table[color_index + ptype.raw][sq.raw]);
+    }
+
+    inline auto toggle_stm() -> void {
+      full ^= hash::move;
+    }
+
+  private:
+    inline auto toggle_piece(Color color, PieceType ptype, Hash h) -> void {
+      full ^= h;
+
+      if (ptype == PieceType::p)
+        pawn ^= h;
+    }
+  };
+}  // namespace rose

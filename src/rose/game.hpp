@@ -11,7 +11,7 @@ namespace rose {
   struct Game {
   private:
     std::vector<Move> m_move_stack;
-    std::vector<Hash> m_hash_stack;
+    std::vector<Hashes> m_hash_stack;
     std::vector<Position> m_position_stack;
 
   public:
@@ -32,14 +32,14 @@ namespace rose {
     }
 
     auto hash() const -> Hash {
-      return m_hash_stack.back();
+      return m_hash_stack.back().full;
     }
 
     auto move_stack() const -> std::vector<Move> {
       return m_move_stack;
     }
 
-    auto hash_stack() const -> std::vector<Hash> {
+    auto hash_stack() const -> std::vector<Hashes> {
       return m_hash_stack;
     }
 
@@ -53,13 +53,13 @@ namespace rose {
       m_hash_stack.clear();
       m_position_stack.clear();
 
-      m_hash_stack.push_back(new_pos.calc_hash_slow());
+      m_hash_stack.push_back(new_pos.calc_hashes_slow());
       m_position_stack.push_back(new_pos);
     }
 
     auto move(Move m) -> void {
       m_move_stack.push_back(m);
-      m_hash_stack.push_back(m_position_stack.back().hash_after(m_hash_stack.back(), m));
+      m_hash_stack.push_back(m_position_stack.back().hashes_after(m_hash_stack.back(), m));
       m_position_stack.emplace_back(m_position_stack.back().move(m));
     }
 
