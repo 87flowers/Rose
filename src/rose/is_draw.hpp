@@ -43,7 +43,7 @@ namespace rose::draw {
     return false;
   }
 
-  inline auto has_upcoming_repetition(const Position& pos, const std::vector<Hashes>& hash_stack, usize hash_waterline) -> bool {
+  inline auto has_upcoming_repetition(const Position& pos, const std::vector<Hashes>& hash_stack, usize hash_waterline) -> Move {
     const int height = static_cast<int>(hash_stack.size()) - 1;
     const int end = std::min<int>(pos.fifty_move_clock(), height);
 
@@ -72,14 +72,15 @@ namespace rose::draw {
 
       if (full_hash_diff == (hash::move ^ hash::move_piece(from, to, src)) && pos.attack_table(stm).read(to).is_set(src.id())) {
         const usize clone_limit = (height - i) < hash_waterline ? 2 : 1;
+        const Move mv = Move::make(from, to, MoveFlags::normal);
         if (clone_limit == 1)
-          return true;
+          return mv;
         for (int j = i + 2; j <= end; j++)
           if (h.full == hashes_at(j).full)
-            return true;
+            return mv;
       }
     }
-    return false;
+    return Move::none();
   }
 
 }  // namespace rose::draw

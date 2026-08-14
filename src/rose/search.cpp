@@ -305,6 +305,8 @@ namespace rose {
       return 0;
     }
 
+    const Move rep_move = (alpha >= 0 || is_root) ? Move::none() : draw::has_upcoming_repetition(position, m_hash_stack, m_hash_waterline);
+
     // Repetition Detection
     if (!is_root) {
       if (const auto score = draw::is_fifty_move_draw(position, ply))
@@ -313,7 +315,7 @@ namespace rose {
       if (draw::is_repetition(position, m_hash_stack, m_hash_waterline))
         return 0;
 
-      if (alpha < 0 && draw::has_upcoming_repetition(position, m_hash_stack, m_hash_waterline)) {
+      if (rep_move.is_some()) {
         alpha = 0;
         if (alpha >= beta)
           return alpha;
@@ -434,8 +436,8 @@ namespace rose {
     MoveList fail_low_quiets;
     MoveList fail_low_noisies;
 
-    Score best_score = score::none;
-    Move best_move = Move::none();
+    Score best_score = rep_move.is_some() ? 0 : score::none;
+    Move best_move = rep_move.is_some() ? rep_move : Move::none();
     NodeType actual_node_type = NodeType::all;
     u32 searched_moves = 0;
 
