@@ -4,6 +4,7 @@
 #include "rose/engine_output.hpp"
 #include "rose/eval/nnue/arch.hpp"
 #include "rose/game.hpp"
+#include "rose/is_draw.hpp"
 #include "rose/limits.hpp"
 #include "rose/move_picker.hpp"
 #include "rose/movegen.hpp"
@@ -311,6 +312,12 @@ namespace rose {
 
       if (draw::is_repetition(position, m_hash_stack, m_hash_waterline))
         return 0;
+
+      if (alpha < 0 && draw::has_upcoming_repetition(position, m_hash_stack, m_hash_waterline)) {
+        alpha = 0;
+        if (alpha >= beta)
+          return alpha;
+      }
     }
 
     if (ply >= max_depth)

@@ -590,23 +590,27 @@ namespace rose {
 
     const auto normal = [&] {
       apply_color_hash(m_stm, hash::move_piece(from, to, src_place));
+      new_hash.occupancy ^= from.to_bitboard() ^ to.to_bitboard();
       check_src_castling_rights();
     };
 
     const auto cap_normal = [&] {
       apply_color_hash(!m_stm, hash::remove_piece(to, dest_place));
       apply_color_hash(m_stm, hash::move_piece(from, to, src_place));
+      new_hash.occupancy ^= from.to_bitboard();
       check_src_castling_rights();
       check_dest_castling_rights();
     };
 
     const auto promo = [&](auto ptype) {
       apply_color_hash(m_stm, hash::promo(from, to, m_stm, decltype(ptype)::value));
+      new_hash.occupancy ^= from.to_bitboard() ^ to.to_bitboard();
     };
 
     const auto cap_promo = [&](auto ptype) {
       apply_color_hash(!m_stm, hash::remove_piece(to, dest_place));
       apply_color_hash(m_stm, hash::promo(from, to, m_stm, decltype(ptype)::value));
+      new_hash.occupancy ^= from.to_bitboard();
       check_dest_castling_rights();
     };
 
@@ -614,12 +618,14 @@ namespace rose {
       apply_color_hash(m_stm, hash::move_piece(from, to, src_place));
       const Square new_enpassant {narrow_cast<u8>((from.raw + to.raw) >> 1)};
       new_hash.full ^= hash::enpassant_table[new_enpassant.file()];
+      new_hash.occupancy ^= from.to_bitboard() ^ to.to_bitboard();
     };
 
     const auto enpassant = [&] {
       const Square victim = Square::from_file_and_rank(to.file(), from.rank());
       apply_color_hash(!m_stm, hash::remove_piece(victim, !m_stm, PieceType::p));
       apply_color_hash(m_stm, hash::move_piece(from, to, src_place));
+      new_hash.occupancy ^= from.to_bitboard() ^ to.to_bitboard() ^ victim.to_bitboard();
     };
 
     const auto castle = [&](u8 king_dest_file, u8 rook_dest_file) {
@@ -630,6 +636,9 @@ namespace rose {
 
       apply_color_hash(m_stm, hash::move_piece(king_src, king_dest, m_stm, PieceType::k));
       apply_color_hash(m_stm, hash::move_piece(rook_src, rook_dest, m_stm, PieceType::r));
+
+      new_hash.occupancy ^= king_src.to_bitboard() ^ king_dest.to_bitboard();
+      new_hash.occupancy ^= rook_src.to_bitboard() ^ rook_dest.to_bitboard();
 
       new_rook_info.clear(m_stm);
     };
@@ -719,6 +728,8 @@ namespace rose {
     result.full ^= hash::castle_table[m_rook_info.to_index()];
     if (m_stm == Color::black)
       result.full ^= hash::move;
+
+    result.occupancy = board().occupied_bitboard();
 
     return result;
   }
