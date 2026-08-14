@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rose/bitboard.hpp"
 #include "rose/board.hpp"
 #include "rose/common.hpp"
 #include "rose/square.hpp"
@@ -12,6 +13,7 @@ namespace rose {
   struct Hashes {
     Hash full;
     std::array<Hash, Color::count> color;
+    Bitboard occupancy;
 
     constexpr auto operator==(const Hashes&) const -> bool = default;
   };
