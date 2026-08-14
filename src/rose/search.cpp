@@ -434,8 +434,6 @@ namespace rose {
     NodeType actual_node_type = NodeType::all;
     u32 searched_moves = 0;
 
-    ss[2].fail_high_count = 0;
-
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (mv == ss->excluded)
         continue;
@@ -541,7 +539,7 @@ namespace rose {
         reduction -= 132_z * history / 1024;
         reduction += 937_z * (expected == NodeType::cut);
         reduction -= 844_z * child_position.is_in_check();
-        reduction += 1024_z * (ss[1].fail_high_count > 20);
+        reduction += 512_z * (ss[1].fail_high_count > 3);
 
         const i32 lmr_depth = std::min(std::max(new_depth - reduction / 1024, 0), new_depth) + (expected == NodeType::pv);
 
@@ -593,7 +591,8 @@ namespace rose {
 
           if (score >= beta) {
             actual_node_type = NodeType::cut;
-            ss->fail_high_count++;
+            if (m_iid_iteration == 0)
+              ss->fail_high_count++;
             break;
           }
         }
