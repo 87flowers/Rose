@@ -32,7 +32,7 @@ namespace rose::draw {
     const Hash current_hash = hash_at(0);
 
     usize clones = 0;
-    for (int i = 4; i <= end; i += 2) {
+    for (int i = end & -2; i >= 4; i -= 2) {
       if (hash_at(i) == current_hash) {
         const usize clone_limit = (height - i) < hash_waterline ? 2 : 1;
         clones++;
