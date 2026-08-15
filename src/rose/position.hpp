@@ -130,6 +130,7 @@ namespace rose {
     std::array<PieceList<PieceType>, 2> m_piece_list_ptype {};
     RookInfo m_rook_info {};
     u16 m_50mr {};
+    u16 m_since_null {};
     u16 m_ply {};
     Square m_enpassant = Square::invalid();
     Color m_stm {};
@@ -178,6 +179,10 @@ namespace rose {
 
     constexpr auto fifty_move_clock() const -> u16 {
       return m_50mr;
+    }
+
+    constexpr auto ply_since_null() const -> u16 {
+      return m_since_null;
     }
 
     constexpr auto full_move_counter() const -> u16 {
