@@ -371,7 +371,7 @@ namespace rose {
       }
 
       // Reverse Futility Pruning
-      if (depth <= 15 && static_eval - 59_z * depth - 4_z * depth * depth >= beta) {
+      if (depth <= 15 && static_eval - 59_z * depth - 4_z * depth * depth + 64_z * improving >= beta) {
         return static_eval;
       }
 
