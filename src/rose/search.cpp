@@ -315,8 +315,8 @@ namespace rose {
 
       if (alpha < -1 && draw::has_upcoming_repetition(position, m_hash_stack, m_hash_waterline)) {
         alpha = -1;
-        if (alpha >= beta)
-          return alpha;
+        if (beta <= 0)
+          return 0;
       }
     }
 
