@@ -45,7 +45,7 @@ namespace rose::draw {
 
   inline auto has_upcoming_repetition(const Position& pos, const std::vector<Hashes>& hash_stack, usize hash_waterline) -> bool {
     const int height = static_cast<int>(hash_stack.size()) - 1;
-    const int end = std::min<int>(pos.fifty_move_clock(), height);
+    const int end = std::min<int>(std::min<int>(pos.fifty_move_clock(), pos.ply_since_null()), height);
 
     const auto hashes_at = [&hash_stack, height](int i) -> Hashes {
       return hash_stack[height - i];
