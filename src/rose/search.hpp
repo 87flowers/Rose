@@ -95,6 +95,7 @@ namespace rose {
     Score static_eval = score::none;
     i32 reduction = 0;
     ContinuationHistorySubtable* conthist = nullptr;
+    bool draws_checked = false;
   };
 
   struct SearchData {

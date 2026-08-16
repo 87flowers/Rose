@@ -2,6 +2,7 @@
 
 #include "rose/common.hpp"
 #include "rose/hash.hpp"
+#include "rose/move.hpp"
 #include "rose/position.hpp"
 #include "rose/score.hpp"
 

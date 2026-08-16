@@ -306,7 +306,7 @@ namespace rose {
     }
 
     // Repetition Detection
-    if (!is_root) {
+    if (!is_root && !ss->draws_checked) {
       if (const auto score = draw::is_fifty_move_draw(position, ply))
         return *score;
 
@@ -318,6 +318,8 @@ namespace rose {
         if (beta <= 0)
           return 0;
       }
+
+      ss->draws_checked = true;
     }
 
     if (ply >= max_depth)
@@ -818,6 +820,7 @@ namespace rose {
     ss->move = mv;
     ss->conthist = m_sd.continuation_history.get_subtable(!child_position.stm(), child_position.ptype_at(mv.to()), mv);
     ss[1].static_eval = score::none;
+    ss[1].draws_checked = false;
     return child_position;
   }
 
@@ -829,6 +832,7 @@ namespace rose {
     ss->move = Move::none();
     ss->conthist = nullptr;
     ss[1].static_eval = score::none;
+    ss[1].draws_checked = false;
     return child_position;
   }
 
@@ -839,6 +843,7 @@ namespace rose {
     ss->move = Move::none();
     ss->conthist = nullptr;
     ss[1].static_eval = score::none;
+    ss[1].draws_checked = false;
   }
 
 #define rose_search_template(e, T) template struct Search<eval::nnue::T::State>;
