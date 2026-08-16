@@ -529,6 +529,7 @@ namespace rose {
 #undef MF
 
     new_pos.m_ply++;
+    new_pos.m_since_null++;
     new_pos.m_stm = !m_stm;
 
     observer.on_finalize(new_pos);
@@ -552,6 +553,7 @@ namespace rose {
     }
 
     new_pos.m_50mr++;
+    new_pos.m_since_null = 0;
 
     new_pos.m_ply++;
     new_pos.m_stm = !m_stm;
@@ -944,6 +946,7 @@ namespace rose {
       return std::unexpected(ParseError::out_of_range);
     }
 
+    result.m_since_null = 0;
     result.m_attack_table = result.calc_attacks_slow();
 
     return result;
