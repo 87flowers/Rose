@@ -364,7 +364,7 @@ namespace rose {
         return {std::nullopt, score::none};
 
       const i32 correction = m_sd.pawn_correction_history.get(stm, m_hash_stack.back().pawn);
-      const Score static_eval = score::clamp_normal(raw_static_eval + correction / 1024);
+      const Score static_eval = score::clamp_normal(raw_static_eval + correction / 64);
       return {correction, static_eval};
     }();
     ss->static_eval = static_eval;
