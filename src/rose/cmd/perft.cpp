@@ -24,7 +24,7 @@ namespace rose::perft {
 
     for (Move m : moves) {
       const Position new_position = position.move(m);
-      rose_assert(new_position.calc_hash_slow() == position.hash_after(position.calc_hash_slow(), m));
+      rose_assert(new_position.calc_hashes_slow() == position.hashes_after(position.calc_hashes_slow(), m));
 
       const u64 child = core<false, bulk>(new_position, depth - 1);
       if constexpr (print) {
