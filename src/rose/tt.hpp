@@ -17,7 +17,7 @@ namespace rose::tt {
     i32 depth = 0;
     NodeType bound = NodeType::none;
     Score score = score::none;
-    Score eval = score::none;
+    Score raw_eval = score::none;
     Move move = Move::none();
 
     auto is_none() const -> bool {
@@ -37,8 +37,8 @@ namespace rose::tt {
     // u2 bounds
     // u5 age
     // u1 unused
-    // i16 eval
-    static inline constexpr usize eval_shift = 0;
+    // i16 raw_eval
+    static inline constexpr usize raw_eval_shift = 0;
     static inline constexpr usize age_shift = 17;
     static inline constexpr usize bounds_shift = 22;
     static inline constexpr usize depth_shift = 24;
@@ -54,10 +54,10 @@ namespace rose::tt {
       const i32 tt_score = score::adjust_plys_to_mate(lr.score, -ply);
       const i32 tt_depth = std::clamp(lr.depth, 0, 255);
       const u64 tt_bound = std::to_underlying(lr.bound.raw);
-      const u64 tt_eval = static_cast<u64>(lr.eval) & 0xFFFF;
+      const u64 tt_raw_eval = static_cast<u64>(lr.raw_eval) & 0xFFFF;
 
       raw = 0;
-      raw |= static_cast<u64>(tt_eval) << eval_shift;
+      raw |= static_cast<u64>(tt_raw_eval) << raw_eval_shift;
       raw |= static_cast<u64>(age & age_mask) << age_shift;
       raw |= static_cast<u64>(tt_bound) << bounds_shift;
       raw |= static_cast<u64>(tt_depth) << depth_shift;
@@ -65,9 +65,9 @@ namespace rose::tt {
       raw |= static_cast<u64>(tt_score) << score_shift;
     }
 
-    constexpr inline auto eval() const -> Score {
+    constexpr inline auto raw_eval() const -> Score {
       const usize sext_shift = 64 - 16;
-      return static_cast<Score>(static_cast<i64>(raw >> eval_shift << sext_shift) >> sext_shift);
+      return static_cast<Score>(static_cast<i64>(raw >> raw_eval_shift << sext_shift) >> sext_shift);
     }
 
     constexpr inline auto age() const -> int {
@@ -96,7 +96,7 @@ namespace rose::tt {
         .depth = depth(),
         .bound = bound(),
         .score = score(ply),
-        .eval = eval(),
+        .raw_eval = raw_eval(),
         .move = move(),
       };
     }

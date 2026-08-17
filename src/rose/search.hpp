@@ -92,6 +92,7 @@ namespace rose {
   struct SearchStack {
     Move move = Move::none();
     Move excluded = Move::none();
+    Score raw_static_eval = score::none;
     Score static_eval = score::none;
     i32 reduction = 0;
     ContinuationHistorySubtable* conthist = nullptr;
@@ -101,11 +102,13 @@ namespace rose {
     QuietHistory quiet_history;
     NoisyHistory noisy_history;
     ContinuationHistory continuation_history;
+    HashCorrectionHistory pawn_correction_history;
 
     auto reset() -> void {
       quiet_history.reset();
       noisy_history.reset();
       continuation_history.reset();
+      pawn_correction_history.reset();
     }
   };
 

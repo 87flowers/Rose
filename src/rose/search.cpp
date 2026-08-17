@@ -348,14 +348,24 @@ namespace rose {
       return tte.score;
     }
 
-    const Score static_eval = [&, this] {
+    const Score raw_static_eval = [&, this] {
       if (is_in_check)
         return score::none;
-      if (ss->static_eval != score::none)
-        return ss->static_eval;
-      if (tte.eval != score::none)
-        return tte.eval;
+      if (ss->raw_static_eval != score::none)
+        return ss->raw_static_eval;
+      if (tte.raw_eval != score::none)
+        return tte.raw_eval;
       return eval(position);
+    }();
+    ss->raw_static_eval = raw_static_eval;
+
+    const auto [correction, static_eval] = [&, this] -> std::tuple<std::optional<i32>, Score> {
+      if (is_in_check)
+        return {std::nullopt, score::none};
+
+      const i32 correction = m_sd.pawn_correction_history.get(stm, m_hash_stack.back().pawn);
+      const Score static_eval = score::clamp_normal(raw_static_eval + correction / 1024);
+      return {correction, static_eval};
     }();
     ss->static_eval = static_eval;
 
@@ -638,11 +648,27 @@ namespace rose {
     }
 
     if (!excluded) {
+      if (!is_in_check && !best_move.is_noisy() && [&] {
+            switch (actual_node_type.raw) {
+            case NodeType::pv:
+              return true;
+            case NodeType::all:
+              return best_score < static_eval;
+            case NodeType::cut:
+              return best_score > static_eval;
+            case NodeType::none:
+              return false;
+            }
+          }()) {
+        const i32 bonus = (best_score - static_eval) * depth / 4;
+        m_sd.pawn_correction_history.update(stm, m_hash_stack.back().pawn, bonus);
+      }
+
       tt_store(tt::LookupResult {
         .depth = depth,
         .bound = actual_node_type,
         .score = best_score,
-        .eval = static_eval,
+        .raw_eval = raw_static_eval,
         .move = best_move,
       });
     }
@@ -681,6 +707,7 @@ namespace rose {
     }
 
     const bool is_in_check = position.is_in_check();
+    const Color stm = position.stm();
 
     const tt::LookupResult tte = tt_load();
 
@@ -700,14 +727,24 @@ namespace rose {
       return tte.score;
     }
 
-    const Score static_eval = [&, this] {
+    const Score raw_static_eval = [&, this] {
       if (is_in_check)
         return score::none;
-      if (ss->static_eval != score::none)
-        return ss->static_eval;
-      if (tte.eval != score::none)
-        return tte.eval;
+      if (ss->raw_static_eval != score::none)
+        return ss->raw_static_eval;
+      if (tte.raw_eval != score::none)
+        return tte.raw_eval;
       return eval(position);
+    }();
+    ss->raw_static_eval = raw_static_eval;
+
+    const auto [correction, static_eval] = [&, this] -> std::tuple<std::optional<i32>, Score> {
+      if (is_in_check)
+        return {std::nullopt, score::none};
+
+      const i32 correction = m_sd.pawn_correction_history.get(stm, m_hash_stack.back().pawn);
+      const Score static_eval = score::clamp_normal(raw_static_eval + correction / 1024);
+      return {correction, static_eval};
     }();
     ss->static_eval = static_eval;
 
@@ -777,7 +814,7 @@ namespace rose {
       .depth = 0,
       .bound = actual_node_type,
       .score = best_score,
-      .eval = static_eval,
+      .raw_eval = raw_static_eval,
       .move = best_move,
     });
 
@@ -810,6 +847,7 @@ namespace rose {
     const Position child_position = position.move(mv, m_evaluation.observer());
     ss->move = mv;
     ss->conthist = m_sd.continuation_history.get_subtable(!child_position.stm(), child_position.ptype_at(mv.to()), mv);
+    ss[1].raw_static_eval = score::none;
     ss[1].static_eval = score::none;
     return child_position;
   }
@@ -821,6 +859,7 @@ namespace rose {
     const Position child_position = position.null_move();
     ss->move = Move::none();
     ss->conthist = nullptr;
+    ss[1].raw_static_eval = score::none;
     ss[1].static_eval = score::none;
     return child_position;
   }
@@ -831,6 +870,7 @@ namespace rose {
     m_hash_stack.pop_back();
     ss->move = Move::none();
     ss->conthist = nullptr;
+    ss[1].raw_static_eval = score::none;
     ss[1].static_eval = score::none;
   }
 
