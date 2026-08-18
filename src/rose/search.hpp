@@ -20,6 +20,7 @@
 #include <memory>
 #include <optional>
 #include <thread>
+#include <tuple>
 
 namespace rose {
 
@@ -103,12 +104,15 @@ namespace rose {
     NoisyHistory noisy_history;
     ContinuationHistory continuation_history;
     HashCorrectionHistory pawn_correction_history;
+    std::array<HashCorrectionHistory, Color::count> non_pawn_correction_history;
 
     auto reset() -> void {
       quiet_history.reset();
       noisy_history.reset();
       continuation_history.reset();
       pawn_correction_history.reset();
+      for (HashCorrectionHistory& h : non_pawn_correction_history)
+        h.reset();
     }
   };
 
@@ -178,6 +182,8 @@ namespace rose {
     auto qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply) -> Score;
 
     auto eval(const Position& position) -> Score;
+    auto eval_correction(const Position& position) -> i32;
+    auto correct_eval(const Position& position, Score raw_static_eval, i32 correction) -> Score;
 
     auto tt_load() -> tt::LookupResult;
     auto tt_store(tt::LookupResult lr) -> void;
