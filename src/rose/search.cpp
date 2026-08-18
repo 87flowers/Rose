@@ -1,6 +1,7 @@
 #include "rose/search.hpp"
 
 #include "rose/common.hpp"
+#include "rose/dbg.hpp"
 #include "rose/engine_output.hpp"
 #include "rose/eval/nnue/arch.hpp"
 #include "rose/game.hpp"
@@ -510,9 +511,9 @@ namespace rose {
           // Single extension
           extension = 1;
           // Double extension
-          extension += expected != NodeType::pv && singular_score <= singular_beta - 41_z + 32_z * correction_delta / 1024;
+          extension += expected != NodeType::pv && singular_score <= singular_beta - 50_z + 4_z * correction_delta / 1024;
           // Triple extension
-          extension += expected != NodeType::pv && singular_score <= singular_beta - 151_z + 32_z * correction_delta / 1024;
+          extension += expected != NodeType::pv && singular_score <= singular_beta - 160_z + 4_z * correction_delta / 1024;
         }
         // Negative extension
         else if (expected == NodeType::cut) {
