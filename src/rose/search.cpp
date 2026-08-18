@@ -521,9 +521,9 @@ namespace rose {
           // Single extension
           extension = 1;
           // Double extension
-          extension += singular_score <= singular_beta - 21_z - 300_z * (expected == NodeType::pv);
+          extension += singular_score <= singular_beta - 2_z - 300_z * (expected == NodeType::pv);
           // Triple extension
-          extension += singular_score <= singular_beta - 131_z - 300_z * (expected == NodeType::pv && tte.move.is_quiet());
+          extension += singular_score <= singular_beta - 101_z - 300_z * (expected == NodeType::pv && tte.move.is_quiet());
         }
         // Negative extension
         else if (expected == NodeType::cut) {
