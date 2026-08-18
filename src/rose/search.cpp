@@ -501,8 +501,10 @@ namespace rose {
 
         // Multicut
         if (singular_score >= singular_beta && singular_beta >= beta) {
-          const i32 bonus = (singular_score - static_eval) * singular_depth / 4;
-          update_correction_histories(position, bonus);
+          if (!is_in_check && singular_score >= static_eval) {
+            const i32 bonus = (singular_score - static_eval) * singular_depth * 32_z / 1024;
+            update_correction_histories(position, bonus);
+          }
 
           return singular_beta;
         }
