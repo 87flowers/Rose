@@ -24,6 +24,7 @@ namespace rose {
   struct Hashes {
     Hash full = 0;
     Hash pawn = 0;
+    std::array<Hash, Color::count> non_pawn {};
 
     constexpr auto operator==(const Hashes&) const -> bool = default;
 
@@ -52,8 +53,11 @@ namespace rose {
     inline auto toggle_piece(Color color, PieceType ptype, Hash h) -> void {
       full ^= h;
 
-      if (ptype == PieceType::p)
+      if (ptype == PieceType::p) {
         pawn ^= h;
+      } else {
+        non_pawn[color.to_index()] ^= h;
+      }
     }
   };
 }  // namespace rose

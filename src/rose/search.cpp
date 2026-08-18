@@ -363,8 +363,8 @@ namespace rose {
       if (is_in_check)
         return {std::nullopt, score::none};
 
-      const i32 correction = m_sd.pawn_correction_history.get(stm, m_hash_stack.back().pawn);
-      const Score static_eval = score::clamp_normal(raw_static_eval + correction / 64);
+      const i32 correction = eval_correction(position);
+      const Score static_eval = correct_eval(position, raw_static_eval, correction);
       return {correction, static_eval};
     }();
     ss->static_eval = static_eval;
@@ -662,6 +662,8 @@ namespace rose {
           }()) {
         const i32 bonus = (best_score - static_eval) * depth / 4;
         m_sd.pawn_correction_history.update(stm, m_hash_stack.back().pawn, bonus);
+        m_sd.non_pawn_correction_history[Color::white].update(stm, m_hash_stack.back().non_pawn[Color::white], bonus);
+        m_sd.non_pawn_correction_history[Color::black].update(stm, m_hash_stack.back().non_pawn[Color::black], bonus);
       }
 
       tt_store(tt::LookupResult {
@@ -742,8 +744,8 @@ namespace rose {
       if (is_in_check)
         return {std::nullopt, score::none};
 
-      const i32 correction = m_sd.pawn_correction_history.get(stm, m_hash_stack.back().pawn);
-      const Score static_eval = score::clamp_normal(raw_static_eval + correction / 1024);
+      const i32 correction = eval_correction(position);
+      const Score static_eval = correct_eval(position, raw_static_eval, correction);
       return {correction, static_eval};
     }();
     ss->static_eval = static_eval;
@@ -824,6 +826,18 @@ namespace rose {
   template<eval::concepts::State Evaluation>
   auto Search<Evaluation>::eval(const Position& position) -> Score {
     return m_evaluation.evaluate(position);
+  }
+
+  template<eval::concepts::State Evaluation>
+  auto Search<Evaluation>::eval_correction(const Position& position) -> i32 {
+    return m_sd.pawn_correction_history.get(position.stm(), m_hash_stack.back().pawn) +
+           m_sd.non_pawn_correction_history[Color::white].get(position.stm(), m_hash_stack.back().non_pawn[Color::white]) +
+           m_sd.non_pawn_correction_history[Color::black].get(position.stm(), m_hash_stack.back().non_pawn[Color::black]);
+  }
+
+  template<eval::concepts::State Evaluation>
+  auto Search<Evaluation>::correct_eval(const Position& position, Score raw_static_eval, i32 correction) -> Score {
+    return score::clamp_normal(raw_static_eval + correction / 64);
   }
 
   template<eval::concepts::State Evaluation>
