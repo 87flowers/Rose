@@ -501,9 +501,9 @@ namespace rose {
 
         // Multicut
         if (singular_score >= singular_beta && singular_beta >= beta) {
-          if (!is_in_check && singular_score >= static_eval) {
-            const i32 bonus = (singular_score - static_eval) * singular_depth * 32_z / 1024;
-            update_correction_histories(position, bonus);
+          if (tte.move.is_quiet()) {
+            const i32 quiet_bonus = std::min(164_z * singular_depth - 87_z, 1705_z);
+            m_sd.quiet_history.update(stm, enemy_threatened, tte.move, quiet_bonus);
           }
 
           return singular_beta;
