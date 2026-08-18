@@ -837,7 +837,10 @@ namespace rose {
 
   template<eval::concepts::State Evaluation>
   auto Search<Evaluation>::correct_eval(const Position& position, Score raw_static_eval, i32 correction) -> Score {
-    return score::clamp_normal(raw_static_eval + correction / 64);
+    Score eval = raw_static_eval;
+    eval -= eval * position.fifty_move_clock() / 200;
+    eval += correction / 64;
+    return score::clamp_normal(eval);
   }
 
   template<eval::concepts::State Evaluation>
