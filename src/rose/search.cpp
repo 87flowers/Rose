@@ -17,6 +17,7 @@
 #include "rose/util/defer.hpp"
 #include "rose/util/time.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <bit>
 #include <fmt/format.h>
@@ -208,6 +209,14 @@ namespace rose {
 
     m_evaluation.reset(m_root);
 
+    m_root_moves.clear();
+    for (const Move mv : generate_all_moves(m_root)) {
+      m_root_moves.push_back(RootMove {
+        .move = mv,
+        .nodes = 0,
+      });
+    }
+
     i32 pv_last_unstable = 0;
     i32 score_last_unstable = 0;
 
@@ -265,11 +274,15 @@ namespace rose {
       last_depth = depth;
 
       if (is_main_thread()) {
+        const f64 best_move_nodes = find_root_move(pv.first_move()).nodes;
+        const f64 total_nodes = stats().nodes.load(std::memory_order_relaxed);
+
         const i32 pv_stability = depth - pv_last_unstable;
         const i32 score_stability = depth - score_last_unstable;
 
-        const f32 time_multiplier = std::clamp(1.0 - pv_stability * 0.05116902193882232_z, 0.592028611604442_z, 1.0855072225856215_z) *
-                                    std::clamp(1.0 - score_stability * 0.04828987665300888_z, 0.667434450591335_z, 1.1385035397539525_z);
+        const f32 time_multiplier = std::max(2.0_z - 1.5_z * best_move_nodes / total_nodes, 0.5_z) *
+                                    std::max(1.0 - pv_stability * 0.05116902193882232_z, 0.592028611604442_z) *
+                                    std::max(1.0 - score_stability * 0.04828987665300888_z, 0.667434450591335_z);
 
         if (ctrl.check_soft_termination(stats(), depth, time_multiplier))
           break;
@@ -522,6 +535,8 @@ namespace rose {
 
       searched_moves++;
 
+      const u64 nodes_before_move = stats().nodes.load(std::memory_order_relaxed);
+
       const Position child_position = make_move(ss, position, mv);
       rose_defer {
         unmake_move(ss);
@@ -584,6 +599,13 @@ namespace rose {
 
       if (m_shared.stopping)
         return 0;
+
+      if (is_root) {
+        RootMove& root_move = find_root_move(mv);
+
+        const u64 move_nodes = stats().nodes.load(std::memory_order_relaxed) - nodes_before_move;
+        root_move.nodes += move_nodes;
+      }
 
       if (score > best_score) {
         best_score = score;

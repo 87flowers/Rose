@@ -43,6 +43,7 @@ namespace rose {
   using f64 = double;
 
   inline constexpr i32 max_search_ply = 256;
+  inline constexpr usize max_legal_moves = 256;
 
   enum class MoveFormat {
     classical,
