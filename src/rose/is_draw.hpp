@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rose/board.hpp"
 #include "rose/common.hpp"
 #include "rose/hash.hpp"
 #include "rose/position.hpp"
@@ -41,6 +42,27 @@ namespace rose::draw {
       }
     }
     return false;
+  }
+
+  inline auto is_insufficient_material(const Position& pos) -> bool {
+    switch (pos.piece_count()) {
+    case 2:
+      return true;
+    case 3:
+      return pos.piece_list_type(Color::white).piece_mask_for<PieceType::p, PieceType::r, PieceType::q>().is_empty() &&
+             pos.piece_list_type(Color::black).piece_mask_for<PieceType::p, PieceType::r, PieceType::q>().is_empty();
+    case 4:
+      if (pos.piece_count(Color::white) == 2) {
+        rose_assert(pos.piece_count(Color::black) == 2);
+        const PieceId white_last_piece = (pos.piece_list_type(Color::white).present() & ~PieceMask::king()).lsb();
+        const PieceId black_last_piece = (pos.piece_list_type(Color::black).present() & ~PieceMask::king()).lsb();
+        return pos.what_is(Color::white, white_last_piece) == PieceType::b && pos.what_is(Color::black, black_last_piece) == PieceType::b &&
+               pos.where_is(Color::white, white_last_piece).parity() == pos.where_is(Color::black, black_last_piece).parity();
+      }
+      return false;
+    default:
+      return false;
+    }
   }
 
 }  // namespace rose::draw

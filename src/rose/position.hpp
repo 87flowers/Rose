@@ -40,6 +40,18 @@ namespace rose {
       }
     }
 
+    auto present() const -> PieceMask
+      requires std::is_same_v<T, PieceType>
+    {
+      return PieceMask {to_vector().neq(u8x16::splat(PieceType::none)).to_bits()};
+    }
+
+    auto present() const -> PieceMask
+      requires std::is_same_v<T, Square>
+    {
+      return PieceMask {~to_vector().neq(u8x16::splat(Square::invalid().raw)).to_bits()};
+    }
+
     constexpr auto operator[](PieceId id) -> T& {
       return m[id.raw];
     }
@@ -238,6 +250,14 @@ namespace rose {
 
     auto is_in_check() const -> bool {
       return !checkers().is_empty();
+    }
+
+    auto piece_count() const -> i32 {
+      return board().occupied_bitboard().popcount();
+    }
+
+    auto piece_count(Color color) const -> i32 {
+      return piece_list_type(color).present().popcount();
     }
 
     auto is_castle_aside_legal() const -> bool;

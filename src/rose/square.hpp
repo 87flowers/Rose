@@ -3,6 +3,7 @@
 #include "rose/common.hpp"
 #include "rose/util/assert.hpp"
 
+#include <bit>
 #include <compare>
 #include <expected>
 #include <fmt/format.h>
@@ -34,6 +35,10 @@ namespace rose {
 
     constexpr auto rank() const -> i8 {
       return raw / 8;
+    }
+
+    constexpr auto parity() const -> bool {
+      return std::popcount<u8>(raw & 0b001001) & 1;
     }
 
     constexpr auto relative_rank(Color perspective) const -> i8 {
