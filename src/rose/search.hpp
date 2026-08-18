@@ -184,6 +184,7 @@ namespace rose {
     auto eval(const Position& position) -> Score;
     auto eval_correction(const Position& position) -> i32;
     auto correct_eval(const Position& position, Score raw_static_eval, i32 correction) -> Score;
+    auto update_correction_histories(const Position& position, i32 bonus) -> void;
 
     auto tt_load() -> tt::LookupResult;
     auto tt_store(tt::LookupResult lr) -> void;

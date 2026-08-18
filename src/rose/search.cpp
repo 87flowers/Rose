@@ -501,6 +501,9 @@ namespace rose {
 
         // Multicut
         if (singular_score >= singular_beta && singular_beta >= beta) {
+          const i32 bonus = (singular_score - static_eval) * singular_depth / 4;
+          update_correction_histories(position, bonus);
+
           return singular_beta;
         }
 
@@ -661,9 +664,7 @@ namespace rose {
             }
           }()) {
         const i32 bonus = (best_score - static_eval) * depth / 4;
-        m_sd.pawn_correction_history.update(stm, m_hash_stack.back().pawn, bonus);
-        m_sd.non_pawn_correction_history[Color::white].update(stm, m_hash_stack.back().non_pawn[Color::white], bonus);
-        m_sd.non_pawn_correction_history[Color::black].update(stm, m_hash_stack.back().non_pawn[Color::black], bonus);
+        update_correction_histories(position, bonus);
       }
 
       tt_store(tt::LookupResult {
@@ -830,14 +831,23 @@ namespace rose {
 
   template<eval::concepts::State Evaluation>
   auto Search<Evaluation>::eval_correction(const Position& position) -> i32 {
-    return m_sd.pawn_correction_history.get(position.stm(), m_hash_stack.back().pawn) +
-           m_sd.non_pawn_correction_history[Color::white].get(position.stm(), m_hash_stack.back().non_pawn[Color::white]) +
-           m_sd.non_pawn_correction_history[Color::black].get(position.stm(), m_hash_stack.back().non_pawn[Color::black]);
+    const Color stm = position.stm();
+    return m_sd.pawn_correction_history.get(stm, m_hash_stack.back().pawn) +
+           m_sd.non_pawn_correction_history[Color::white].get(stm, m_hash_stack.back().non_pawn[Color::white]) +
+           m_sd.non_pawn_correction_history[Color::black].get(stm, m_hash_stack.back().non_pawn[Color::black]);
   }
 
   template<eval::concepts::State Evaluation>
   auto Search<Evaluation>::correct_eval(const Position& position, Score raw_static_eval, i32 correction) -> Score {
     return score::clamp_normal(raw_static_eval + correction / 64);
+  }
+
+  template<eval::concepts::State Evaluation>
+  auto Search<Evaluation>::update_correction_histories(const Position& position, i32 bonus) -> void {
+    const Color stm = position.stm();
+    m_sd.pawn_correction_history.update(stm, m_hash_stack.back().pawn, bonus);
+    m_sd.non_pawn_correction_history[Color::white].update(stm, m_hash_stack.back().non_pawn[Color::white], bonus);
+    m_sd.non_pawn_correction_history[Color::black].update(stm, m_hash_stack.back().non_pawn[Color::black], bonus);
   }
 
   template<eval::concepts::State Evaluation>
