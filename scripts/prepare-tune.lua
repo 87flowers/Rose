@@ -38,7 +38,7 @@ end
 
 local function do_file(path, name_prefix)
   local input = read_file(path)
-  local output, mapping = replace_tunables(input, name_prefix, "_z")
+  local output, mapping = replace_tunables(input, name_prefix, "_zt")
   write_file(path .. ".bak", input)
   write_file(path, output)
 
