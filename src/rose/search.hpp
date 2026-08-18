@@ -116,6 +116,11 @@ namespace rose {
     }
   };
 
+  struct RootMove {
+    Move move;
+    u64 nodes;
+  };
+
   struct SearchBase {
     virtual ~SearchBase() = default;
     virtual auto reset() -> void = 0;
@@ -147,6 +152,8 @@ namespace rose {
     std::optional<i32> m_nmr_ply;
     i32 m_iid_iteration = 0;
 
+    StaticVector<RootMove, max_legal_moves> m_root_moves {};
+
   public:
     template<typename Network>
     Search(int id, SearchShared& shared, const Network& network) :
@@ -167,6 +174,12 @@ namespace rose {
   private:
     auto stats() -> SearchStats& {
       return m_shared.stats[m_id];
+    }
+
+    auto find_root_move(Move mv) -> RootMove& {
+      return *std::ranges::find_if(m_root_moves, [mv](const RootMove& root_move) {
+        return root_move.move == mv;
+      });
     }
 
     auto thread_main() -> void;

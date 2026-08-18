@@ -8,8 +8,6 @@
 
 namespace rose {
 
-  constexpr usize max_legal_moves = 256;
-
   struct MoveList : StaticVector<Move, max_legal_moves> {
     template<typename M, typename T>
     auto write(M mask, T v) -> void;
