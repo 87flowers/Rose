@@ -369,6 +369,8 @@ namespace rose {
     }();
     ss->static_eval = static_eval;
 
+    const i32 correction_delta = std::abs(correction.value_or(0));
+
     const bool improving = is_in_check                       ? false :
                            ss[-2].static_eval != score::none ? static_eval > ss[-2].static_eval :
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
@@ -508,9 +510,9 @@ namespace rose {
           // Single extension
           extension = 1;
           // Double extension
-          extension += expected != NodeType::pv && singular_score <= singular_beta - 21_z;
+          extension += expected != NodeType::pv && singular_score <= singular_beta - 41_z + 32_z * correction_delta / 1024;
           // Triple extension
-          extension += expected != NodeType::pv && singular_score <= singular_beta - 131_z;
+          extension += expected != NodeType::pv && singular_score <= singular_beta - 151_z + 32_z * correction_delta / 1024;
         }
         // Negative extension
         else if (expected == NodeType::cut) {
