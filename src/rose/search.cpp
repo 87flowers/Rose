@@ -374,6 +374,8 @@ namespace rose {
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
                                                                false;
 
+    const bool opponent_has_threats = !(position.attack_table(!stm).bitboard_any() & position.color_bitboard(stm)).is_empty();
+
     if (expected != NodeType::pv && !is_in_check && !excluded) {
       // Hindsight extension
       if (depth <= 20 && ss[-1].reduction >= 4 && ss[-1].static_eval != score::none && static_eval <= -ss[-1].static_eval) {
@@ -381,7 +383,7 @@ namespace rose {
       }
 
       // Reverse Futility Pruning
-      if (depth <= 15 && static_eval - 59_z * depth - 4_z * depth * depth >= beta) {
+      if (depth <= 15 && static_eval - 59_z * depth - 4_z * depth * depth - 50_z * opponent_has_threats >= beta) {
         return static_eval;
       }
 
