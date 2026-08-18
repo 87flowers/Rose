@@ -2,6 +2,7 @@
 
 #include "rose/bitboard.hpp"
 #include "rose/common.hpp"
+#include "rose/hash.hpp"
 #include "rose/move.hpp"
 #include "rose/square.hpp"
 #include "rose/util/multi_array.hpp"
@@ -93,6 +94,27 @@ namespace rose {
 
     auto get_subtable(Color stm, PieceType ptype, Move mv) -> ContinuationHistorySubtable* {
       return &m_table[stm.to_index()][ptype.to_index()][mv.to().to_index()];
+    }
+  };
+
+  struct HashCorrectionHistory {
+  private:
+    constexpr static usize hash_entry_count = 8192;
+    constexpr static i32 entry_max = 8192;
+    multi_array<i16, Color::count, hash_entry_count> m_table {};
+
+  public:
+    auto reset() -> void {
+      m_table = {};
+    }
+
+    auto update(Color stm, Hash h, i32 bonus) -> void {
+      i16& entry = m_table[stm.to_index()][h % hash_entry_count];
+      gravity_formula<entry_max>(entry, bonus);
+    }
+
+    auto get(Color stm, Hash h) const -> i32 {
+      return m_table[stm.to_index()][h % hash_entry_count];
     }
   };
 
