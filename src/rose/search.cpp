@@ -474,7 +474,7 @@ namespace rose {
         extension += expected != NodeType::pv && singular_score <= singular_beta - 131_z;
       }
       // Negative extension
-      else if (expected == NodeType::cut || tte.score >= beta) {
+      else if (expected == NodeType::cut) {
         extension = -2;
       } else if (tte.score <= alpha) {
         extension = -1;
