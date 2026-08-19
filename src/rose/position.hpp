@@ -240,6 +240,12 @@ namespace rose {
       return !checkers().is_empty();
     }
 
+    auto has_non_pawns() const -> bool {
+      return !(piece_mask_for<PieceType::n, PieceType::b, PieceType::r, PieceType::q>(Color::white) |
+               piece_mask_for<PieceType::n, PieceType::b, PieceType::r, PieceType::q>(Color::black))
+                .is_empty();
+    }
+
     auto is_castle_aside_legal() const -> bool;
     auto is_castle_hside_legal() const -> bool;
     auto is_legal(Move m) const -> bool;
