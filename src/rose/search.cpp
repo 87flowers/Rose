@@ -473,6 +473,11 @@ namespace rose {
         // Triple extension
         extension += expected != NodeType::pv && singular_score <= singular_beta - 131_z;
       }
+      // Alternative move
+      else if (singular_score >= tte.score) {
+        hint_move = Move::none();
+        depth--;
+      }
       // Negative extension
       else if (expected == NodeType::cut) {
         extension = -2;
