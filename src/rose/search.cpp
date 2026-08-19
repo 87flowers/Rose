@@ -445,6 +445,42 @@ namespace rose {
         return iid_tte.score;
     }
 
+    // Hint move legality check
+    if (!position.is_legal(hint_move)) {
+      hint_move = Move::none();
+    }
+
+    // Singular Extensions
+    i32 extension = 0;
+    if (!is_root && depth >= 7 && hint_move.is_some() && !excluded && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
+      const Score singular_beta = std::max(score::min_score, tte.score - 2 * depth);
+      const i32 singular_depth = depth / 2;
+
+      ss->excluded = hint_move;
+      const Score singular_score = search<expected.narrow()>(ctrl, position, pv, singular_beta - 1, singular_beta, ss, ply, singular_depth);
+      ss->excluded = Move::none();
+
+      // Multicut
+      if (singular_score >= singular_beta && singular_beta >= beta) {
+        return singular_beta;
+      }
+
+      if (singular_score < singular_beta) {
+        // Single extension
+        extension = 1;
+        // Double extension
+        extension += expected != NodeType::pv && singular_score <= singular_beta - 21_z;
+        // Triple extension
+        extension += expected != NodeType::pv && singular_score <= singular_beta - 131_z;
+      }
+      // Negative extension
+      else if (expected == NodeType::cut) {
+        extension = -2;
+      } else if (tte.score <= alpha) {
+        extension = -1;
+      }
+    }
+
     MovePicker moves {m_sd, position, ss, hint_move};
 
     MoveList fail_low_quiets;
@@ -502,37 +538,6 @@ namespace rose {
         }
       }
 
-      i32 extension = 0;
-      // Singular Extensions
-      if (!is_root && depth >= 7 && mv == tte.move && !excluded && tte.depth >= depth - 3 && tte.bound.is_pv_or_cut()) {
-        const Score singular_beta = std::max(score::min_score, tte.score - 2 * depth);
-        const i32 singular_depth = depth / 2;
-
-        ss->excluded = mv;
-        const Score singular_score = search<expected.narrow()>(ctrl, position, pv, singular_beta - 1, singular_beta, ss, ply, singular_depth);
-        ss->excluded = Move::none();
-
-        // Multicut
-        if (singular_score >= singular_beta && singular_beta >= beta) {
-          return singular_beta;
-        }
-
-        if (singular_score < singular_beta) {
-          // Single extension
-          extension = 1;
-          // Double extension
-          extension += expected != NodeType::pv && singular_score <= singular_beta - 21_z;
-          // Triple extension
-          extension += expected != NodeType::pv && singular_score <= singular_beta - 131_z;
-        }
-        // Negative extension
-        else if (expected == NodeType::cut) {
-          extension = -2;
-        } else if (tte.score <= alpha) {
-          extension = -1;
-        }
-      }
-
       searched_moves++;
 
       const u64 nodes_before_move = stats().nodes.load(std::memory_order_relaxed);
@@ -542,7 +547,7 @@ namespace rose {
         unmake_move(ss);
       };
 
-      const i32 new_depth = depth + extension - 1;
+      const i32 new_depth = depth + (mv == hint_move ? extension : 0) - 1;
       Line child_pv {};
       Score score = score::none;
 
