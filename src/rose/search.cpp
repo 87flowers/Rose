@@ -542,7 +542,7 @@ namespace rose {
         unmake_move(ss);
       };
 
-      const i32 new_depth = depth + extension - 1;
+      const i32 new_depth = depth + (mv == hint_move ? extension : 0) - 1;
       Line child_pv {};
       Score score = score::none;
 
