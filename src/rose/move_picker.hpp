@@ -12,7 +12,7 @@ namespace rose {
   struct MovePicker {
   private:
     enum class Stage {
-      tt_move,
+      hint_move,
       generate_noisy,
       emit_good_noisy,
       generate_quiet,
@@ -25,13 +25,13 @@ namespace rose {
       return m_stage >= Stage::generate_quiet && m_stage <= Stage::emit_quiet;
     }
 
-    Stage m_stage = Stage::tt_move;
+    Stage m_stage = Stage::hint_move;
 
     const SearchData& m_sd;
     const Position& m_position;
     const SearchStack* m_ss;
     MoveGen m_movegen;
-    Move m_tt_move;
+    Move m_hint_move;
 
     bool m_skip_quiet = false;
     usize m_current_index = 0;
@@ -39,7 +39,8 @@ namespace rose {
     MoveList m_bad_noisies;
 
   public:
-    MovePicker(const SearchData& sd, const Position& position, const SearchStack* ss, Move tt_move);
+    // SAFETY: hint_move must be legal
+    MovePicker(const SearchData& sd, const Position& position, const SearchStack* ss, Move hint_move);
 
     auto next() -> Move;
 

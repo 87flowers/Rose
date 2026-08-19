@@ -12,23 +12,24 @@
 
 namespace rose {
 
-  MovePicker::MovePicker(const SearchData& sd, const Position& position, const SearchStack* ss, Move tt_move) :
+  MovePicker::MovePicker(const SearchData& sd, const Position& position, const SearchStack* ss, Move hint_move) :
       m_sd(sd),
       m_position(position),
       m_ss(ss),
       m_movegen(position),
-      m_tt_move(tt_move) {
+      m_hint_move(hint_move) {
   }
 
   auto MovePicker::next() -> Move {
     switch (m_stage) {
-    case Stage::tt_move:
+    case Stage::hint_move:
       m_stage = Stage::generate_noisy;
 
-      if (m_position.is_legal(m_tt_move)) {
-        return m_tt_move;
+      if (m_hint_move.is_some()) {
+        return m_hint_move;
       }
 
+      [[fallthrough]];
     case Stage::generate_noisy:
       generate_noisy();
 
@@ -43,7 +44,7 @@ namespace rose {
           m_bad_noisies.push_back(mv);
           continue;
         }
-        if (mv == m_tt_move)
+        if (mv == m_hint_move)
           continue;
         return mv;
       }
@@ -68,7 +69,7 @@ namespace rose {
     case Stage::emit_quiet:
       while (m_current_index < m_moves.size()) {
         const Move mv = m_moves[m_current_index++];
-        if (mv == m_tt_move)
+        if (mv == m_hint_move)
           continue;
         return mv;
       }
@@ -80,7 +81,7 @@ namespace rose {
     case Stage::emit_bad_noisy:
       while (m_current_index < m_bad_noisies.size()) {
         const Move mv = m_bad_noisies[m_current_index++];
-        if (mv == m_tt_move)
+        if (mv == m_hint_move)
           continue;
         return mv;
       }
