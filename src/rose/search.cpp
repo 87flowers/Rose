@@ -341,6 +341,7 @@ namespace rose {
     const bool is_in_check = position.is_in_check();
     const Color stm = position.stm();
     const Bitboard enemy_threatened = position.attack_table(!stm).bitboard_any();
+    ss->enemy_threatened = enemy_threatened;
 
     const tt::LookupResult tte = tt_load();
     Move hint_move = tte.move;
@@ -637,6 +638,13 @@ namespace rose {
           fail_low_quiets.push_back(mv);
         }
       }
+    }
+
+    // Prior countermove bonus
+    if (!is_root && actual_node_type == NodeType::all && ss[-1].move.is_quiet()) {
+      const i32 scaler = 768_z;
+      const i32 bonus = scaler * std::min(164_z * depth - 87_z, 1705_z) / 1024;
+      m_sd.quiet_history.update(!stm, ss[-1].enemy_threatened, ss[-1].move, bonus);
     }
 
     if (best_score == score::none) {
