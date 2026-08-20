@@ -561,7 +561,7 @@ namespace rose {
         i32 reduction;
 
         if (mv.is_noisy()) {
-          reduction = 1021_z + 180_z * log2_depth * log2_searched_moves;
+          reduction = 1721_z + 180_z * log2_depth * log2_searched_moves;
         } else {
           reduction = 2255_z + 214_z * log2_depth * log2_searched_moves;
         }
