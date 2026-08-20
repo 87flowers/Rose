@@ -691,7 +691,7 @@ namespace rose {
         m_sd.pawn_correction_history.update(stm, m_hash_stack.back().pawn, bonus);
         m_sd.non_pawn_correction_history[Color::white].update(stm, m_hash_stack.back().non_pawn[Color::white], bonus);
         m_sd.non_pawn_correction_history[Color::black].update(stm, m_hash_stack.back().non_pawn[Color::black], bonus);
-        m_sd.sequence_correction_history.update(stm, sequence_hash(0, 2), bonus);
+        m_sd.sequence_correction_history.update(stm, sequence_hash(0, 1), bonus);
       }
 
       tt_store(tt::LookupResult {
@@ -862,7 +862,7 @@ namespace rose {
     return m_sd.pawn_correction_history.get(stm, m_hash_stack.back().pawn) +
            m_sd.non_pawn_correction_history[Color::white].get(stm, m_hash_stack.back().non_pawn[Color::white]) +
            m_sd.non_pawn_correction_history[Color::black].get(stm, m_hash_stack.back().non_pawn[Color::black]) +
-           m_sd.sequence_correction_history.get(stm, sequence_hash(0, 2));
+           m_sd.sequence_correction_history.get(stm, sequence_hash(0, 1));
   }
 
   template<eval::concepts::State Evaluation>
