@@ -21,7 +21,7 @@ auto is_repetition(Game& g) -> bool {
 auto move(Game& g, std::string_view move_str) -> void {
   g.move(Move::parse(move_str, MoveFormat::frc, g.position()).value());
   fmt::print("{:016x} : {}\n", g.hash(), move_str);
-  rose_assert(g.hash() == g.position().calc_hashes_slow().full);
+  rose_assert(g.hash() == g.position().calc_hashes_slow().full());
 }
 
 auto move_and_set_waterline(Game& g, std::string_view move_str) -> void {

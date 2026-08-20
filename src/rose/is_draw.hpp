@@ -27,7 +27,7 @@ namespace rose::draw {
     const int end = std::min<int>(std::min<int>(pos.fifty_move_clock(), pos.ply_since_null()), height);
 
     const auto hash_at = [&hash_stack, height](int i) -> Hash {
-      return hash_stack[height - i].full;
+      return hash_stack[height - i].full();
     };
     const Hash current_hash = hash_at(0);
 

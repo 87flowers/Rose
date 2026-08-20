@@ -22,18 +22,40 @@ namespace rose::hash {
 
 namespace rose {
   struct Hashes {
-    Hash full = 0;
-    Hash pawn = 0;
-    std::array<Hash, Color::count> non_pawn {};
+  private:
+    Hash m_full = 0;
+    Hash m_pawn = 0;
+    std::array<Hash, Color::count> m_non_pawn {};
 
-    constexpr auto operator==(const Hashes&) const -> bool = default;
+    inline auto toggle_piece(Color color, PieceType ptype, Hash h) -> void {
+      m_full ^= h;
+
+      if (ptype == PieceType::p) {
+        m_pawn ^= h;
+      } else {
+        m_non_pawn[color.to_index()] ^= h;
+      }
+    }
+
+  public:
+    auto full() const -> Hash {
+      return m_full;
+    }
+
+    auto pawn() const -> Hash {
+      return m_pawn;
+    }
+
+    auto non_pawn(Color color) const -> Hash {
+      return m_non_pawn[color.to_index()];
+    }
 
     inline auto toggle_enpassant(Square enpassant) -> void {
-      full ^= hash::enpassant_table[enpassant.file()];
+      m_full ^= hash::enpassant_table[enpassant.file()];
     }
 
     inline auto toggle_castle(usize index) -> void {
-      full ^= hash::castle_table[index];
+      m_full ^= hash::castle_table[index];
     }
 
     inline auto toggle_piece(Square sq, Place place) -> void {
@@ -46,18 +68,9 @@ namespace rose {
     }
 
     inline auto toggle_stm() -> void {
-      full ^= hash::move;
+      m_full ^= hash::move;
     }
 
-  private:
-    inline auto toggle_piece(Color color, PieceType ptype, Hash h) -> void {
-      full ^= h;
-
-      if (ptype == PieceType::p) {
-        pawn ^= h;
-      } else {
-        non_pawn[color.to_index()] ^= h;
-      }
-    }
+    constexpr auto operator==(const Hashes&) const -> bool = default;
   };
 }  // namespace rose

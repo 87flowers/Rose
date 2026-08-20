@@ -32,7 +32,7 @@ namespace rose {
     }
 
     auto hash() const -> Hash {
-      return m_hash_stack.back().full;
+      return m_hash_stack.back().full();
     }
 
     auto move_stack() const -> std::vector<Move> {

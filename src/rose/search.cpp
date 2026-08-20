@@ -688,9 +688,9 @@ namespace rose {
             }
           }()) {
         const i32 bonus = (best_score - static_eval) * depth / 4;
-        m_sd.pawn_correction_history.update(stm, m_hash_stack.back().pawn, bonus);
-        m_sd.non_pawn_correction_history[Color::white].update(stm, m_hash_stack.back().non_pawn[Color::white], bonus);
-        m_sd.non_pawn_correction_history[Color::black].update(stm, m_hash_stack.back().non_pawn[Color::black], bonus);
+        m_sd.pawn_correction_history.update(stm, m_hash_stack.back().pawn(), bonus);
+        m_sd.non_pawn_correction_history[Color::white].update(stm, m_hash_stack.back().non_pawn(Color::white), bonus);
+        m_sd.non_pawn_correction_history[Color::black].update(stm, m_hash_stack.back().non_pawn(Color::black), bonus);
       }
 
       tt_store(tt::LookupResult {
@@ -857,9 +857,9 @@ namespace rose {
 
   template<eval::concepts::State Evaluation>
   auto Search<Evaluation>::eval_correction(const Position& position) -> i32 {
-    return m_sd.pawn_correction_history.get(position.stm(), m_hash_stack.back().pawn) +
-           m_sd.non_pawn_correction_history[Color::white].get(position.stm(), m_hash_stack.back().non_pawn[Color::white]) +
-           m_sd.non_pawn_correction_history[Color::black].get(position.stm(), m_hash_stack.back().non_pawn[Color::black]);
+    return m_sd.pawn_correction_history.get(position.stm(), m_hash_stack.back().pawn()) +
+           m_sd.non_pawn_correction_history[Color::white].get(position.stm(), m_hash_stack.back().non_pawn(Color::white)) +
+           m_sd.non_pawn_correction_history[Color::black].get(position.stm(), m_hash_stack.back().non_pawn(Color::black));
   }
 
   template<eval::concepts::State Evaluation>
@@ -871,14 +871,14 @@ namespace rose {
   auto Search<Evaluation>::tt_load() -> tt::LookupResult {
     rose_assert(m_hash_stack.size() > m_hash_waterline);
     const i32 ply = static_cast<i32>(m_hash_stack.size() - 1 - m_hash_waterline);
-    return m_shared.transposition_table.load(m_hash_stack.back().full, ply);
+    return m_shared.transposition_table.load(m_hash_stack.back().full(), ply);
   }
 
   template<eval::concepts::State Evaluation>
   auto Search<Evaluation>::tt_store(tt::LookupResult lr) -> void {
     rose_assert(m_hash_stack.size() > m_hash_waterline);
     const i32 ply = static_cast<i32>(m_hash_stack.size() - 1 - m_hash_waterline);
-    m_shared.transposition_table.store(m_hash_stack.back().full, ply, lr);
+    m_shared.transposition_table.store(m_hash_stack.back().full(), ply, lr);
   }
 
   template<eval::concepts::State Evaluation>
