@@ -105,6 +105,7 @@ namespace rose {
     ContinuationHistory continuation_history;
     HashCorrectionHistory pawn_correction_history;
     std::array<HashCorrectionHistory, Color::count> non_pawn_correction_history;
+    HashCorrectionHistory sequence_correction_history;
 
     auto reset() -> void {
       quiet_history.reset();
@@ -113,6 +114,7 @@ namespace rose {
       pawn_correction_history.reset();
       for (HashCorrectionHistory& h : non_pawn_correction_history)
         h.reset();
+      sequence_correction_history.reset();
     }
   };
 
@@ -180,6 +182,11 @@ namespace rose {
       return *std::ranges::find_if(m_root_moves, [mv](const RootMove& root_move) {
         return root_move.move == mv;
       });
+    }
+
+    auto sequence_hash(usize start, usize end) -> Hash {
+      const usize height = m_hash_stack.size() - 1;
+      return m_hash_stack[height - start].full ^ m_hash_stack[height - end].full;
     }
 
     auto thread_main() -> void;
