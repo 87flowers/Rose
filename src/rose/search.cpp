@@ -499,7 +499,9 @@ namespace rose {
         const PieceType ptype = position.ptype_at(mv.from());
 
         i32 history = 0;
-        if (!mv.is_noisy()) {
+        if (mv.is_noisy()) {
+          history += m_sd.noisy_history.get(stm, ptype, mv);
+        } else {
           history += m_sd.quiet_history.get(stm, enemy_threatened, mv);
           for (i32 i : {1, 2})
             if (ss[-i].conthist)
