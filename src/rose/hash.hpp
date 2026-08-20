@@ -24,17 +24,14 @@ namespace rose {
   struct Hashes {
   private:
     Hash m_full = 0;
-    Hash m_pawn = 0;
     std::array<Hash, Color::count> m_non_pawn {};
+    std::array<Hash, PieceType::count> m_piece {};
 
     inline auto toggle_piece(Color color, PieceType ptype, Hash h) -> void {
       m_full ^= h;
-
-      if (ptype == PieceType::p) {
-        m_pawn ^= h;
-      } else {
+      if (ptype != PieceType::p)
         m_non_pawn[color.to_index()] ^= h;
-      }
+      m_piece[ptype.to_index()] ^= h;
     }
 
   public:
@@ -43,11 +40,15 @@ namespace rose {
     }
 
     auto pawn() const -> Hash {
-      return m_pawn;
+      return m_piece[PieceType::p];
     }
 
     auto non_pawn(Color color) const -> Hash {
       return m_non_pawn[color.to_index()];
+    }
+
+    auto major() const -> Hash {
+      return m_piece[PieceType::k] ^ m_piece[PieceType::q] ^ m_piece[PieceType::r];
     }
 
     inline auto toggle_enpassant(Square enpassant) -> void {

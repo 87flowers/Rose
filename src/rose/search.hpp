@@ -105,6 +105,7 @@ namespace rose {
     ContinuationHistory continuation_history;
     HashCorrectionHistory pawn_correction_history;
     std::array<HashCorrectionHistory, Color::count> non_pawn_correction_history;
+    HashCorrectionHistory major_correction_history;
 
     auto reset() -> void {
       quiet_history.reset();
@@ -113,6 +114,7 @@ namespace rose {
       pawn_correction_history.reset();
       for (HashCorrectionHistory& h : non_pawn_correction_history)
         h.reset();
+      major_correction_history.reset();
     }
   };
 
