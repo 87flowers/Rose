@@ -47,8 +47,8 @@ namespace rose {
       return m_non_pawn[color.to_index()];
     }
 
-    auto major() const -> Hash {
-      return m_piece[PieceType::k] ^ m_piece[PieceType::q] ^ m_piece[PieceType::r];
+    auto minor() const -> Hash {
+      return m_piece[PieceType::k] ^ m_piece[PieceType::n] ^ m_piece[PieceType::b];
     }
 
     inline auto toggle_enpassant(Square enpassant) -> void {
