@@ -186,6 +186,8 @@ namespace rose {
 
     auto sequence_hash(usize start, usize end) -> Hash {
       const usize height = m_hash_stack.size() - 1;
+      if (end > height || start > height)
+        return 0;
       return m_hash_stack[height - start].full ^ m_hash_stack[height - end].full;
     }
 
