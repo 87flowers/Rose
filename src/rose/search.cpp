@@ -480,6 +480,10 @@ namespace rose {
         extension = -1;
       }
     }
+    // Low Depth Singular Extensions
+    else if (!is_root && !is_in_check && depth <= 6 && tte.bound == NodeType::cut && expected == NodeType::cut && static_eval <= alpha - 32_z) {
+      extension = 1;
+    }
 
     MovePicker moves {m_sd, position, ss, hint_move};
 
