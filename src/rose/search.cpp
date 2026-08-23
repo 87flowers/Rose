@@ -219,6 +219,7 @@ namespace rose {
 
     i32 pv_last_unstable = 0;
     i32 score_last_unstable = 0;
+    f64 best_move_changes = 0.0;
 
     for (i32 depth = 1; depth < max_depth; depth++) {
       Line pv {};
@@ -269,6 +270,9 @@ namespace rose {
       if (std::abs(last_score - score) >= 28_z)
         score_last_unstable = depth;
 
+      if (last_depth >= 1 && last_pv.first_move() != pv.first_move())
+        best_move_changes += 1.0;
+
       last_score = score;
       last_pv = pv;
       last_depth = depth;
@@ -280,9 +284,13 @@ namespace rose {
         const i32 pv_stability = depth - pv_last_unstable;
         const i32 score_stability = depth - score_last_unstable;
 
+        const f64 best_move_instability = 1.0 + 2.2_z * best_move_changes / static_cast<f64>(m_shared.stats.size());
+
         const f32 time_multiplier = std::max(2.0_z - 1.5_z * best_move_nodes / total_nodes, 0.5_z) *
                                     std::max(1.0 - pv_stability * 0.05116902193882232_z, 0.592028611604442_z) *
-                                    std::max(1.0 - score_stability * 0.04828987665300888_z, 0.667434450591335_z);
+                                    std::max(1.0 - score_stability * 0.04828987665300888_z, 0.667434450591335_z) * best_move_instability;
+
+        best_move_changes *= 0.5;
 
         if (ctrl.check_soft_termination(stats(), depth, time_multiplier))
           break;
