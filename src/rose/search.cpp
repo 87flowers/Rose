@@ -99,8 +99,8 @@ namespace rose {
       safe_remaining_ms = std::min(safe_remaining_ms, movetime_ms);
     }
 
-    const auto hard_limit = std::min<time::Milliseconds>(safe_remaining_ms / movestogo * 7_z + increment_ms / 3, safe_remaining_ms);
-    const auto soft_limit = std::min<time::Milliseconds>(safe_remaining_ms / movestogo + increment_ms / 3, safe_remaining_ms);
+    const auto hard_limit = std::min<time::Milliseconds>(safe_remaining_ms / movestogo * 7_z + increment_ms * 3 / 4, safe_remaining_ms);
+    const auto soft_limit = std::min<time::Milliseconds>(safe_remaining_ms / movestogo + increment_ms * 3 / 4, safe_remaining_ms);
 
     return {hard_limit, soft_limit};
   }
