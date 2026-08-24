@@ -96,6 +96,7 @@ namespace rose {
     Score raw_static_eval = score::none;
     Score static_eval = score::none;
     i32 reduction = 0;
+    i32 laterality = 0;
     ContinuationHistorySubtable* conthist = nullptr;
   };
 
@@ -201,7 +202,7 @@ namespace rose {
     auto tt_load() -> tt::LookupResult;
     auto tt_store(tt::LookupResult lr) -> void;
 
-    [[nodiscard]] auto make_move(SearchStack* ss, const Position& position, Move mv) -> Position;
+    [[nodiscard]] auto make_move(SearchStack* ss, const Position& position, Move mv, u32 searched_moves) -> Position;
     [[nodiscard]] auto make_null_move(SearchStack* ss, const Position& position) -> Position;
     auto unmake_move(SearchStack* ss) -> void;
   };

@@ -1,6 +1,7 @@
 #include "rose/search.hpp"
 
 #include "rose/common.hpp"
+#include "rose/dbg.hpp"
 #include "rose/engine_output.hpp"
 #include "rose/eval/nnue/arch.hpp"
 #include "rose/game.hpp"
@@ -550,7 +551,7 @@ namespace rose {
 
       const u64 nodes_before_move = stats().nodes.load(std::memory_order_relaxed);
 
-      const Position child_position = make_move(ss, position, mv);
+      const Position child_position = make_move(ss, position, mv, searched_moves);
       rose_defer {
         unmake_move(ss);
       };
@@ -575,6 +576,9 @@ namespace rose {
         reduction -= 132_z * history / 1024;
         reduction += 937_z * (expected == NodeType::cut);
         reduction -= 844_z * child_position.is_in_check();
+        if (expected != NodeType::pv) {
+          reduction -= 170_z - 100_z * ss->laterality / ply;
+        }
 
         const i32 lmr_depth = std::min(std::max(new_depth - reduction / 1024, 0), new_depth) + (expected == NodeType::pv);
 
@@ -799,6 +803,7 @@ namespace rose {
 
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
+    u32 searched_moves = 0;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (!score::is_loss(best_score) && !is_in_check) {
@@ -814,7 +819,9 @@ namespace rose {
         }
       }
 
-      const Position child_position = make_move(ss, position, mv);
+      searched_moves++;
+
+      const Position child_position = make_move(ss, position, mv, searched_moves);
       rose_defer {
         unmake_move(ss);
       };
@@ -890,7 +897,7 @@ namespace rose {
   }
 
   template<eval::concepts::State Evaluation>
-  auto Search<Evaluation>::make_move(SearchStack* ss, const Position& position, Move mv) -> Position {
+  auto Search<Evaluation>::make_move(SearchStack* ss, const Position& position, Move mv, u32 searched_moves) -> Position {
     m_evaluation.push();
     m_hash_stack.push_back(position.hashes_after(m_hash_stack.back(), mv));
     const Position child_position = position.move(mv, m_evaluation.observer());
@@ -898,6 +905,7 @@ namespace rose {
     ss->conthist = m_sd.continuation_history.get_subtable(!child_position.stm(), child_position.ptype_at(mv.to()), mv);
     ss[1].raw_static_eval = score::none;
     ss[1].static_eval = score::none;
+    ss->laterality = ss[-1].laterality + std::bit_width(searched_moves);
     return child_position;
   }
 
@@ -910,6 +918,7 @@ namespace rose {
     ss->conthist = nullptr;
     ss[1].raw_static_eval = score::none;
     ss[1].static_eval = score::none;
+    ss->laterality = ss[-1].laterality;
     return child_position;
   }
 
