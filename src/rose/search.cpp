@@ -577,7 +577,7 @@ namespace rose {
         reduction += 937_z * (expected == NodeType::cut);
         reduction -= 844_z * child_position.is_in_check();
         if (expected != NodeType::pv) {
-          reduction -= 170_z - 100_z * ss->laterality / ply;
+          reduction -= 150_z - 100_z * ss->laterality / ply;
         }
 
         const i32 lmr_depth = std::min(std::max(new_depth - reduction / 1024, 0), new_depth) + (expected == NodeType::pv);
@@ -905,7 +905,7 @@ namespace rose {
     ss->conthist = m_sd.continuation_history.get_subtable(!child_position.stm(), child_position.ptype_at(mv.to()), mv);
     ss[1].raw_static_eval = score::none;
     ss[1].static_eval = score::none;
-    ss->laterality = ss[-1].laterality + std::bit_width(searched_moves);
+    ss->laterality = ss[-1].laterality + std::bit_width(searched_moves + 1) - 1;
     return child_position;
   }
 
