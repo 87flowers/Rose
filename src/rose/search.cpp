@@ -893,6 +893,7 @@ namespace rose {
   auto Search<Evaluation>::make_move(SearchStack* ss, const Position& position, Move mv) -> Position {
     m_evaluation.push();
     m_hash_stack.push_back(position.hashes_after(m_hash_stack.back(), mv));
+    m_shared.transposition_table.prefetch(m_hash_stack.back().full());
     const Position child_position = position.move(mv, m_evaluation.observer());
     ss->move = mv;
     ss->conthist = m_sd.continuation_history.get_subtable(!child_position.stm(), child_position.ptype_at(mv.to()), mv);
