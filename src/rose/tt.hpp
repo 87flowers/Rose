@@ -1,12 +1,14 @@
 #pragma once
 
 #include "rose/common.hpp"
+#include "rose/hash.hpp"
 #include "rose/move.hpp"
 #include "rose/node_type.hpp"
 #include "rose/score.hpp"
 
 #include <bit>
 #include <memory>
+#include <tuple>
 
 namespace rose::tt {
 
@@ -139,6 +141,13 @@ namespace rose::tt {
     return mb * 1024 * 1024 / sizeof(Bucket);
   }
 
+  constexpr inline auto split_hash(usize count, Hash hash) -> std::tuple<usize, u64> {
+    const u128 mul = static_cast<u128>(hash) * count;
+    const usize index = static_cast<usize>(mul >> 64);
+    const u64 fragment = (static_cast<u64>(mul) >> (64 - Bucket::fragment_width)) & Bucket::fragment_mask;
+    return {index, fragment};
+  }
+
   struct TT {
   private:
     static auto table_alloc(std::size_t m_count) -> Bucket*;
@@ -167,10 +176,16 @@ namespace rose::tt {
       m_age = (m_age + 1) & Entry::age_mask;
     }
 
-    auto load(u64 hash, int ply) const -> LookupResult;
-    auto store(u64 hash, int ply, LookupResult lr) -> void;
+    auto prefetch(Hash hash) -> void {
+      const auto [index, fragment] = split_hash(m_count, hash);
+      const Bucket& bucket = m_table.get()[index];
+      __builtin_prefetch(&bucket, 0, 2);
+    }
 
-    auto print(u64 hash) const -> void;
+    auto load(Hash hash, int ply) const -> LookupResult;
+    auto store(Hash hash, int ply, LookupResult lr) -> void;
+
+    auto print(Hash hash) const -> void;
   };
 
 }  // namespace rose::tt

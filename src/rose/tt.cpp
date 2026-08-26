@@ -6,16 +6,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <fmt/format.h>
-#include <tuple>
 
 namespace rose::tt {
-
-  static constexpr inline auto split_hash(usize count, u64 hash) -> std::tuple<usize, u64> {
-    const u128 mul = static_cast<u128>(hash) * count;
-    const usize index = static_cast<usize>(mul >> 64);
-    const u64 fragment = (static_cast<u64>(mul) >> (64 - Bucket::fragment_width)) & Bucket::fragment_mask;
-    return {index, fragment};
-  }
 
 #ifdef _WIN32
 
@@ -43,7 +35,7 @@ namespace rose::tt {
     std::memset(m_table.get(), 0, m_count * sizeof(Bucket));
   }
 
-  auto TT::load(u64 hash, int ply) const -> LookupResult {
+  auto TT::load(Hash hash, int ply) const -> LookupResult {
     const auto [index, fragment] = split_hash(m_count, hash);
     const Bucket& bucket = m_table.get()[index];
 
@@ -54,7 +46,7 @@ namespace rose::tt {
     return {};
   }
 
-  auto TT::store(u64 hash, int ply, LookupResult lr) -> void {
+  auto TT::store(Hash hash, int ply, LookupResult lr) -> void {
     const auto retention_score = [this](const Entry& e) {
       constexpr int max_age = Entry::age_mask + 1;
       return e.depth() - (max_age + m_age - e.age()) % max_age * 4;
@@ -96,7 +88,7 @@ namespace rose::tt {
     bucket.set_fragment(best_index, fragment);
   }
 
-  auto TT::print(u64 hash) const -> void {
+  auto TT::print(Hash hash) const -> void {
     const auto [index, fragment] = split_hash(m_count, hash);
     fmt::print("hash:   {:016x}\n", hash);
     fmt::print("frag:   {:06x}\n", fragment);
