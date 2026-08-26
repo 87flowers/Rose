@@ -906,6 +906,7 @@ namespace rose {
   auto Search<Evaluation>::make_null_move(SearchStack* ss, const Position& position) -> Position {
     m_evaluation.push();
     m_hash_stack.push_back(position.hashes_after_null_move(m_hash_stack.back()));
+    m_shared.transposition_table.prefetch(m_hash_stack.back().full());
     const Position child_position = position.null_move();
     ss->move = Move::none();
     ss->conthist = nullptr;
