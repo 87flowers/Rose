@@ -569,15 +569,15 @@ namespace rose {
         i32 reduction;
 
         if (mv.is_noisy()) {
-          reduction = 1321_z + 180_z * log2_depth * log2_searched_moves;
+          reduction = 1021_z + 180_z * log2_depth * log2_searched_moves;
         } else {
-          reduction = 2455_z + 214_z * log2_depth * log2_searched_moves;
+          reduction = 2055_z + 214_z * log2_depth * log2_searched_moves;
         }
         reduction -= 970_z * (expected == NodeType::pv);
         reduction -= 132_z * history / 1024;
         reduction += 937_z * (expected == NodeType::cut);
         reduction -= 844_z * child_position.is_in_check();
-        reduction -= std::clamp(120_z * (ply - ss->pv_chain_count), 0, 1024_z);
+        reduction += std::clamp(120_z * (ply - ss->pv_chain_count), 0, 1024_z);
 
         const i32 lmr_depth = std::min(std::max(new_depth - reduction / 1024, 0), new_depth) + (expected == NodeType::pv);
 
