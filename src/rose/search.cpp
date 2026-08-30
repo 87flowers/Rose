@@ -26,7 +26,8 @@
 namespace rose {
 
   auto SearchShared::reset() -> void {
-    stats.clear();
+    for (SearchStats& stat : stats)
+      stat.reset();
     transposition_table.clear();
   }
 

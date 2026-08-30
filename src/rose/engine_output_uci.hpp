@@ -30,6 +30,7 @@ namespace rose {
                  args.nodes,
                  nps,
                  args.pv.to_string(format));
+      std::fflush(stdout);
     }
 
     auto bestmove(Move m) -> void override {
