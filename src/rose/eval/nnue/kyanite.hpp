@@ -56,6 +56,15 @@ namespace rose::eval::nnue {
       i16 output_bias;
     };
 
+    inline static auto add(const Network& net, Accumulator& acc0, usize feat0) -> void {
+      static_assert(hl_size % i16xN::size == 0);
+
+      for (usize i = 0; i < hl_size; i += i16xN::size) {
+        const i16xN w0 = i16xN::load(&net.accumulator_weights[feat0][i]);
+        (i16xN::load(&acc0[i]) + w0).store(&acc0[i]);
+      }
+    }
+
     inline static auto add(const Network& net, Accumulator& acc0, usize feat0, Accumulator& acc1, usize feat1) -> void {
       static_assert(hl_size % i16xN::size == 0);
 
@@ -96,7 +105,24 @@ namespace rose::eval::nnue {
       return y * y;
     }
 
-    inline static auto rebuild_accumulator(const Position& pos, const Network& net) -> AccumulatorPair {
+    inline static auto rebuild_accumulator(const Position& pos, const Network& net, Color perspective) -> Accumulator {
+      Accumulator result = net.accumulator_biases;
+
+      for (u8 i = 0; i < 64; i++) {
+        const Square sq {i};
+        const Place p = pos.place_at(sq);
+
+        if (p.is_empty())
+          continue;
+
+        const usize feature0 = feature_index(pos, perspective, sq, p.ptype(), p.color());
+        add(net, result, feature0);
+      }
+
+      return result;
+    }
+
+    inline static auto rebuild_accumulator_pair(const Position& pos, const Network& net) -> AccumulatorPair {
       AccumulatorPair result;
       result.values.fill(net.accumulator_biases);
 
@@ -180,7 +206,7 @@ namespace rose::eval::nnue {
 
       auto on_finalize(const Position& pos) -> void {
         if (refresh) {
-          m_accum = rebuild_accumulator(pos, m_net);
+          m_accum.values[pos.stm().invert().to_index()] = rebuild_accumulator(pos, m_net, pos.stm().invert());
         }
       }
     };
@@ -223,7 +249,7 @@ namespace rose::eval::nnue {
 
       auto reset(const Position& pos) -> void {
         m_stack.clear();
-        m_stack.push_back(rebuild_accumulator(pos, m_net));
+        m_stack.push_back(rebuild_accumulator_pair(pos, m_net));
       }
 
       auto push() -> void {
@@ -238,7 +264,7 @@ namespace rose::eval::nnue {
         const Color stm = pos.stm();
         const AccumulatorPair& accumulators = m_stack.back();
 
-        rose_assert(rebuild_accumulator(pos, m_net) == accumulators);
+        rose_assert(rebuild_accumulator_pair(pos, m_net) == accumulators);
 
         return evaluate(accumulators.get(stm), accumulators.get(stm.invert()));
       }
