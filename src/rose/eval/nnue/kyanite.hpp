@@ -120,25 +120,23 @@ namespace rose::eval::nnue {
       AccumulatorPair accumulators;
       std::array<StaticVector<usize, 2>, Color::count> sub;
       std::array<StaticVector<usize, 2>, Color::count> add;
-      bool materialized = false;
       bool needs_rebuild = false;
+      usize distance_to_materialized;
     };
 
     struct Observer {
     private:
-      const Network& m_net;
       StackEntry& m_entry;
       bool refresh = false;
 
     public:
-      explicit Observer(const Network& net, StackEntry& entry) :
-          m_net(net),
+      explicit Observer(StackEntry& entry) :
           m_entry(entry) {
       }
 
       auto on_king_move(const Position& pos, Color stm, Square from, Square to) -> void {
         rose_unused(pos, stm);
-        m_entry.needs_rebuild = (from.file() >= 4 && to.file() < 4) || (from.file() < 4 && to.file() >= 4);
+        m_entry.needs_rebuild |= (from.file() >= 4 && to.file() < 4) || (from.file() < 4 && to.file() >= 4);
       }
 
       auto on_add(const Position& pos, Color side, PieceType ptype, Square sq) -> void {
@@ -183,6 +181,7 @@ namespace rose::eval::nnue {
     private:
       StaticVector<StackEntry, max_depth + 6> m_stack;
       const Network& m_net;
+      usize last_materialized = 0;
 
       auto evaluate(const Accumulator& us, const Accumulator& them) -> i32 {
         static_assert(hl_size % i16xN::size == 0);
@@ -210,19 +209,17 @@ namespace rose::eval::nnue {
 
       auto materialize_stack(const Position& current_position) -> void {
         const usize current = m_stack.size() - 1;
-        usize i = current;
 
-        while (!m_stack[i].materialized) {
-          if (m_stack[i].needs_rebuild) {
-            m_stack[current].materialized = true;
-            m_stack[current].accumulators = rebuild_accumulator(current_position, m_net);
-            return;
-          }
-          i--;
+        if (m_stack[current].distance_to_materialized == 0)
+          return;
+
+        if (m_stack[current].needs_rebuild) {
+          m_stack[current].distance_to_materialized = 0;
+          m_stack[current].accumulators = rebuild_accumulator(current_position, m_net);
+          return;
         }
 
-        rose_assert(m_stack[i].materialized);
-
+        usize i = current - m_stack[current].distance_to_materialized;
         while (i < current) {
           i++;
           materialize_entry(i);
@@ -230,7 +227,7 @@ namespace rose::eval::nnue {
       }
 
       auto materialize_entry(usize i) -> void {
-        rose_assert(m_stack[i - 1].materialized);
+        rose_assert(m_stack[i - 1].distance_to_materialized == 0);
         m_stack[i].accumulators = m_stack[i - 1].accumulators;
 
         const usize add_count = m_stack[i].add[0].size();
@@ -256,7 +253,7 @@ namespace rose::eval::nnue {
           add(m_net, m_stack[i].accumulators.values[0], m_stack[i].add[0][j], m_stack[i].accumulators.values[1], m_stack[i].add[1][j]);
         }
 
-        m_stack[i].materialized = true;
+        m_stack[i].distance_to_materialized = 0;
       }
 
     public:
@@ -268,12 +265,15 @@ namespace rose::eval::nnue {
         m_stack.clear();
         m_stack.push_back(StackEntry {
           .accumulators = rebuild_accumulator(pos, m_net),
-          .materialized = true,
+          .distance_to_materialized = 0,
         });
       }
 
       auto push() -> void {
-        m_stack.push_back({});
+        m_stack.push_back({
+          .needs_rebuild = m_stack.back().needs_rebuild,
+          .distance_to_materialized = m_stack.back().distance_to_materialized + 1,
+        });
       }
 
       auto pop() -> void {
@@ -286,14 +286,14 @@ namespace rose::eval::nnue {
         const Color stm = pos.stm();
         const AccumulatorPair& accumulators = m_stack.back().accumulators;
 
-        rose_assert(m_stack.back().materialized);
+        rose_assert(m_stack.back().distance_to_materialized == 0);
         rose_assert(rebuild_accumulator(pos, m_net) == accumulators);
 
         return evaluate(accumulators.get(stm), accumulators.get(stm.invert()));
       }
 
       auto observer() -> Observer {
-        return Observer {m_net, m_stack.back()};
+        return Observer {m_stack.back()};
       }
     };
   };
