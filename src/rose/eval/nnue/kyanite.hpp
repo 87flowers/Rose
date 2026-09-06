@@ -273,9 +273,7 @@ namespace rose::eval::nnue {
       }
 
       auto push() -> void {
-        m_stack.push_back({
-          .accumulators = m_stack.back().accumulators,
-        });
+        m_stack.push_back({});
       }
 
       auto pop() -> void {
