@@ -116,72 +116,64 @@ namespace rose::eval::nnue {
       return result;
     }
 
+    struct StackEntry {
+      AccumulatorPair accumulators;
+      std::array<StaticVector<usize, 2>, Color::count> sub;
+      std::array<StaticVector<usize, 2>, Color::count> add;
+      bool materialized = false;
+      bool needs_rebuild = false;
+    };
+
     struct Observer {
     private:
       const Network& m_net;
-      AccumulatorPair& m_accum;
+      StackEntry& m_entry;
       bool refresh = false;
 
     public:
-      Observer(const Network& net, AccumulatorPair& accum) :
+      explicit Observer(const Network& net, StackEntry& entry) :
           m_net(net),
-          m_accum(accum) {
+          m_entry(entry) {
       }
 
       auto on_king_move(const Position& pos, Color stm, Square from, Square to) -> void {
-        refresh = (from.file() >= 4 && to.file() < 4) || (from.file() < 4 && to.file() >= 4);
+        rose_unused(pos, stm);
+        m_entry.needs_rebuild = (from.file() >= 4 && to.file() < 4) || (from.file() < 4 && to.file() >= 4);
       }
 
       auto on_add(const Position& pos, Color side, PieceType ptype, Square sq) -> void {
-        add(m_net,
-            m_accum.values[0],
-            feature_index(pos, Color::white, sq, ptype, side),
-            m_accum.values[1],
-            feature_index(pos, Color::black, sq, ptype, side));
+        m_entry.add[Color::white].push_back(feature_index(pos, Color::white, sq, ptype, side));
+        m_entry.add[Color::black].push_back(feature_index(pos, Color::black, sq, ptype, side));
       }
 
       auto on_remove(const Position& pos, Color side, PieceType ptype, Square sq) -> void {
-        sub(m_net,
-            m_accum.values[0],
-            feature_index(pos, Color::white, sq, ptype, side),
-            m_accum.values[1],
-            feature_index(pos, Color::black, sq, ptype, side));
+        m_entry.sub[Color::white].push_back(feature_index(pos, Color::white, sq, ptype, side));
+        m_entry.sub[Color::black].push_back(feature_index(pos, Color::black, sq, ptype, side));
       }
 
       auto on_mutate(const Position& pos, Color side, PieceType src_ptype, PieceType dst_ptype, Square sq) -> void {
-        subadd(m_net,
-               m_accum.values[0],
-               feature_index(pos, Color::white, sq, src_ptype, side),
-               feature_index(pos, Color::white, sq, dst_ptype, side),
-               m_accum.values[1],
-               feature_index(pos, Color::black, sq, src_ptype, side),
-               feature_index(pos, Color::black, sq, dst_ptype, side));
+        m_entry.sub[Color::white].push_back(feature_index(pos, Color::white, sq, src_ptype, side));
+        m_entry.sub[Color::black].push_back(feature_index(pos, Color::black, sq, src_ptype, side));
+        m_entry.add[Color::white].push_back(feature_index(pos, Color::white, sq, dst_ptype, side));
+        m_entry.add[Color::black].push_back(feature_index(pos, Color::black, sq, dst_ptype, side));
       }
 
       auto on_move(const Position& pos, Color side, PieceType ptype, Square from, Square to) -> void {
-        subadd(m_net,
-               m_accum.values[0],
-               feature_index(pos, Color::white, from, ptype, side),
-               feature_index(pos, Color::white, to, ptype, side),
-               m_accum.values[1],
-               feature_index(pos, Color::black, from, ptype, side),
-               feature_index(pos, Color::black, to, ptype, side));
+        m_entry.sub[Color::white].push_back(feature_index(pos, Color::white, from, ptype, side));
+        m_entry.sub[Color::black].push_back(feature_index(pos, Color::black, from, ptype, side));
+        m_entry.add[Color::white].push_back(feature_index(pos, Color::white, to, ptype, side));
+        m_entry.add[Color::black].push_back(feature_index(pos, Color::black, to, ptype, side));
       }
 
       auto on_promote(const Position& pos, Color side, PieceType dst_ptype, Square from, Square to) -> void {
-        subadd(m_net,
-               m_accum.values[0],
-               feature_index(pos, Color::white, from, PieceType::p, side),
-               feature_index(pos, Color::white, to, dst_ptype, side),
-               m_accum.values[1],
-               feature_index(pos, Color::black, from, PieceType::p, side),
-               feature_index(pos, Color::black, to, dst_ptype, side));
+        m_entry.sub[Color::white].push_back(feature_index(pos, Color::white, from, PieceType::p, side));
+        m_entry.sub[Color::black].push_back(feature_index(pos, Color::black, from, PieceType::p, side));
+        m_entry.add[Color::white].push_back(feature_index(pos, Color::white, to, dst_ptype, side));
+        m_entry.add[Color::black].push_back(feature_index(pos, Color::black, to, dst_ptype, side));
       }
 
       auto on_finalize(const Position& pos) -> void {
-        if (refresh) {
-          m_accum = rebuild_accumulator(pos, m_net);
-        }
+        rose_unused(pos);
       }
     };
 
@@ -189,7 +181,7 @@ namespace rose::eval::nnue {
 
     struct State {
     private:
-      StaticVector<AccumulatorPair, max_depth + 6> m_stack;
+      StaticVector<StackEntry, max_depth + 6> m_stack;
       const Network& m_net;
 
       auto evaluate(const Accumulator& us, const Accumulator& them) -> i32 {
@@ -216,6 +208,47 @@ namespace rose::eval::nnue {
         return output;
       }
 
+      auto materialize_stack(const Position& current_position) -> void {
+        const usize current = m_stack.size() - 1;
+        usize i = current;
+
+        while (!m_stack[i].materialized) {
+          if (m_stack[i].needs_rebuild) {
+            m_stack[current].materialized = true;
+            m_stack[current].accumulators = rebuild_accumulator(current_position, m_net);
+            return;
+          }
+          i--;
+        }
+
+        rose_assert(m_stack[i].materialized);
+
+        while (i < current) {
+          i++;
+          materialize_entry(i);
+        }
+      }
+
+      auto materialize_entry(usize i) -> void {
+        rose_assert(m_stack[i - 1].materialized);
+        m_stack[i].accumulators = m_stack[i - 1].accumulators;
+
+        const usize add_count = m_stack[i].add[0].size();
+        const usize sub_count = m_stack[i].sub[0].size();
+
+        rose_assert(add_count == m_stack[i].add[1].size());
+        rose_assert(sub_count == m_stack[i].sub[1].size());
+
+        for (usize j = 0; j < sub_count; j++) {
+          sub(m_net, m_stack[i].accumulators.values[0], m_stack[i].sub[0][j], m_stack[i].accumulators.values[1], m_stack[i].sub[1][j]);
+        }
+        for (usize j = 0; j < add_count; j++) {
+          add(m_net, m_stack[i].accumulators.values[0], m_stack[i].add[0][j], m_stack[i].accumulators.values[1], m_stack[i].add[1][j]);
+        }
+
+        m_stack[i].materialized = true;
+      }
+
     public:
       explicit State(const Network& net) :
           m_net(net) {
@@ -223,11 +256,16 @@ namespace rose::eval::nnue {
 
       auto reset(const Position& pos) -> void {
         m_stack.clear();
-        m_stack.push_back(rebuild_accumulator(pos, m_net));
+        m_stack.push_back(StackEntry {
+          .accumulators = rebuild_accumulator(pos, m_net),
+          .materialized = true,
+        });
       }
 
       auto push() -> void {
-        m_stack.push_back(m_stack.back());
+        m_stack.push_back({
+          .accumulators = m_stack.back().accumulators,
+        });
       }
 
       auto pop() -> void {
@@ -235,9 +273,12 @@ namespace rose::eval::nnue {
       }
 
       auto evaluate(const Position& pos) -> Score {
-        const Color stm = pos.stm();
-        const AccumulatorPair& accumulators = m_stack.back();
+        materialize_stack(pos);
 
+        const Color stm = pos.stm();
+        const AccumulatorPair& accumulators = m_stack.back().accumulators;
+
+        rose_assert(m_stack.back().materialized);
         rose_assert(rebuild_accumulator(pos, m_net) == accumulators);
 
         return evaluate(accumulators.get(stm), accumulators.get(stm.invert()));
