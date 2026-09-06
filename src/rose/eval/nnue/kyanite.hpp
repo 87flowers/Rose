@@ -235,14 +235,24 @@ namespace rose::eval::nnue {
 
         const usize add_count = m_stack[i].add[0].size();
         const usize sub_count = m_stack[i].sub[0].size();
+        const usize shared_count = std::min(add_count, sub_count);
 
         rose_assert(add_count == m_stack[i].add[1].size());
         rose_assert(sub_count == m_stack[i].sub[1].size());
 
-        for (usize j = 0; j < sub_count; j++) {
+        for (usize j = 0; j < shared_count; j++) {
+          subadd(m_net,
+                 m_stack[i].accumulators.values[0],
+                 m_stack[i].sub[0][j],
+                 m_stack[i].add[0][j],
+                 m_stack[i].accumulators.values[1],
+                 m_stack[i].sub[1][j],
+                 m_stack[i].add[1][j]);
+        }
+        for (usize j = shared_count; j < sub_count; j++) {
           sub(m_net, m_stack[i].accumulators.values[0], m_stack[i].sub[0][j], m_stack[i].accumulators.values[1], m_stack[i].sub[1][j]);
         }
-        for (usize j = 0; j < add_count; j++) {
+        for (usize j = shared_count; j < add_count; j++) {
           add(m_net, m_stack[i].accumulators.values[0], m_stack[i].add[0][j], m_stack[i].accumulators.values[1], m_stack[i].add[1][j]);
         }
 
