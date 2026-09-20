@@ -26,7 +26,7 @@ ifdef ARCH_TUNE
 endif
 
 ifeq ($(OS),Windows_NT)
-  LDFLAGS := -fuse-ld=lld
+  LDFLAGS := -fuse-ld=lld -static-libgcc -static-libstdc++ -Wl,-Bstatic -lwinpthread -Wl,-Bdynamic
 else
   LDFLAGS := -pthread
 endif
