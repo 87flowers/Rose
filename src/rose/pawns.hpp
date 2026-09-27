@@ -72,9 +72,9 @@ namespace rose::pawns {
       std::array<std::array<u16, 8>, 2> promotions;
       for (u8 i = 0; i < 8; i++) {
         const u8 wsrc = 48 + i;
-        promotions[0][i] = Move::make(Square {wsrc}, Square {narrow_cast<u8>(wsrc + 8)}, MoveFlags::promo_q).raw;
+        promotions[0][i] = Move::make(Square {wsrc}, Square {narrow_cast<u8>(wsrc + 8)}, MoveFlags::promo_n).raw;
         const u8 bsrc = 8 + i;
-        promotions[1][i] = Move::make(Square {bsrc}, Square {narrow_cast<u8>(bsrc - 8)}, MoveFlags::promo_q).raw;
+        promotions[1][i] = Move::make(Square {bsrc}, Square {narrow_cast<u8>(bsrc - 8)}, MoveFlags::promo_n).raw;
       }
       return std::array<u16x8, 2> {u16x8 {promotions[0]}, u16x8 {promotions[1]}};
     }();
