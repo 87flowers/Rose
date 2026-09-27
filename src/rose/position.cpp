@@ -495,17 +495,17 @@ namespace rose {
     case MF(castle_hside):
       castle(6, 5);
       break;
-    case MF(promo_q):
-      promo(std::integral_constant<PieceType, PieceType::q> {});
-      break;
     case MF(promo_n):
       promo(std::integral_constant<PieceType, PieceType::n> {});
+      break;
+    case MF(promo_b):
+      promo(std::integral_constant<PieceType, PieceType::b> {});
       break;
     case MF(promo_r):
       promo(std::integral_constant<PieceType, PieceType::r> {});
       break;
-    case MF(promo_b):
-      promo(std::integral_constant<PieceType, PieceType::b> {});
+    case MF(promo_q):
+      promo(std::integral_constant<PieceType, PieceType::q> {});
       break;
     case MF(cap_normal):
       cap_normal();
@@ -513,17 +513,17 @@ namespace rose {
     case MF(enpassant):
       enpassant();
       break;
-    case MF(cap_promo_q):
-      cap_promo(std::integral_constant<PieceType, PieceType::q> {});
-      break;
     case MF(cap_promo_n):
       cap_promo(std::integral_constant<PieceType, PieceType::n> {});
+      break;
+    case MF(cap_promo_b):
+      cap_promo(std::integral_constant<PieceType, PieceType::b> {});
       break;
     case MF(cap_promo_r):
       cap_promo(std::integral_constant<PieceType, PieceType::r> {});
       break;
-    case MF(cap_promo_b):
-      cap_promo(std::integral_constant<PieceType, PieceType::b> {});
+    case MF(cap_promo_q):
+      cap_promo(std::integral_constant<PieceType, PieceType::q> {});
       break;
     }
 #undef MF
@@ -654,17 +654,17 @@ namespace rose {
     case MF(castle_hside):
       castle(6, 5);
       break;
-    case MF(promo_q):
-      promo(std::integral_constant<PieceType, PieceType::q> {});
-      break;
     case MF(promo_n):
       promo(std::integral_constant<PieceType, PieceType::n> {});
+      break;
+    case MF(promo_b):
+      promo(std::integral_constant<PieceType, PieceType::b> {});
       break;
     case MF(promo_r):
       promo(std::integral_constant<PieceType, PieceType::r> {});
       break;
-    case MF(promo_b):
-      promo(std::integral_constant<PieceType, PieceType::b> {});
+    case MF(promo_q):
+      promo(std::integral_constant<PieceType, PieceType::q> {});
       break;
     case MF(cap_normal):
       cap_normal();
@@ -672,17 +672,17 @@ namespace rose {
     case MF(enpassant):
       enpassant();
       break;
-    case MF(cap_promo_q):
-      cap_promo(std::integral_constant<PieceType, PieceType::q> {});
-      break;
     case MF(cap_promo_n):
       cap_promo(std::integral_constant<PieceType, PieceType::n> {});
+      break;
+    case MF(cap_promo_b):
+      cap_promo(std::integral_constant<PieceType, PieceType::b> {});
       break;
     case MF(cap_promo_r):
       cap_promo(std::integral_constant<PieceType, PieceType::r> {});
       break;
-    case MF(cap_promo_b):
-      cap_promo(std::integral_constant<PieceType, PieceType::b> {});
+    case MF(cap_promo_q):
+      cap_promo(std::integral_constant<PieceType, PieceType::q> {});
       break;
     }
 #undef MF

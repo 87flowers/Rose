@@ -100,8 +100,7 @@ namespace rose {
 
     constexpr auto ptype() const -> PieceType {
       rose_assert(is_promo());
-      constexpr std::array<PieceType, 4> lut {PieceType::n, PieceType::b, PieceType::r, PieceType::q};
-      return lut[(raw & 0x3000) >> 12];
+      return PieceType::from_index(PieceType::n + ((raw & 0x3000) >> 12));
     }
 
     constexpr auto flags() const -> MoveFlags {

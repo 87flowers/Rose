@@ -148,7 +148,7 @@ namespace rose::geometry {
     constexpr u8 wpdj = b | q | k | wp;
     constexpr u8 bpdj = b | q | k | bp;
 
-    constexpr u8x16 ptype_to_bits {{0, k, wp, n, 0, b, r, q, 0, k, bp, n, 0, b, r, q}};
+    constexpr u8x16 ptype_to_bits {{0, k, wp, n, b, r, q, 0, 0, k, bp, n, b, r, q, 0}};
     constexpr u8x64 base {{
       horse, oadj, orth, orth, orth, orth, orth, orth,  // north
       horse, bpdj, diag, diag, diag, diag, diag, diag,  // north-east
@@ -216,7 +216,7 @@ namespace rose::geometry {
       0, orth, orth, orth, orth, orth, orth, orth,  // west
       0, diag, diag, diag, diag, diag, diag, diag,  // north-west
     }};
-    return rays.test(u8x64::splat(slider_bit)) & rays.test(slider_mask);
+    return (rays + u8x64::splat(0b001 << 4)).test(u8x64::splat(slider_bit)) & (rays + u8x64::splat(0b001 << 4)).test(slider_mask);
   }
 
   inline auto slider_broadcast(u8x64 x) -> u8x64 {

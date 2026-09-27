@@ -132,7 +132,6 @@ namespace rose {
     };
 
     inline static constexpr u8 ptype_shift = 4;
-    inline static constexpr u8 slider_bit = 0b100 << ptype_shift;
 
     Underlying raw = empty;
 
