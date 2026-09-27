@@ -203,20 +203,34 @@ namespace rose::geometry {
   }
 
   inline auto sliders_from_rays(u8x64 rays) -> m8x64 {
-    constexpr u8 slider_bit = 0b100 << 4;
-    constexpr u8 diag = 0b001 << 4;
-    constexpr u8 orth = 0b010 << 4;
-    constexpr u8x64 slider_mask {{
-      0, orth, orth, orth, orth, orth, orth, orth,  // north
-      0, diag, diag, diag, diag, diag, diag, diag,  // north-east
-      0, orth, orth, orth, orth, orth, orth, orth,  // east
-      0, diag, diag, diag, diag, diag, diag, diag,  // south-east
-      0, orth, orth, orth, orth, orth, orth, orth,  // south
-      0, diag, diag, diag, diag, diag, diag, diag,  // south-west
-      0, orth, orth, orth, orth, orth, orth, orth,  // west
-      0, diag, diag, diag, diag, diag, diag, diag,  // north-west
+    constexpr u8 R = static_cast<u8>(PieceType::r) << 4;
+    constexpr u8 B = static_cast<u8>(PieceType::b) << 4;
+    constexpr u8 Q = static_cast<u8>(PieceType::q) << 4;
+    constexpr u8 NONE = 1;
+
+    constexpr u8x64 rb_mask {{
+      NONE, R, R, R, R, R, R, R,  // N
+      NONE, B, B, B, B, B, B, B,  // NE
+      NONE, R, R, R, R, R, R, R,  // E
+      NONE, B, B, B, B, B, B, B,  // SE
+      NONE, R, R, R, R, R, R, R,  // S
+      NONE, B, B, B, B, B, B, B,  // SW
+      NONE, R, R, R, R, R, R, R,  // W
+      NONE, B, B, B, B, B, B, B,  // NW
     }};
-    return (rays + u8x64::splat(0b001 << 4)).test(u8x64::splat(slider_bit)) & (rays + u8x64::splat(0b001 << 4)).test(slider_mask);
+    constexpr u8x64 q_mask {{
+      NONE, Q, Q, Q, Q, Q, Q, Q,  // N
+      NONE, Q, Q, Q, Q, Q, Q, Q,  // NE
+      NONE, Q, Q, Q, Q, Q, Q, Q,  // E
+      NONE, Q, Q, Q, Q, Q, Q, Q,  // SE
+      NONE, Q, Q, Q, Q, Q, Q, Q,  // S
+      NONE, Q, Q, Q, Q, Q, Q, Q,  // SW
+      NONE, Q, Q, Q, Q, Q, Q, Q,  // W
+      NONE, Q, Q, Q, Q, Q, Q, Q,  // NW
+    }};
+
+    rays &= u8x64::splat(0x70);
+    return rays.eq(rb_mask) | rays.eq(q_mask);
   }
 
   inline auto slider_broadcast(u8x64 x) -> u8x64 {
