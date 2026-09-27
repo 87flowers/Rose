@@ -106,16 +106,16 @@ namespace rose {
   };
 
   struct PieceType {
-    inline static constexpr usize count = 8;
+    inline static constexpr usize count = 7;
 
     enum Underlying : u8 {
       none = 0b000,
       k = 0b001,
       p = 0b010,
       n = 0b011,
-      b = 0b101,
-      r = 0b110,
-      q = 0b111,
+      b = 0b100,
+      r = 0b101,
+      q = 0b110,
     };
 
     Underlying raw = none;
@@ -138,12 +138,8 @@ namespace rose {
       return std::to_underlying(raw);
     }
 
-    constexpr auto to_sort_value() const -> i32 {
-      return (std::to_underlying(raw) - k - 1) & 0b111;
-    }
-
     constexpr auto to_char(Color color) const -> char {
-      constexpr std::array<std::string_view, 2> str {{".KPN?BRQ", ".kpn?brq"}};
+      constexpr std::array<std::string_view, 2> str {{".KPNBRQ", ".kpnbrq"}};
       return str[color.to_index()][to_index()];
     }
 

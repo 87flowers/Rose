@@ -14,7 +14,7 @@
 namespace rose::see {
 
   inline Score value(PieceType ptype) {
-    constexpr std::array<Score, 8> lut {{0, 10000, 100, 300, 0, 300, 500, 900}};
+    constexpr std::array<Score, 8> lut {{0, 10000, 100, 300, 300, 500, 900, 0}};
     return lut[ptype.to_index()];
   }
 
@@ -69,10 +69,10 @@ namespace rose::see {
     std::array<u64, 8> ptype_bits {
       ptypes.eq(u8x64::splat(static_cast<u8>(PieceType::p) << Place::ptype_shift)).to_bits(),
       0x0101010101010101,  // Knight
-      0,                   // Invalid
       ptypes.eq(u8x64::splat(static_cast<u8>(PieceType::b) << Place::ptype_shift)).to_bits(),
       ptypes.eq(u8x64::splat(static_cast<u8>(PieceType::r) << Place::ptype_shift)).to_bits(),
       ptypes.eq(u8x64::splat(static_cast<u8>(PieceType::q) << Place::ptype_shift)).to_bits(),
+      0,  // Invalid
       0,  // None
       ptypes.eq(u8x64::splat(static_cast<u8>(PieceType::k) << Place::ptype_shift)).to_bits(),
     };
