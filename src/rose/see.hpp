@@ -14,7 +14,7 @@
 namespace rose::see {
 
   inline Score value(PieceType ptype) {
-    constexpr std::array<Score, 8> lut {{0, 10000, 100, 300, 300, 500, 900, 0}};
+    constexpr std::array<Score, PieceType::count> lut {{0, 10000, 100, 300, 300, 500, 900}};
     return lut[ptype.to_index()];
   }
 
