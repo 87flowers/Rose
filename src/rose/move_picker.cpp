@@ -105,7 +105,7 @@ namespace rose {
 
     const Color stm = m_position.stm();
 
-    const std::array<i32, 8> victim_score {{0, 9480_z, 103_z, 280_z, 0, 355_z, 474_z, 1009_z}};
+    const std::array<i32, PieceType::count> victim_score {{0, 9480_z, 103_z, 280_z, 355_z, 474_z, 1009_z}};
 
     for (isize i = 0; i < m_moves.size(); i++) {
       const Move mv = m_moves[i];

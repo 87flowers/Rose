@@ -21,8 +21,8 @@ namespace rose::eval::nnue {
     inline static constexpr i32 qb = 64;
 
     inline static auto feature_index(Color perspective, Square sq, PieceType ptype, Color side) -> usize {
-      //                          qrb-npk-
-      constexpr u32 ptype_lut = 0x43201050;
+      //                           qrbnpk-
+      constexpr u32 ptype_lut = 0x04321050;
 
       usize side_index = side.to_index();
       usize ptype_index = (ptype_lut >> (4 * ptype.to_index())) & 0xf;

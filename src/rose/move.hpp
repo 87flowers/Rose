@@ -18,16 +18,16 @@ namespace rose {
     double_push = 0x1000,
     castle_aside = 0x2000,  // classical: queen-side
     castle_hside = 0x3000,  // classical: king-side
-    promo_q = 0x4000,
-    promo_n = 0x5000,
+    promo_n = 0x4000,
+    promo_b = 0x5000,
     promo_r = 0x6000,
-    promo_b = 0x7000,
+    promo_q = 0x7000,
     cap_normal = 0x8000,
     enpassant = 0x9000,
-    cap_promo_q = 0xC000,
-    cap_promo_n = 0xD000,
+    cap_promo_n = 0xC000,
+    cap_promo_b = 0xD000,
     cap_promo_r = 0xE000,
-    cap_promo_b = 0xF000,
+    cap_promo_q = 0xF000,
   };
 
   struct Move {
@@ -79,7 +79,7 @@ namespace rose {
 
     constexpr auto is_noisy() const -> bool {
       // equivalent to: return capture() || flags() == MoveFlags::promo_q;
-      return (raw ^ 0x3000) >= 0x7000;
+      return raw >= 0x7000;
     }
 
     constexpr auto is_quiet() const -> bool {
@@ -100,8 +100,7 @@ namespace rose {
 
     constexpr auto ptype() const -> PieceType {
       rose_assert(is_promo());
-      constexpr std::array<PieceType, 4> lut {PieceType::q, PieceType::n, PieceType::r, PieceType::b};
-      return lut[(raw & 0x3000) >> 12];
+      return PieceType::from_index(PieceType::n + ((raw & 0x3000) >> 12));
     }
 
     constexpr auto flags() const -> MoveFlags {

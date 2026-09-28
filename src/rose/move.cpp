@@ -59,14 +59,14 @@ namespace rose {
 
     const auto mf = [&]() -> std::expected<MoveFlags, ParseError> {
       switch (str[4]) {
-      case 'q':
-        return capture ? MoveFlags::cap_promo_q : MoveFlags::promo_q;
       case 'n':
         return capture ? MoveFlags::cap_promo_n : MoveFlags::promo_n;
-      case 'r':
-        return capture ? MoveFlags::cap_promo_r : MoveFlags::promo_r;
       case 'b':
         return capture ? MoveFlags::cap_promo_b : MoveFlags::promo_b;
+      case 'r':
+        return capture ? MoveFlags::cap_promo_r : MoveFlags::promo_r;
+      case 'q':
+        return capture ? MoveFlags::cap_promo_q : MoveFlags::promo_q;
       default:
         return std::unexpected(ParseError::invalid_char);
       }
