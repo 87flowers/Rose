@@ -800,8 +800,11 @@ namespace rose {
 
     Move best_move = Move::none();
     NodeType actual_node_type = NodeType::all;
+    u32 legal_moves = 0;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
+      legal_moves++;
+
       if (!score::is_loss(best_score) && !is_in_check) {
         // QS SEE Pruning
         if (!see::see(position, mv, 0))
@@ -846,6 +849,10 @@ namespace rose {
       // Limit evasions
       if (is_in_check && !score::is_loss(best_score))
         moves.skip_quiet();
+    }
+
+    if (is_in_check && legal_moves == 0) {
+      return score::mated(ply);
     }
 
     tt_store(tt::LookupResult {
