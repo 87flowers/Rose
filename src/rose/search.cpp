@@ -367,7 +367,9 @@ namespace rose {
             return tte.score <= alpha;
           }
         }()) {
-      return tte.score;
+      if (position.fifty_move_clock() < 90) {
+        return tte.score;
+      }
     }
 
     const Score raw_static_eval = [&, this] {
