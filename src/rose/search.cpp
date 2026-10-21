@@ -441,7 +441,7 @@ namespace rose {
     }
 
     // Internal iterative deepening
-    if (!is_root && expected == NodeType::pv && depth >= 8 && hint_move.is_none() && !excluded) {
+    if (!is_root && expected.is_pv_or_cut() && depth >= 8 && hint_move.is_none() && !excluded) {
       const i32 iid_depth = (794_z * depth - 1525_z) / 1024;
 
       m_iid_iteration++;
