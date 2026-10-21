@@ -402,6 +402,11 @@ namespace rose {
         depth++;
       }
 
+      // Hindsight reduction
+      if (depth >= 2 && ss[-1].reduction >= 1 && ss[-1].static_eval != score::none && static_eval + ss[-1].static_eval > 120) {
+        depth--;
+      }
+
       // Reverse Futility Pruning
       if (depth <= 15 && static_eval - 59_z * depth - 4_z * depth * depth >= beta) {
         return static_eval;
