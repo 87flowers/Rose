@@ -347,9 +347,6 @@ namespace rose {
     }
 
     const bool excluded = ss->excluded.is_some();
-    const bool is_in_check = position.is_in_check();
-    const Color stm = position.stm();
-    const Bitboard enemy_threatened = position.attack_table(!stm).bitboard_any();
 
     const tt::LookupResult tte = tt_load();
     Move hint_move = tte.move;
@@ -369,6 +366,10 @@ namespace rose {
         }()) {
       return tte.score;
     }
+
+    const bool is_in_check = position.is_in_check();
+    const Color stm = position.stm();
+    const Bitboard enemy_threatened = position.attack_table(!stm).bitboard_any();
 
     const Score raw_static_eval = [&, this] {
       if (is_in_check)
