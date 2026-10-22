@@ -454,6 +454,11 @@ namespace rose {
         return iid_tte.score;
     }
 
+    // Internal iterative reductions
+    if (!is_root && expected.is_pv_or_cut() && depth >= 5 && hint_move.is_none() && !excluded) {
+      depth--;
+    }
+
     // Hint move legality check
     if (!position.is_legal(hint_move)) {
       hint_move = Move::none();
