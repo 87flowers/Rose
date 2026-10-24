@@ -96,6 +96,7 @@ namespace rose {
     Score raw_static_eval = score::none;
     Score static_eval = score::none;
     i32 reduction = 0;
+    i32 fail_high_count = 0;
     ContinuationHistorySubtable* conthist = nullptr;
   };
 
