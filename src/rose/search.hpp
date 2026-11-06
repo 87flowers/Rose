@@ -142,7 +142,7 @@ namespace rose {
     std::vector<Hashes> m_hash_stack;
     usize m_hash_waterline;
 
-    inline static constexpr usize search_stack_offset = 8;
+    inline static constexpr usize search_stack_offset = 10;
     inline static constexpr usize search_stack_safety = 8;
     std::array<SearchStack, max_depth + search_stack_offset + search_stack_safety> m_search_stack;
 

@@ -13,7 +13,7 @@
 #include <initializer_list>
 
 namespace rose {
-  inline constexpr std::initializer_list<i32> conthists_indexes {1, 2, 4, 6};
+  inline constexpr std::initializer_list<i32> conthists_indexes {1, 2, 4, 6, 8};
 
   template<i32 max>
   inline auto gravity_formula(i16& value, i32 bonus) -> void {
