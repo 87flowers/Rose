@@ -670,9 +670,9 @@ namespace rose {
       const i32 cont_malus = std::min(98_z * depth - 34_z, 1123_z);
 
       if (best_move.is_noisy()) {
-        m_sd.noisy_history.update(stm, position.ptype_at(best_move.from()), best_move, noisy_bonus);
+        m_sd.noisy_history.update(stm, position.ptype_at(best_move.from()), enemy_threatened, best_move, noisy_bonus);
         for (const Move noisy : fail_low_noisies) {
-          m_sd.noisy_history.update(stm, position.ptype_at(noisy.from()), noisy, -noisy_malus);
+          m_sd.noisy_history.update(stm, position.ptype_at(noisy.from()), enemy_threatened, noisy, -noisy_malus);
         }
       } else {
         m_sd.quiet_history.update(stm, enemy_threatened, best_move, quiet_bonus);

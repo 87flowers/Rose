@@ -104,6 +104,7 @@ namespace rose {
     scores.resize(m_moves.size());
 
     const Color stm = m_position.stm();
+    const Bitboard threats = m_position.attack_table(!stm).bitboard_any();
 
     const std::array<i32, PieceType::count> victim_score {{0, 9480_z, 103_z, 280_z, 355_z, 474_z, 1009_z}};
 
@@ -114,7 +115,7 @@ namespace rose {
 
       i32 score = 0;
       score += victim_score[victim.to_index()] * 7_z;
-      score += m_sd.noisy_history.get(stm, attacker, mv);
+      score += m_sd.noisy_history.get(stm, attacker, threats, mv);
 
       scores[i] = score * 256 - i;
     }
