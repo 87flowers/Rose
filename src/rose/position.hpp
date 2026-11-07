@@ -213,6 +213,10 @@ namespace rose {
       return place_at(sq).ptype();
     }
 
+    auto piece_at(Square sq) const -> Piece {
+      return place_at(sq).piece();
+    }
+
     auto what_is(Color color, PieceId id) const -> PieceType {
       return m_piece_list_ptype[color.to_index()][id];
     }

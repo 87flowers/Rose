@@ -178,20 +178,20 @@ namespace rose::eval::nnue {
                feature_index(pos, Color::black, to, dst_ptype, side));
       }
 
-      auto on_add_focus_threats(const Position& pos, PieceType ptype, Square sq, u64 attacker_mask, u8x64 ray_coords, u8x64 ray_places) -> void {
-        rose_unused(pos, ptype, sq, attacker_mask, ray_coords, ray_places);
+      auto on_add_focus_threats(const Position& pos, Color color, PieceType ptype, Square sq, m8x64 add_mask) -> void {
+        rose_unused(pos, ptype, sq, add_mask);
       }
 
-      auto on_remove_focus_threats(const Position& pos, PieceType ptype, Square sq) -> void {
-        rose_unused(pos, ptype, sq);
+      auto on_remove_focus_threats(const Position& pos, Color color, PieceType ptype, Square sq, Bitboard bb) -> void {
+        rose_unused(pos, ptype, sq, bb);
       }
 
-      auto on_add_discovered_threats(const Position& pos, m8x64 sliders, m8x64 raymask, u8x64 ray_coords, u8x64 ray_places) -> void {
-        rose_unused(pos, sliders, raymask, ray_coords, ray_places);
+      auto on_add_discovered_threats(const Position& pos, m8x64 slider_colors, u8x64 slider_id) -> void {
+        rose_unused(pos, slider_colors, slider_id);
       }
 
-      auto on_remove_discovered_threats(const Position& pos, m8x64 sliders, m8x64 raymask, u8x64 ray_coords, u8x64 ray_places) -> void {
-        rose_unused(pos, sliders, raymask, ray_coords, ray_places);
+      auto on_remove_discovered_threats(const Position& pos, m8x64 slider_colors, u8x64 slider_id) -> void {
+        rose_unused(pos, slider_colors, slider_id);
       }
 
       auto on_finalize(const Position& pos) -> void {

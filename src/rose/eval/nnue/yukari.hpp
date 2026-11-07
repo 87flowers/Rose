@@ -126,9 +126,9 @@ namespace rose::eval::nnue {
     inline static constexpr std::array<Bitboard, 64> rook_attacks = attacks_array_for_piece<PieceType::r>();
     inline static constexpr std::array<Bitboard, 64> queen_attacks = attacks_array_for_piece<PieceType::q>();
 
-    inline static auto threat_feature_index(const Position& pos, Color perspective, Square from, Square to) -> std::optional<usize> {
-      const Place src = pos.place_at(from);
-      const Place dst = pos.place_at(to);
+    inline static auto threat_feature_index(const Position& pos, Color perspective, Square from, Piece src, Square to, Piece dst)
+      -> std::optional<usize> {
+      fmt::print("{}: {} {} {} {}\n", perspective, src, from, dst, to);
 
       const bool friendly = src.color() == perspective;
       const bool attacking_enemy = dst.color() != perspective;
@@ -249,11 +249,24 @@ namespace rose::eval::nnue {
     using i8xhN = lps::environment::vector<i8, std::max<usize>(16, i16xN::size)>;
 
     inline static auto threat_add(const Network& net, Accumulator& acc0, usize feat0) -> void {
+      rose_dbg("threat_add({})\n", feat0);
+
       static_assert(hl_size % i16xN::size == 0);
 
       for (usize i = 0; i < hl_size; i += i16xN::size) {
         const i16xN w0 = i8xhN::load(&net.threat_weights[feat0][i]).template convert<i16>();
         (i16xN::load(&acc0[i]) + w0).store(&acc0[i]);
+      }
+    }
+
+    inline static auto threat_sub(const Network& net, Accumulator& acc0, usize feat0) -> void {
+      rose_dbg("threat_sub({})\n", feat0);
+
+      static_assert(hl_size % i16xN::size == 0);
+
+      for (usize i = 0; i < hl_size; i += i16xN::size) {
+        const i16xN w0 = i8xhN::load(&net.threat_weights[feat0][i]).template convert<i16>();
+        (i16xN::load(&acc0[i]) - w0).store(&acc0[i]);
       }
     }
 
@@ -300,11 +313,11 @@ namespace rose::eval::nnue {
         for (Square to : pos.attack_table(c).bitboard_any() & pos.board().occupied_bitboard()) {
           for (PieceId src : pos.attack_table(c).read(to)) {
             const Square from = pos.where_is(c, src);
-            if (const auto feature0 = threat_feature_index(pos, Color::white, from, to)) {
+            if (const auto feature0 = threat_feature_index(pos, Color::white, from, pos.piece_at(from), to, pos.piece_at(to))) {
               threat_add(net, result.values[0], *feature0);
               // fmt::print("white: {} {} {} {} {}\n", pos.place_at(from), from, pos.place_at(to), to, *feature0);
             }
-            if (const auto feature1 = threat_feature_index(pos, Color::black, from, to)) {
+            if (const auto feature1 = threat_feature_index(pos, Color::black, from, pos.piece_at(from), to, pos.piece_at(to))) {
               threat_add(net, result.values[1], *feature1);
               // fmt::print("black: {} {} {} {} {}\n", pos.place_at(from), from, pos.place_at(to), to, *feature1);
             }
@@ -319,7 +332,7 @@ namespace rose::eval::nnue {
     private:
       const Network& m_net;
       AccumulatorPair& m_accum;
-      bool refresh = false;
+      bool m_refresh = false;
 
     public:
       Observer(const Network& net, AccumulatorPair& accum) :
@@ -328,7 +341,7 @@ namespace rose::eval::nnue {
       }
 
       auto on_king_move(const Position& pos, Color stm, Square from, Square to) -> void {
-        refresh = (from.file() >= 4 && to.file() < 4) || (from.file() < 4 && to.file() >= 4);
+        m_refresh = (from.file() >= 4 && to.file() < 4) || (from.file() < 4 && to.file() >= 4);
       }
 
       auto on_add(const Position& pos, Color side, PieceType ptype, Square sq) -> void {
@@ -377,24 +390,98 @@ namespace rose::eval::nnue {
                    psq_feature_index(pos, Color::black, to, dst_ptype, side));
       }
 
-      auto on_add_focus_threats(const Position& pos, PieceType ptype, Square sq, u64 attacker_mask, u8x64 ray_coords, u8x64 ray_places) -> void {
-        rose_unused(pos, ptype, sq, attacker_mask, ray_coords, ray_places);
+      auto on_add_focus_threats(const Position& pos, Color color, PieceType ptype, Square sq, m8x64 add_mask) -> void {
+        rose_unused(color, ptype);
+
+        // Focus piece threats
+        for (Square to : Bitboard {add_mask.to_bits()} & pos.board().occupied_bitboard()) {
+          if (const auto feature0 = threat_feature_index(pos, Color::white, sq, {color, ptype}, to, pos.piece_at(to))) {
+            threat_add(m_net, m_accum.values[0], *feature0);
+          }
+          if (const auto feature1 = threat_feature_index(pos, Color::black, sq, {color, ptype}, to, pos.piece_at(to))) {
+            threat_add(m_net, m_accum.values[1], *feature1);
+          }
+        }
+
+        // Threats to focus square
+        for (Color c : {Color::white, Color::black}) {
+          for (PieceId src : pos.attack_table(c).read(sq)) {
+            const Square from = pos.where_is(c, src);
+            if (const auto feature0 = threat_feature_index(pos, Color::white, from, pos.piece_at(from), sq, {color, ptype})) {
+              threat_add(m_net, m_accum.values[0], *feature0);
+            }
+            if (const auto feature1 = threat_feature_index(pos, Color::black, from, pos.piece_at(from), sq, {color, ptype})) {
+              threat_add(m_net, m_accum.values[1], *feature1);
+            }
+          }
+        }
       }
 
-      auto on_remove_focus_threats(const Position& pos, PieceType ptype, Square sq) -> void {
-        rose_unused(pos, ptype, sq);
+      auto on_remove_focus_threats(const Position& pos, Color color, PieceType ptype, Square sq, Bitboard bb) -> void {
+        rose_unused(color, ptype);
+
+        // Focus piece threats
+        for (Square to : (bb & pos.board().occupied_bitboard())) {
+          if (const auto feature0 = threat_feature_index(pos, Color::white, sq, {color, ptype}, to, pos.piece_at(to))) {
+            threat_sub(m_net, m_accum.values[0], *feature0);
+          }
+          if (const auto feature1 = threat_feature_index(pos, Color::black, sq, {color, ptype}, to, pos.piece_at(to))) {
+            threat_sub(m_net, m_accum.values[1], *feature1);
+          }
+        }
+
+        // Threats to focus square
+        for (Color c : {Color::white, Color::black}) {
+          for (PieceId src : pos.attack_table(c).read(sq)) {
+            const Square from = pos.where_is(c, src);
+            if (const auto feature0 = threat_feature_index(pos, Color::white, from, pos.piece_at(from), sq, {color, ptype})) {
+              threat_sub(m_net, m_accum.values[0], *feature0);
+            }
+            if (const auto feature1 = threat_feature_index(pos, Color::black, from, pos.piece_at(from), sq, {color, ptype})) {
+              threat_sub(m_net, m_accum.values[1], *feature1);
+            }
+          }
+        }
       }
 
-      auto on_add_discovered_threats(const Position& pos, m8x64 sliders, m8x64 raymask, u8x64 ray_coords, u8x64 ray_places) -> void {
-        rose_unused(pos, sliders, raymask, ray_coords, ray_places);
+      auto on_add_discovered_threats(const Position& pos, m8x64 slider_colors, u8x64 slider_id) -> void {
+        const Bitboard bb = Bitboard {slider_id.nonzeros().to_bits()} & pos.board().occupied_bitboard();
+        const Bitboard color_bb {slider_colors.to_bits()};
+        for (Square to : bb) {
+          const Color c {static_cast<Color::Underlying>(color_bb.read(to))};
+          const PieceId src {slider_id.read(to.to_index())};
+          const Square from = pos.where_is(c, src);
+          if (const auto feature0 = threat_feature_index(pos, Color::white, from, pos.piece_at(from), to, pos.piece_at(to))) {
+            threat_add(m_net, m_accum.values[0], *feature0);
+          }
+          if (const auto feature1 = threat_feature_index(pos, Color::black, from, pos.piece_at(from), to, pos.piece_at(to))) {
+            threat_add(m_net, m_accum.values[1], *feature1);
+          }
+        }
       }
 
-      auto on_remove_discovered_threats(const Position& pos, m8x64 sliders, m8x64 raymask, u8x64 ray_coords, u8x64 ray_places) -> void {
-        rose_unused(pos, sliders, raymask, ray_coords, ray_places);
+      auto on_remove_discovered_threats(const Position& pos, m8x64 slider_colors, u8x64 slider_id) -> void {
+        const Bitboard bb = Bitboard {slider_id.nonzeros().to_bits()} & pos.board().occupied_bitboard();
+        const Bitboard color_bb {slider_colors.to_bits()};
+        for (Square to : bb) {
+          const Color c {static_cast<Color::Underlying>(color_bb.read(to))};
+          const PieceId src {slider_id.read(to.to_index())};
+          const Square from = pos.where_is(c, src);
+          if (const auto feature0 = threat_feature_index(pos, Color::white, from, pos.piece_at(from), to, pos.piece_at(to))) {
+            threat_sub(m_net, m_accum.values[0], *feature0);
+          }
+          if (const auto feature1 = threat_feature_index(pos, Color::black, from, pos.piece_at(from), to, pos.piece_at(to))) {
+            threat_sub(m_net, m_accum.values[1], *feature1);
+          }
+        }
       }
 
       auto on_finalize(const Position& pos) -> void {
-        m_accum = rebuild_accumulator(pos, m_net);
+        if (m_refresh) {
+          m_accum = rebuild_accumulator(pos, m_net);
+        } else {
+          rose_assert(m_accum == rebuild_accumulator(pos, m_net));
+        }
       }
     };
 

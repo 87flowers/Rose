@@ -126,12 +126,14 @@ namespace rose {
 
       color_mask = 0x80,
       ptype_mask = 0x70,
+      piece_mask = 0xF0,
 
       white = 0x00,
       black = 0x80,
     };
 
     inline static constexpr u8 ptype_shift = 4;
+    inline static constexpr u8 piece_shift = 4;
 
     Underlying raw = empty;
 
@@ -155,6 +157,10 @@ namespace rose {
 
     constexpr auto ptype() const -> PieceType {
       return static_cast<PieceType::Underlying>((raw & ptype_mask) >> ptype_shift);
+    }
+
+    constexpr auto piece() const -> Piece {
+      return static_cast<Piece::Underlying>((raw & piece_mask) >> piece_shift);
     }
 
     constexpr auto id() const -> PieceId {
@@ -227,6 +233,10 @@ namespace rose {
 
     auto bitboard_for(PieceMask pm) const -> Bitboard {
       return Bitboard {raw.test(u16x64::splat(pm.raw)).to_bits()};
+    }
+
+    auto bitboard_for(PieceId id) const -> Bitboard {
+      return bitboard_for(id.to_piece_mask());
     }
 
     auto read(Square sq) const -> PieceMask {

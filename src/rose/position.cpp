@@ -79,15 +79,15 @@ namespace rose {
     const m8x64 raymask = geometry::superpiece_attacks(ray_places, ray_valid);
     const m8x64 attacker_mask = raymask & geometry::attack_mask(color, ptype);
 
-    observer.on_add_focus_threats(*this, ptype, sq, attacker_mask.to_bits(), ray_coords, ray_places);
-
     const m8x64 add_mask = iperm.swizzle(attacker_mask).andnot(iperm.msb());
     m_attack_table[color.to_index()].raw |= expand_mask(add_mask).mask(u16x64::splat(id.to_piece_mask().raw));
+
+    observer.on_add_focus_threats(*this, color, ptype, sq, add_mask);
   }
 
   template<eval::concepts::Observer Observer>
   auto Position::remove_attacks(Observer observer, Color color, Square sq, PieceId id, PieceType ptype) -> void {
-    observer.on_remove_focus_threats(*this, ptype, sq);
+    observer.on_remove_focus_threats(*this, color, ptype, sq, attack_table(color).bitboard_for(id));
 
     m_attack_table[color.to_index()].raw &= u16x64::splat(~id.to_piece_mask().raw);
   }
@@ -102,12 +102,6 @@ namespace rose {
     const m8x64 raymask = geometry::superpiece_attacks(ray_places, ray_valid);
     const m8x64 visible_sliders = raymask & sliders;
 
-    if constexpr (piece_removed) {
-      observer.on_add_discovered_threats(*this, sliders, raymask, ray_coords, ray_places);
-    } else {
-      observer.on_remove_discovered_threats(*this, sliders, raymask, ray_coords, ray_places);
-    }
-
     u8x64 slider_ids = geometry::slider_broadcast(visible_sliders.mask(ray_places));
     slider_ids = geometry::flip_mask(raymask).mask(slider_ids);
     slider_ids = iperm.swizzle(slider_ids);
@@ -118,6 +112,12 @@ namespace rose {
 
     m_attack_table[0].raw ^= (~color).mask(bits);
     m_attack_table[1].raw ^= color.mask(bits);
+
+    if constexpr (piece_removed) {
+      observer.on_add_discovered_threats(*this, slider_ids.msb(), slider_ids & u8x64::splat(0xF));
+    } else {
+      observer.on_remove_discovered_threats(*this, slider_ids.msb(), slider_ids & u8x64::splat(0xF));
+    }
   }
 
   template<bool update_sliders, eval::concepts::Observer Observer>
@@ -187,20 +187,29 @@ namespace rose {
 
     const u16x64 id_bit = u16x64::splat(id.to_piece_mask().raw);
     const m8x64 dst_attack_mask = dst_raymask & geometry::attack_mask(color, dst_ptype);
-    const m16x64 add_mask = expand_mask((~dst_iperm.msb() & dst_iperm.swizzle(geometry::flip_mask(dst_attack_mask))));
+    const m8x64 add_mask = ~dst_iperm.msb() & dst_iperm.swizzle(geometry::flip_mask(dst_attack_mask));
 
     if constexpr (is_capture) {
       m_attack_table[0].raw ^= (~src_color).mask(src_bits);
       m_attack_table[1].raw ^= src_color.mask(src_bits);
+      observer.on_add_discovered_threats(*this, src_slider_ids.msb(), src_slider_ids & u8x64::splat(0xF));
     } else {
       m_attack_table[0].raw ^= (~src_color).mask(src_bits) ^ (~dst_color).mask(dst_bits);
       m_attack_table[1].raw ^= src_color.mask(src_bits) ^ dst_color.mask(dst_bits);
+      observer.on_add_discovered_threats(*this, src_slider_ids.msb(), src_slider_ids & u8x64::splat(0xF));
+      observer.on_remove_discovered_threats(*this, dst_slider_ids.msb(), dst_slider_ids & u8x64::splat(0xF));
     }
 
+    const Bitboard old_attacks = attack_table(color).bitboard_for(id);
+
+    observer.on_remove_focus_threats(*this, color, src_ptype, src_sq, old_attacks);
+
     const usize col = color.to_index();
-    m_attack_table[col].raw = m_attack_table[col].raw.andnot(id_bit) | add_mask.mask(id_bit);
+    m_attack_table[col].raw = m_attack_table[col].raw.andnot(id_bit) | expand_mask(add_mask).mask(id_bit);
     m_piece_list_sq[col][id] = dst_sq;
     m_piece_list_ptype[col][id] = dst_ptype;
+
+    observer.on_add_focus_threats(*this, color, dst_ptype, dst_sq, add_mask);
   }
 
   auto Position::startpos() -> Position {
@@ -388,6 +397,8 @@ namespace rose {
 
   template<eval::concepts::Observer Observer>
   auto Position::move(Move m, Observer observer) const -> Position {
+    rose_dbg("{} {}\n", to_string(MoveFormat::frc), m.to_string(MoveFormat::frc));
+
     Position new_pos = *this;
     new_pos.m_valid_pin_info = false;
     new_pos.m_cached_pinned = {};

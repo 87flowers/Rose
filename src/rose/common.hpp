@@ -193,6 +193,61 @@ namespace rose {
 
   static_assert(sizeof(PieceType) == sizeof(u8));
 
+  struct Piece {
+    inline static constexpr usize count = 7;
+
+    enum Underlying : u8 {
+      none = 0b000,
+      wk = 0b0001,
+      wp = 0b0010,
+      wn = 0b0011,
+      wb = 0b0100,
+      wr = 0b0101,
+      wq = 0b0110,
+      bk = 0b1001,
+      bp = 0b1010,
+      bn = 0b1011,
+      bb = 0b1100,
+      br = 0b1101,
+      bq = 0b1110,
+
+      color_mask = 0b1000,
+      ptype_mask = 0b0111,
+    };
+
+    Underlying raw = none;
+
+    constexpr Piece() = default;
+
+    /* implicit */ constexpr Piece(Underlying raw) :
+        raw(raw) {
+    }
+
+    constexpr Piece(Color c, PieceType ptype) :
+        raw(static_cast<Underlying>((c.to_index() << 3) | ptype.to_index())) {
+    }
+
+    constexpr auto is_none() const -> bool {
+      return raw == none;
+    }
+
+    constexpr auto color() const -> Color {
+      return static_cast<Color::Underlying>((raw & color_mask) != 0);
+    }
+
+    constexpr auto ptype() const -> PieceType {
+      return static_cast<PieceType::Underlying>(raw & ptype_mask);
+    }
+
+    constexpr auto to_char() const -> char {
+      return ptype().to_char(color());
+    }
+
+    constexpr auto operator==(const Piece&) const -> bool = default;
+  };
+
+  static_assert(sizeof(Piece) == sizeof(u8));
+
 }  // namespace rose
 
 template<>
@@ -247,5 +302,18 @@ struct fmt::formatter<rose::PieceType, char> {
   template<class FmtContext>
   auto format(rose::PieceType ptype, FmtContext& ctx) const -> FmtContext::iterator {
     return fmt::format_to(ctx.out(), "{}", ptype.to_char(rose::Color::black));
+  }
+};
+
+template<>
+struct fmt::formatter<rose::Piece, char> {
+  template<class ParseContext>
+  constexpr auto parse(ParseContext& ctx) -> ParseContext::iterator {
+    return ctx.begin();
+  }
+
+  template<class FmtContext>
+  auto format(rose::Piece piece, FmtContext& ctx) const -> FmtContext::iterator {
+    return fmt::format_to(ctx.out(), "{}", piece.to_char());
   }
 };
