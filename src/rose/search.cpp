@@ -591,6 +591,7 @@ namespace rose {
         if (score > alpha && lmr_depth < new_depth) {
           i32 research_depth = new_depth;
           if (!is_root) {
+            research_depth -= score < best_score + 4;
             research_depth += score > best_score + 64;
           }
 
