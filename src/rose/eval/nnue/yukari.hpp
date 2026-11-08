@@ -14,7 +14,6 @@
 #include <lps/lps.hpp>
 
 namespace rose::eval::nnue {
-
   template<usize hl_size>
   struct Yukari {
     inline static constexpr i32 scale = 400;
@@ -22,17 +21,17 @@ namespace rose::eval::nnue {
     inline static constexpr i32 qb = 64;
     inline static constexpr usize output_bucket_count = 8;
 
-    inline static auto king_mirror(const Position& pos, Color perspective) -> usize {
-      return pos.king_sq(perspective).file() >= 4 ? 0b000111 : 0;
+    inline static auto king_mirror(const KingSquares& king_sq, Color perspective) -> usize {
+      return king_sq[perspective.to_index()].file() >= 4 ? 0b000111 : 0;
     }
 
-    inline static auto psq_feature_index(const Position& pos, Color perspective, Square sq, PieceType ptype, Color side) -> usize {
+    inline static auto psq_feature_index(const KingSquares& king_sq, Color perspective, Square sq, PieceType ptype, Color side) -> usize {
       //                          qrb-npk-
       constexpr u32 ptype_lut = 0x43201050;
 
       usize side_index = side.to_index();
       usize ptype_index = (ptype_lut >> (4 * ptype.to_index())) & 0xf;
-      usize square_index = sq.to_index() ^ king_mirror(pos, perspective);
+      usize square_index = sq.to_index() ^ king_mirror(king_sq, perspective);
 
       if (perspective == Color::black) {
         side_index ^= 1;
@@ -126,9 +125,9 @@ namespace rose::eval::nnue {
     inline static constexpr std::array<Bitboard, 64> rook_attacks = attacks_array_for_piece<PieceType::r>();
     inline static constexpr std::array<Bitboard, 64> queen_attacks = attacks_array_for_piece<PieceType::q>();
 
-    inline static auto threat_feature_index(const Position& pos, Color perspective, Square from, Piece src, Square to, Piece dst)
+    inline static auto threat_feature_index(const KingSquares& king_sq, Color perspective, Square from, Piece src, Square to, Piece dst)
       -> std::optional<usize> {
-      fmt::print("{}: {} {} {} {}\n", perspective, src, from, dst, to);
+      // rose_dbg("{}: {} {} {} {}\n", perspective, src, from, dst, to);
 
       const bool friendly = src.color() == perspective;
       const bool attacking_enemy = dst.color() != perspective;
@@ -142,8 +141,8 @@ namespace rose::eval::nnue {
         from_index ^= 0b111000;
         to_index ^= 0b111000;
       }
-      from_index ^= king_mirror(pos, perspective);
-      to_index ^= king_mirror(pos, perspective);
+      from_index ^= king_mirror(king_sq, perspective);
+      to_index ^= king_mirror(king_sq, perspective);
 
       if (friendly == attacking_enemy && to_index > from_index && src.ptype() == dst.ptype()) {
         return std::nullopt;
@@ -249,7 +248,7 @@ namespace rose::eval::nnue {
     using i8xhN = lps::environment::vector<i8, std::max<usize>(16, i16xN::size)>;
 
     inline static auto threat_add(const Network& net, Accumulator& acc0, usize feat0) -> void {
-      rose_dbg("threat_add({})\n", feat0);
+      // rose_dbg("threat_add({})\n", feat0);
 
       static_assert(hl_size % i16xN::size == 0);
 
@@ -260,7 +259,7 @@ namespace rose::eval::nnue {
     }
 
     inline static auto threat_sub(const Network& net, Accumulator& acc0, usize feat0) -> void {
-      rose_dbg("threat_sub({})\n", feat0);
+      // rose_dbg("threat_sub({})\n", feat0);
 
       static_assert(hl_size % i16xN::size == 0);
 
@@ -293,6 +292,8 @@ namespace rose::eval::nnue {
     }
 
     inline static auto rebuild_accumulator(const Position& pos, const Network& net) -> AccumulatorPair {
+      const auto king_sq = pos.king_sqs();
+
       AccumulatorPair result;
       result.values.fill(net.biases);
 
@@ -303,8 +304,8 @@ namespace rose::eval::nnue {
         if (p.is_empty())
           continue;
 
-        const usize feature0 = psq_feature_index(pos, Color::white, sq, p.ptype(), p.color());
-        const usize feature1 = psq_feature_index(pos, Color::black, sq, p.ptype(), p.color());
+        const usize feature0 = psq_feature_index(king_sq, Color::white, sq, p.ptype(), p.color());
+        const usize feature1 = psq_feature_index(king_sq, Color::black, sq, p.ptype(), p.color());
 
         pst_add(net, result.values[0], feature0, result.values[1], feature1);
       }
@@ -313,13 +314,13 @@ namespace rose::eval::nnue {
         for (Square to : pos.attack_table(c).bitboard_any() & pos.board().occupied_bitboard()) {
           for (PieceId src : pos.attack_table(c).read(to)) {
             const Square from = pos.where_is(c, src);
-            if (const auto feature0 = threat_feature_index(pos, Color::white, from, pos.piece_at(from), to, pos.piece_at(to))) {
+            if (const auto feature0 = threat_feature_index(king_sq, Color::white, from, pos.piece_at(from), to, pos.piece_at(to))) {
               threat_add(net, result.values[0], *feature0);
-              // fmt::print("white: {} {} {} {} {}\n", pos.place_at(from), from, pos.place_at(to), to, *feature0);
+              // rose_dbg("white: {} {} {} {} {}\n", pos.place_at(from), from, pos.place_at(to), to, *feature0);
             }
-            if (const auto feature1 = threat_feature_index(pos, Color::black, from, pos.piece_at(from), to, pos.piece_at(to))) {
+            if (const auto feature1 = threat_feature_index(king_sq, Color::black, from, pos.piece_at(from), to, pos.piece_at(to))) {
               threat_add(net, result.values[1], *feature1);
-              // fmt::print("black: {} {} {} {} {}\n", pos.place_at(from), from, pos.place_at(to), to, *feature1);
+              // rose_dbg("black: {} {} {} {} {}\n", pos.place_at(from), from, pos.place_at(to), to, *feature1);
             }
           }
         }
@@ -333,11 +334,16 @@ namespace rose::eval::nnue {
       const Network& m_net;
       AccumulatorPair& m_accum;
       bool m_refresh = false;
+      std::array<Square, Color::count> m_king_sq;
 
     public:
       Observer(const Network& net, AccumulatorPair& accum) :
           m_net(net),
           m_accum(accum) {
+      }
+
+      auto on_begin(const Position& pos, Move m) -> void {
+        m_king_sq = pos.king_sqs();
       }
 
       auto on_king_move(const Position& pos, Color stm, Square from, Square to) -> void {
@@ -347,59 +353,59 @@ namespace rose::eval::nnue {
       auto on_add(const Position& pos, Color side, PieceType ptype, Square sq) -> void {
         pst_add(m_net,
                 m_accum.values[0],
-                psq_feature_index(pos, Color::white, sq, ptype, side),
+                psq_feature_index(m_king_sq, Color::white, sq, ptype, side),
                 m_accum.values[1],
-                psq_feature_index(pos, Color::black, sq, ptype, side));
+                psq_feature_index(m_king_sq, Color::black, sq, ptype, side));
       }
 
       auto on_remove(const Position& pos, Color side, PieceType ptype, Square sq) -> void {
         pst_sub(m_net,
                 m_accum.values[0],
-                psq_feature_index(pos, Color::white, sq, ptype, side),
+                psq_feature_index(m_king_sq, Color::white, sq, ptype, side),
                 m_accum.values[1],
-                psq_feature_index(pos, Color::black, sq, ptype, side));
+                psq_feature_index(m_king_sq, Color::black, sq, ptype, side));
       }
 
       auto on_mutate(const Position& pos, Color side, PieceType src_ptype, PieceType dst_ptype, Square sq) -> void {
         pst_subadd(m_net,
                    m_accum.values[0],
-                   psq_feature_index(pos, Color::white, sq, src_ptype, side),
-                   psq_feature_index(pos, Color::white, sq, dst_ptype, side),
+                   psq_feature_index(m_king_sq, Color::white, sq, src_ptype, side),
+                   psq_feature_index(m_king_sq, Color::white, sq, dst_ptype, side),
                    m_accum.values[1],
-                   psq_feature_index(pos, Color::black, sq, src_ptype, side),
-                   psq_feature_index(pos, Color::black, sq, dst_ptype, side));
+                   psq_feature_index(m_king_sq, Color::black, sq, src_ptype, side),
+                   psq_feature_index(m_king_sq, Color::black, sq, dst_ptype, side));
       }
 
       auto on_move(const Position& pos, Color side, PieceType ptype, Square from, Square to) -> void {
         pst_subadd(m_net,
                    m_accum.values[0],
-                   psq_feature_index(pos, Color::white, from, ptype, side),
-                   psq_feature_index(pos, Color::white, to, ptype, side),
+                   psq_feature_index(m_king_sq, Color::white, from, ptype, side),
+                   psq_feature_index(m_king_sq, Color::white, to, ptype, side),
                    m_accum.values[1],
-                   psq_feature_index(pos, Color::black, from, ptype, side),
-                   psq_feature_index(pos, Color::black, to, ptype, side));
+                   psq_feature_index(m_king_sq, Color::black, from, ptype, side),
+                   psq_feature_index(m_king_sq, Color::black, to, ptype, side));
       }
 
       auto on_promote(const Position& pos, Color side, PieceType dst_ptype, Square from, Square to) -> void {
         pst_subadd(m_net,
                    m_accum.values[0],
-                   psq_feature_index(pos, Color::white, from, PieceType::p, side),
-                   psq_feature_index(pos, Color::white, to, dst_ptype, side),
+                   psq_feature_index(m_king_sq, Color::white, from, PieceType::p, side),
+                   psq_feature_index(m_king_sq, Color::white, to, dst_ptype, side),
                    m_accum.values[1],
-                   psq_feature_index(pos, Color::black, from, PieceType::p, side),
-                   psq_feature_index(pos, Color::black, to, dst_ptype, side));
+                   psq_feature_index(m_king_sq, Color::black, from, PieceType::p, side),
+                   psq_feature_index(m_king_sq, Color::black, to, dst_ptype, side));
       }
 
       auto on_add_focus_threats(const Position& pos, Color color, PieceType ptype, Square sq, m8x64 add_mask) -> void {
-        rose_dbg("on_add_focus_threats\n");
+        // rose_dbg("on_add_focus_threats\n");
         rose_unused(color, ptype);
 
         // Focus piece threats
         for (Square to : Bitboard {add_mask.to_bits()} & pos.board().occupied_bitboard()) {
-          if (const auto feature0 = threat_feature_index(pos, Color::white, sq, {color, ptype}, to, pos.piece_at(to))) {
+          if (const auto feature0 = threat_feature_index(m_king_sq, Color::white, sq, {color, ptype}, to, pos.piece_at(to))) {
             threat_add(m_net, m_accum.values[0], *feature0);
           }
-          if (const auto feature1 = threat_feature_index(pos, Color::black, sq, {color, ptype}, to, pos.piece_at(to))) {
+          if (const auto feature1 = threat_feature_index(m_king_sq, Color::black, sq, {color, ptype}, to, pos.piece_at(to))) {
             threat_add(m_net, m_accum.values[1], *feature1);
           }
         }
@@ -408,10 +414,10 @@ namespace rose::eval::nnue {
         for (Color c : {Color::white, Color::black}) {
           for (PieceId src : pos.attack_table(c).read(sq)) {
             const Square from = pos.where_is(c, src);
-            if (const auto feature0 = threat_feature_index(pos, Color::white, from, pos.piece_at(from), sq, {color, ptype})) {
+            if (const auto feature0 = threat_feature_index(m_king_sq, Color::white, from, pos.piece_at(from), sq, {color, ptype})) {
               threat_add(m_net, m_accum.values[0], *feature0);
             }
-            if (const auto feature1 = threat_feature_index(pos, Color::black, from, pos.piece_at(from), sq, {color, ptype})) {
+            if (const auto feature1 = threat_feature_index(m_king_sq, Color::black, from, pos.piece_at(from), sq, {color, ptype})) {
               threat_add(m_net, m_accum.values[1], *feature1);
             }
           }
@@ -419,15 +425,15 @@ namespace rose::eval::nnue {
       }
 
       auto on_remove_focus_threats(const Position& pos, Color color, PieceType ptype, Square sq, Bitboard bb) -> void {
-        rose_dbg("on_remove_focus_threats\n");
+        // rose_dbg("on_remove_focus_threats\n");
         rose_unused(color, ptype);
 
         // Focus piece threats
         for (Square to : (bb & pos.board().occupied_bitboard())) {
-          if (const auto feature0 = threat_feature_index(pos, Color::white, sq, {color, ptype}, to, pos.piece_at(to))) {
+          if (const auto feature0 = threat_feature_index(m_king_sq, Color::white, sq, {color, ptype}, to, pos.piece_at(to))) {
             threat_sub(m_net, m_accum.values[0], *feature0);
           }
-          if (const auto feature1 = threat_feature_index(pos, Color::black, sq, {color, ptype}, to, pos.piece_at(to))) {
+          if (const auto feature1 = threat_feature_index(m_king_sq, Color::black, sq, {color, ptype}, to, pos.piece_at(to))) {
             threat_sub(m_net, m_accum.values[1], *feature1);
           }
         }
@@ -436,10 +442,10 @@ namespace rose::eval::nnue {
         for (Color c : {Color::white, Color::black}) {
           for (PieceId src : pos.attack_table(c).read(sq)) {
             const Square from = pos.where_is(c, src);
-            if (const auto feature0 = threat_feature_index(pos, Color::white, from, pos.piece_at(from), sq, {color, ptype})) {
+            if (const auto feature0 = threat_feature_index(m_king_sq, Color::white, from, pos.piece_at(from), sq, {color, ptype})) {
               threat_sub(m_net, m_accum.values[0], *feature0);
             }
-            if (const auto feature1 = threat_feature_index(pos, Color::black, from, pos.piece_at(from), sq, {color, ptype})) {
+            if (const auto feature1 = threat_feature_index(m_king_sq, Color::black, from, pos.piece_at(from), sq, {color, ptype})) {
               threat_sub(m_net, m_accum.values[1], *feature1);
             }
           }
@@ -447,46 +453,45 @@ namespace rose::eval::nnue {
       }
 
       auto on_add_discovered_threats(const Position& pos, Bitboard occ, m8x64 slider_colors, u8x64 slider_id) -> void {
-        rose_dbg("on_add_discovered_threats\n");
+        // rose_dbg("on_add_discovered_threats\n");
         const Bitboard bb = Bitboard {slider_id.nonzeros().to_bits()} & occ;
         const Bitboard color_bb {slider_colors.to_bits()};
         for (Square to : bb) {
           const Color c {static_cast<Color::Underlying>(color_bb.read(to))};
           const PieceId src {slider_id.read(to.to_index())};
           const Square from = pos.where_is(c, src);
-          if (const auto feature0 = threat_feature_index(pos, Color::white, from, pos.piece_at(from), to, pos.piece_at(to))) {
+          if (const auto feature0 = threat_feature_index(m_king_sq, Color::white, from, pos.piece_at(from), to, pos.piece_at(to))) {
             threat_add(m_net, m_accum.values[0], *feature0);
           }
-          if (const auto feature1 = threat_feature_index(pos, Color::black, from, pos.piece_at(from), to, pos.piece_at(to))) {
+          if (const auto feature1 = threat_feature_index(m_king_sq, Color::black, from, pos.piece_at(from), to, pos.piece_at(to))) {
             threat_add(m_net, m_accum.values[1], *feature1);
           }
         }
       }
 
       auto on_remove_discovered_threats(const Position& pos, Bitboard occ, m8x64 slider_colors, u8x64 slider_id) -> void {
-        rose_dbg("on_remove_discovered_threats\n");
+        // rose_dbg("on_remove_discovered_threats\n");
         const Bitboard bb = Bitboard {slider_id.nonzeros().to_bits()} & occ;
         const Bitboard color_bb {slider_colors.to_bits()};
         for (Square to : bb) {
           const Color c {static_cast<Color::Underlying>(color_bb.read(to))};
           const PieceId src {slider_id.read(to.to_index())};
           const Square from = pos.where_is(c, src);
-          if (const auto feature0 = threat_feature_index(pos, Color::white, from, pos.piece_at(from), to, pos.piece_at(to))) {
+          if (const auto feature0 = threat_feature_index(m_king_sq, Color::white, from, pos.piece_at(from), to, pos.piece_at(to))) {
             threat_sub(m_net, m_accum.values[0], *feature0);
           }
-          if (const auto feature1 = threat_feature_index(pos, Color::black, from, pos.piece_at(from), to, pos.piece_at(to))) {
+          if (const auto feature1 = threat_feature_index(m_king_sq, Color::black, from, pos.piece_at(from), to, pos.piece_at(to))) {
             threat_sub(m_net, m_accum.values[1], *feature1);
           }
         }
       }
 
       auto on_finalize(const Position& pos) -> void {
-        rose_dbg("on_finalize\n\n\n\n");
+        // rose_dbg("on_finalize\n\n\n\n");
         if (m_refresh) {
           m_accum = rebuild_accumulator(pos, m_net);
-        } else {
-          rose_assert(m_accum == rebuild_accumulator(pos, m_net));
         }
+        rose_assert(m_accum == rebuild_accumulator(pos, m_net));
       }
     };
 

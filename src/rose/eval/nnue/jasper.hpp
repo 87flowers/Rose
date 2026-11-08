@@ -81,6 +81,10 @@ namespace rose::eval::nnue {
           m_accum(accum) {
       }
 
+      auto on_begin(const Position& pos, Move m) -> void {
+        rose_unused(pos, m);
+      }
+
       auto on_king_move(const Position& pos, Color stm, Square from, Square to) -> void {
         rose_unused(pos, stm, from, to);
       }

@@ -16,6 +16,8 @@
 
 namespace rose {
 
+  using KingSquares = std::array<Square, Color::count>;
+
   template<typename T>
   struct alignas(16) PieceList {
     std::array<T, 16> m {};
@@ -202,6 +204,10 @@ namespace rose {
 
     auto king_sq(Color color) const -> Square {
       return m_piece_list_sq[color.to_index()][PieceId::king()];
+    }
+
+    auto king_sqs() const -> KingSquares {
+      return {king_sq(Color::white), king_sq(Color::black)};
     }
 
     auto place_at(Square sq) const -> Place {

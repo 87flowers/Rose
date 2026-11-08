@@ -2,6 +2,7 @@
 
 #include "rose/bitboard.hpp"
 #include "rose/common.hpp"
+#include "rose/move.hpp"
 #include "rose/square.hpp"
 
 #include <concepts>
@@ -15,6 +16,7 @@ namespace rose::eval::concepts {
   template<typename T>
   concept Observer = requires(T o,
                               const Position& pos,
+                              Move m,
                               Color stm,
                               PieceType src_ptype,
                               PieceType dst_ptype,
@@ -27,6 +29,7 @@ namespace rose::eval::concepts {
                               Bitboard occ,
                               m8x64 slider_colors,
                               u8x64 slider_ids) {
+    { o.on_begin(pos, m) } -> std::same_as<void>;
     { o.on_king_move(pos, stm, from, to) } -> std::same_as<void>;
     { o.on_add(pos, stm, ptype, sq) } -> std::same_as<void>;
     { o.on_remove(pos, stm, ptype, sq) } -> std::same_as<void>;

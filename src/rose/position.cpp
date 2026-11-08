@@ -398,8 +398,6 @@ namespace rose {
 
   template<eval::concepts::Observer Observer>
   auto Position::move(Move m, Observer observer) const -> Position {
-    rose_dbg("{} {}\n", to_string(MoveFormat::frc), m.to_string(MoveFormat::frc));
-
     Position new_pos = *this;
     new_pos.m_valid_pin_info = false;
     new_pos.m_cached_pinned = {};
@@ -413,6 +411,8 @@ namespace rose {
     const Place dest_place = m_board[to];
     const PieceId src_id = src_place.id();
     const PieceId dest_id = dest_place.id();
+
+    observer.on_begin(new_pos, m);
 
     if (src_place.ptype() == PieceType::k) {
       observer.on_king_move(new_pos, m_stm, from, to);
