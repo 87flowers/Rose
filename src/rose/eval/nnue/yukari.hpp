@@ -26,8 +26,8 @@ namespace rose::eval::nnue {
     }
 
     inline static auto psq_feature_index(const KingSquares& king_sq, Color perspective, Square sq, PieceType ptype, Color side) -> usize {
-      //                          qrb-npk-
-      constexpr u32 ptype_lut = 0x43201050;
+      //                           qrbnpk-
+      constexpr u32 ptype_lut = 0x04321050;
 
       usize side_index = side.to_index();
       usize ptype_index = (ptype_lut >> (4 * ptype.to_index())) & 0xf;
@@ -108,16 +108,16 @@ namespace rose::eval::nnue {
     inline static constexpr usize max_offset = queen_offset + 10 * queen_index[64];
 
     inline static constexpr std::array<std::array<i32, 8>, 2> pawn_map {{
-      {{-1, -1, 0, 1, -1, -1, 2, -1}},
-      {{-1, -1, 3, 4, -1, -1, 5, -1}},
+      {{-1, -1, 0, 1, -1, 2, -1, -1}},
+      {{-1, -1, 3, 4, -1, 5, -1, -1}},
     }};
     inline static constexpr std::array<std::array<i32, 8>, 2> knight_queen_map {{
-      {{-1, -1, 0, 1, -1, 2, 3, 4}},
-      {{-1, -1, 5, 6, -1, 7, 8, 9}},
+      {{-1, -1, 0, 1, 2, 3, 4, -1}},
+      {{-1, -1, 5, 6, 7, 8, 9, -1}},
     }};
     inline static constexpr std::array<std::array<i32, 8>, 2> bishop_rook_map {{
-      {{-1, -1, 0, 1, -1, 2, 3, -1}},
-      {{-1, -1, 4, 5, -1, 6, 7, -1}},
+      {{-1, -1, 0, 1, 2, 3, -1, -1}},
+      {{-1, -1, 4, 5, 6, 7, -1, -1}},
     }};
 
     inline static constexpr std::array<Bitboard, 64> knight_attacks = attacks_array_for_piece<PieceType::n>();
