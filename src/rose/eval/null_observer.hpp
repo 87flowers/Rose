@@ -43,11 +43,11 @@ namespace rose::eval {
       rose_unused(pos, ptype, sq, bb);
     }
 
-    auto on_add_discovered_threats(const Position& pos, m8x64 slider_colors, u8x64 slider_id) -> void {
+    auto on_add_discovered_threats(const Position& pos, Bitboard occ, m8x64 slider_colors, u8x64 slider_id) -> void {
       rose_unused(pos, slider_colors, slider_id);
     }
 
-    auto on_remove_discovered_threats(const Position& pos, m8x64 slider_colors, u8x64 slider_id) -> void {
+    auto on_remove_discovered_threats(const Position& pos, Bitboard occ, m8x64 slider_colors, u8x64 slider_id) -> void {
       rose_unused(pos, slider_colors, slider_id);
     }
 

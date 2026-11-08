@@ -114,9 +114,9 @@ namespace rose {
     m_attack_table[1].raw ^= color.mask(bits);
 
     if constexpr (piece_removed) {
-      observer.on_add_discovered_threats(*this, slider_ids.msb(), slider_ids & u8x64::splat(0xF));
+      observer.on_add_discovered_threats(*this, m_board.occupied_bitboard(), slider_ids.msb(), slider_ids & u8x64::splat(0xF));
     } else {
-      observer.on_remove_discovered_threats(*this, slider_ids.msb(), slider_ids & u8x64::splat(0xF));
+      observer.on_remove_discovered_threats(*this, m_board.occupied_bitboard(), slider_ids.msb(), slider_ids & u8x64::splat(0xF));
     }
   }
 
@@ -189,20 +189,21 @@ namespace rose {
     const m8x64 dst_attack_mask = dst_raymask & geometry::attack_mask(color, dst_ptype);
     const m8x64 add_mask = ~dst_iperm.msb() & dst_iperm.swizzle(geometry::flip_mask(dst_attack_mask));
 
+    const Bitboard old_attacks = attack_table(color).bitboard_for(id);
+    observer.on_remove_focus_threats(*this, color, src_ptype, src_sq, old_attacks & ~dst_sq.to_bitboard());
+
     if constexpr (is_capture) {
       m_attack_table[0].raw ^= (~src_color).mask(src_bits);
       m_attack_table[1].raw ^= src_color.mask(src_bits);
-      observer.on_add_discovered_threats(*this, src_slider_ids.msb(), src_slider_ids & u8x64::splat(0xF));
+      observer.on_add_discovered_threats(
+        *this, m_board.occupied_bitboard() ^ dst_sq.to_bitboard(), src_slider_ids.msb(), src_slider_ids & u8x64::splat(0xF));
     } else {
       m_attack_table[0].raw ^= (~src_color).mask(src_bits) ^ (~dst_color).mask(dst_bits);
       m_attack_table[1].raw ^= src_color.mask(src_bits) ^ dst_color.mask(dst_bits);
-      observer.on_add_discovered_threats(*this, src_slider_ids.msb(), src_slider_ids & u8x64::splat(0xF));
-      observer.on_remove_discovered_threats(*this, dst_slider_ids.msb(), dst_slider_ids & u8x64::splat(0xF));
+      observer.on_add_discovered_threats(
+        *this, m_board.occupied_bitboard() ^ dst_sq.to_bitboard(), src_slider_ids.msb(), src_slider_ids & u8x64::splat(0xF));
+      observer.on_remove_discovered_threats(*this, m_board.occupied_bitboard(), dst_slider_ids.msb(), dst_slider_ids & u8x64::splat(0xF));
     }
-
-    const Bitboard old_attacks = attack_table(color).bitboard_for(id);
-
-    observer.on_remove_focus_threats(*this, color, src_ptype, src_sq, old_attacks);
 
     const usize col = color.to_index();
     m_attack_table[col].raw = m_attack_table[col].raw.andnot(id_bit) | expand_mask(add_mask).mask(id_bit);

@@ -391,6 +391,7 @@ namespace rose::eval::nnue {
       }
 
       auto on_add_focus_threats(const Position& pos, Color color, PieceType ptype, Square sq, m8x64 add_mask) -> void {
+        rose_dbg("on_add_focus_threats\n");
         rose_unused(color, ptype);
 
         // Focus piece threats
@@ -418,6 +419,7 @@ namespace rose::eval::nnue {
       }
 
       auto on_remove_focus_threats(const Position& pos, Color color, PieceType ptype, Square sq, Bitboard bb) -> void {
+        rose_dbg("on_remove_focus_threats\n");
         rose_unused(color, ptype);
 
         // Focus piece threats
@@ -444,8 +446,9 @@ namespace rose::eval::nnue {
         }
       }
 
-      auto on_add_discovered_threats(const Position& pos, m8x64 slider_colors, u8x64 slider_id) -> void {
-        const Bitboard bb = Bitboard {slider_id.nonzeros().to_bits()} & pos.board().occupied_bitboard();
+      auto on_add_discovered_threats(const Position& pos, Bitboard occ, m8x64 slider_colors, u8x64 slider_id) -> void {
+        rose_dbg("on_add_discovered_threats\n");
+        const Bitboard bb = Bitboard {slider_id.nonzeros().to_bits()} & occ;
         const Bitboard color_bb {slider_colors.to_bits()};
         for (Square to : bb) {
           const Color c {static_cast<Color::Underlying>(color_bb.read(to))};
@@ -460,8 +463,9 @@ namespace rose::eval::nnue {
         }
       }
 
-      auto on_remove_discovered_threats(const Position& pos, m8x64 slider_colors, u8x64 slider_id) -> void {
-        const Bitboard bb = Bitboard {slider_id.nonzeros().to_bits()} & pos.board().occupied_bitboard();
+      auto on_remove_discovered_threats(const Position& pos, Bitboard occ, m8x64 slider_colors, u8x64 slider_id) -> void {
+        rose_dbg("on_remove_discovered_threats\n");
+        const Bitboard bb = Bitboard {slider_id.nonzeros().to_bits()} & occ;
         const Bitboard color_bb {slider_colors.to_bits()};
         for (Square to : bb) {
           const Color c {static_cast<Color::Underlying>(color_bb.read(to))};
@@ -477,6 +481,7 @@ namespace rose::eval::nnue {
       }
 
       auto on_finalize(const Position& pos) -> void {
+        rose_dbg("on_finalize\n\n\n\n");
         if (m_refresh) {
           m_accum = rebuild_accumulator(pos, m_net);
         } else {

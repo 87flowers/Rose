@@ -24,6 +24,7 @@ namespace rose::eval::concepts {
                               Square sq,
                               m8x64 add_mask,
                               Bitboard bb,
+                              Bitboard occ,
                               m8x64 slider_colors,
                               u8x64 slider_ids) {
     { o.on_king_move(pos, stm, from, to) } -> std::same_as<void>;
@@ -34,8 +35,8 @@ namespace rose::eval::concepts {
     { o.on_promote(pos, stm, dst_ptype, from, to) } -> std::same_as<void>;
     { o.on_add_focus_threats(pos, stm, ptype, sq, add_mask) } -> std::same_as<void>;
     { o.on_remove_focus_threats(pos, stm, ptype, sq, bb) } -> std::same_as<void>;
-    { o.on_add_discovered_threats(pos, slider_colors, slider_ids) } -> std::same_as<void>;
-    { o.on_remove_discovered_threats(pos, slider_colors, slider_ids) } -> std::same_as<void>;
+    { o.on_add_discovered_threats(pos, occ, slider_colors, slider_ids) } -> std::same_as<void>;
+    { o.on_remove_discovered_threats(pos, occ, slider_colors, slider_ids) } -> std::same_as<void>;
     { o.on_finalize(pos) } -> std::same_as<void>;
   };
 
