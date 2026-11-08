@@ -99,7 +99,7 @@ $(BUILD_DIR)/deb/src/rose/eval/nnue/embedded.o: $(EVALFILE)
 
 $(DEFAULT_NETWORK_FILE):
 > @mkdir -p $(dir $@)
-> curl -L https://github.com/87flowers/rose-nets/releases/download/$(DEFAULT_NETWORK)/$(DEFAULT_NETWORK).rosenet -o $(DEFAULT_NETWORK_FILE)
+> curl -L https://github.com/yukarichess/yukari-nets/releases/download/fti23-noe/fti23-noe.bin -o $(DEFAULT_NETWORK_FILE)
 
 update-lps:
 > @test -z "$(shell git status --porcelain)" || (echo "Working directory not clean" && exit 1)
