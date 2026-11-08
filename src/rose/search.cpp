@@ -793,18 +793,22 @@ namespace rose {
 
     Score best_score = is_in_check ? score::mated(ply) : static_eval;
 
+    NodeType actual_node_type = NodeType::all;
+
     // Standpat
     if (best_score >= beta) {
       return best_score;
     }
-    alpha = std::max(alpha, best_score);
+    if (best_score > alpha) {
+      actual_node_type = NodeType::cut;
+      alpha = best_score;
+    }
 
     MovePicker moves {m_sd, position, ss, Move::none()};
     if (!is_in_check)
       moves.skip_quiet();
 
     Move best_move = Move::none();
-    NodeType actual_node_type = NodeType::all;
 
     for (Move mv = moves.next(); mv.is_some(); mv = moves.next()) {
       if (!score::is_loss(best_score) && !is_in_check) {
@@ -835,7 +839,6 @@ namespace rose {
         best_score = score;
 
         if (score > alpha) {
-          actual_node_type = NodeType::pv;
           alpha = score;
           best_move = mv;
           if constexpr (leaf_expected == NodeType::pv)
@@ -852,6 +855,8 @@ namespace rose {
       if (is_in_check && !score::is_loss(best_score))
         moves.skip_quiet();
     }
+
+    rose_assert(actual_node_type != NodeType::pv);
 
     tt_store(tt::LookupResult {
       .depth = 0,
