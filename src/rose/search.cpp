@@ -799,10 +799,7 @@ namespace rose {
     if (best_score >= beta) {
       return best_score;
     }
-    if (best_score > alpha) {
-      actual_node_type = NodeType::cut;
-      alpha = best_score;
-    }
+    alpha = std::max(best_score, alpha);
 
     MovePicker moves {m_sd, position, ss, Move::none()};
     if (!is_in_check)
