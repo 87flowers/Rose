@@ -408,7 +408,7 @@ namespace rose {
       }
 
       // Razoring
-      if (depth <= 4 && static_eval + 548_z * depth < alpha) {
+      if (depth <= 4 && static_eval + 548_z * depth + 1024_z * (expected != NodeType::all) < alpha) {
         const Score razor_score = qsearch<expected.narrow()>(ctrl, position, pv, alpha, beta, ss, ply);
         if (razor_score <= alpha) {
           return razor_score;
