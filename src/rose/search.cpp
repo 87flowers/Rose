@@ -226,8 +226,15 @@ namespace rose {
       Line pv {};
       Score alpha = -score::infinity;
       Score beta = score::infinity;
-      Score delta = 17_z;
       Score score = score::none;
+
+      Score delta = [&] {
+        if (last_score == score::none)
+          return 17_z;
+
+        const i64 s = last_score;
+        return static_cast<Score>(10_z + 100_z * s * s / 1048576);
+      }();
 
       if (depth >= 4) {
         alpha = last_score - delta;
@@ -257,7 +264,7 @@ namespace rose {
           break;
         }
 
-        delta += delta;
+        delta += delta * 1024_z / 1024;
 
         if (m_shared.stopping)
           break;
