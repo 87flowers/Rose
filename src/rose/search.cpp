@@ -233,7 +233,7 @@ namespace rose {
           return 17_z;
 
         const i64 s = last_score;
-        return static_cast<Score>(10_z + 100_z * s * s / 1048576);
+        return static_cast<Score>(17_z + 100_z * s * s / 1048576);
       }();
 
       if (depth >= 4) {
