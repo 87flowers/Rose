@@ -456,7 +456,7 @@ namespace rose {
 
     // Internal iterative reductions
     if (!is_root && expected.is_pv_or_cut() && depth >= 5 && hint_move.is_none() && !excluded) {
-      depth--;
+      depth -= 2;
     }
 
     // Hint move legality check
