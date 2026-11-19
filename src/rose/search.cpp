@@ -869,7 +869,7 @@ namespace rose {
     const Score base_eval = m_evaluation.evaluate(position);
     const i32 phase = 16_z * position.piece_count<PieceType::n>() + 16_z * position.piece_count<PieceType::b>() +
                       24_z * position.piece_count<PieceType::r>() + 32_z * position.piece_count<PieceType::q>();
-    return base_eval * (912_z + phase) / 1024;
+    return base_eval * (912_z + phase) / 1024 * (200 - position.fifty_move_clock()) / 200;
   }
 
   template<eval::concepts::State Evaluation>
