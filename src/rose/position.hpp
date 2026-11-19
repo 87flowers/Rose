@@ -224,6 +224,11 @@ namespace rose {
     }
 
     template<PieceType ptype>
+    auto piece_count() const -> i32 {
+      return piece_mask_for<ptype>(Color::white).popcount() + piece_mask_for<ptype>(Color::black).popcount();
+    }
+
+    template<PieceType ptype>
     auto bitboard_for(Color color) const -> Bitboard {
       return board().bitboard_for<ptype>(color);
     }
