@@ -403,7 +403,7 @@ namespace rose {
       }
 
       // Zugzwang avoidance
-      if (!is_root && ss[-1].move.is_none() && ss[-1].static_eval != score::none && static_eval + ss[-1].static_eval < -32_z) {
+      if (!is_root && ss[-1].move.is_none() && ss[-1].static_eval != score::none && static_eval + ss[-1].static_eval < -16_z) {
         return beta;
       }
 
