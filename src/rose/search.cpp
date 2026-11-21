@@ -495,6 +495,12 @@ namespace rose {
       }
     }
 
+    // TT Beta Probcut
+    if (!is_root && expected == NodeType::cut && depth <= 7 && hint_move.is_some() && !excluded && tte.depth >= depth - 3 &&
+        tte.bound.is_pv_or_cut() && tte.score >= beta + 420_z) {
+      return beta + 420_z;
+    }
+
     MovePicker moves {m_sd, position, ss, hint_move};
 
     MoveList fail_low_quiets;
