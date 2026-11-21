@@ -402,6 +402,11 @@ namespace rose {
         depth++;
       }
 
+      // Zugzwang avoidance
+      if (!is_root && ss[-1].move.is_none() && ss[-1].static_eval != score::none && static_eval + -ss[-1].static_eval < -32_z) {
+        return beta;
+      }
+
       // Reverse Futility Pruning
       if (depth <= 15 && static_eval - 59_z * depth - 4_z * depth * depth >= beta) {
         return static_eval;
