@@ -43,7 +43,7 @@ namespace rose {
     template<PieceType... ptype>
     auto has_only() const -> bool {
       static_assert(((ptype != PieceType::none) && ...));
-      return (piece_mask_for<ptype...>() & piece_mask_for<PieceType::none>()).is_empty();
+      return piece_mask_for<ptype...>() == ~piece_mask_for<PieceType::none>();
     }
 
     constexpr auto operator[](PieceId id) -> T& {
