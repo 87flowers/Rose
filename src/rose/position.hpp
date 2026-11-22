@@ -40,6 +40,12 @@ namespace rose {
       }
     }
 
+    template<PieceType... ptype>
+    auto has_only() const -> bool {
+      static_assert(((ptype != PieceType::none) && ...));
+      return (piece_mask_for<ptype...>() & piece_mask_for<PieceType::none>()).is_empty();
+    }
+
     constexpr auto operator[](PieceId id) -> T& {
       return m[id.raw];
     }
@@ -228,9 +234,22 @@ namespace rose {
       return piece_mask_for<ptype>(Color::white).popcount() + piece_mask_for<ptype>(Color::black).popcount();
     }
 
+    auto piece_count(Color color) const -> i32 {
+      return board().color_bitboard(color).popcount();
+    }
+
+    auto total_piece_count() const -> i32 {
+      return board().occupied_bitboard().popcount();
+    }
+
     template<PieceType ptype>
     auto bitboard_for(Color color) const -> Bitboard {
       return board().bitboard_for<ptype>(color);
+    }
+
+    template<PieceType ptype>
+    auto bitboard_for() const -> Bitboard {
+      return board().bitboard_for<ptype>();
     }
 
     auto is_valid() const -> bool {
