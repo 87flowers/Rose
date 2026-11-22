@@ -64,11 +64,11 @@ namespace rose::draw {
       return white_pieces.has_only<PieceType::k, PieceType::n, PieceType::b>() && black_pieces.has_only<PieceType::k, PieceType::n, PieceType::b>();
 
     case 4:
-      // KBvKB with opposite color bishops
+      // KBvKB with same color bishops
       if (pos.piece_count(Color::white) == 2 && pos.piece_count(Color::black) == 2) {
         const bool only_bishops = white_pieces.has_only<PieceType::k, PieceType::b>() && black_pieces.has_only<PieceType::k, PieceType::b>();
-        const bool opposite_color_bishops = (pos.bitboard_for<PieceType::b>() & Bitboard {0xAA55AA55AA55AA55}).popcount() == 1;
-        return only_bishops && opposite_color_bishops;
+        const bool same_color_bishops = (pos.bitboard_for<PieceType::b>() & Bitboard {0xAA55AA55AA55AA55}).popcount() != 1;
+        return only_bishops && same_color_bishops;
       }
       return false;
     }
