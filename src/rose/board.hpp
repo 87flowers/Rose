@@ -195,6 +195,12 @@ namespace rose {
       return Bitboard {(to_vector() & u8x64::splat(0xF0)).eq(u8x64::splat(expected_place)).to_bits()};
     }
 
+    template<PieceType ptype>
+    auto bitboard_for() const -> Bitboard {
+      const u8 expected_place = static_cast<u8>(ptype.raw) << Place::ptype_shift;
+      return Bitboard {(to_vector() & u8x64::splat(Place::ptype_mask)).eq(u8x64::splat(expected_place)).to_bits()};
+    }
+
     constexpr auto operator[](Square sq) -> Place& {
       return mailbox[sq.raw];
     }
