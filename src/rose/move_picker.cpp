@@ -49,8 +49,17 @@ namespace rose {
         return mv;
       }
 
+      m_stage = Stage::killer;
+      m_current_index = 0;
+
+      [[fallthrough]];
+    case Stage::killer:
       m_stage = Stage::generate_quiet;
       m_current_index = 0;
+
+      if (m_ss->killer.is_some() && m_position.is_legal(m_ss->killer)) {
+        return m_ss->killer;
+      }
 
       [[fallthrough]];
     case Stage::generate_quiet:
@@ -69,7 +78,7 @@ namespace rose {
     case Stage::emit_quiet:
       while (m_current_index < m_moves.size()) {
         const Move mv = m_moves[m_current_index++];
-        if (mv == m_hint_move)
+        if (mv == m_hint_move || mv == m_ss->killer)
           continue;
         return mv;
       }

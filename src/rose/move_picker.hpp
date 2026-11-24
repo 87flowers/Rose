@@ -15,6 +15,7 @@ namespace rose {
       hint_move,
       generate_noisy,
       emit_good_noisy,
+      killer,
       generate_quiet,
       emit_quiet,
       emit_bad_noisy,

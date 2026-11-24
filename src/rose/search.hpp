@@ -93,6 +93,7 @@ namespace rose {
   struct SearchStack {
     Move move = Move::none();
     Move excluded = Move::none();
+    Move killer = Move::none();
     Score raw_static_eval = score::none;
     Score static_eval = score::none;
     i32 reduction = 0;

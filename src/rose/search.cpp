@@ -394,6 +394,8 @@ namespace rose {
     }();
     ss->static_eval = static_eval;
 
+    ss[1].killer = Move::none();
+
     const bool improving = is_in_check                       ? false :
                            ss[-2].static_eval != score::none ? static_eval > ss[-2].static_eval :
                            ss[-4].static_eval != score::none ? static_eval > ss[-4].static_eval :
@@ -678,6 +680,7 @@ namespace rose {
           m_sd.noisy_history.update(stm, position.ptype_at(noisy.from()), noisy, -noisy_malus);
         }
       } else {
+        ss->killer = best_move;
         m_sd.quiet_history.update(stm, enemy_threatened, best_move, quiet_bonus);
         for (i32 i : conthists_indexes)
           if (ss[-i].conthist)
