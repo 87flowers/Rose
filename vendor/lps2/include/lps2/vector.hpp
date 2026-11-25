@@ -61,6 +61,11 @@ namespace lps2 {
     [[nodiscard]] LPS2_INLINE constexpr std::array<vector<T, N / 2>, 2> to_halves() const
       requires(N >= 2)
     {
+#if LPS2_ARCH_AVX512BASE
+      if constexpr (bitsize == 512) {
+        return { _mm512_castsi512_si256(raw), _mm512_extracti32x8_epi32(raw, 1) };
+      }
+#endif
       if constexpr (detail::vector_arch_type<T, N>::is_doubled) {
         return { vector<T, N / 2> { raw[0] }, vector<T, N / 2> { raw[1] } };
       } else {
@@ -69,6 +74,11 @@ namespace lps2 {
     }
 
     LPS2_INLINE static constexpr vector concat(const vector<T, N / 2>& lower, const vector<T, N / 2>& upper) {
+#if LPS2_ARCH_AVX512BASE
+      if constexpr (bitsize == 512) {
+        return { _mm512_shuffle_i32x4(_mm512_castsi256_si512(lower.raw), _mm512_castsi256_si512(upper.raw), 0b01000100) };
+      }
+#endif
       return std::bit_cast<vector>(std::array<vector<T, N / 2>, 2> { lower, upper });
     }
 
