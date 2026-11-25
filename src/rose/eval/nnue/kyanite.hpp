@@ -10,7 +10,6 @@
 #include "rose/util/static_vector.hpp"
 
 #include <array>
-#include <lps/lps.hpp>
 
 namespace rose::eval::nnue {
 
