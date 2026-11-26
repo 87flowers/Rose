@@ -239,7 +239,6 @@ namespace rose {
       while (true) {
         m_search_stack = {};
         pv.clear();
-        m_nmr_ply = std::nullopt;
         m_in_null_move_search = false;
         m_iid_iteration = 0;
 
@@ -420,7 +419,7 @@ namespace rose {
       }
 
       // Null move reductions
-      if (depth >= 4 && !m_in_null_move_search && m_nmr_ply != ply && ss[-1].move.is_some() && static_eval >= beta) {
+      if (depth >= 4 && !ss->in_nmr && !m_in_null_move_search && ss[-1].move.is_some() && static_eval >= beta) {
         const i32 reduction = (4754_z + depth * 344_z + improving * 768_z) / 1024;
 
         const Position null_position = make_null_move(ss, position);
@@ -433,15 +432,11 @@ namespace rose {
           return 0;
 
         if (null_score >= beta) {
-          if (m_nmr_ply.has_value()) {
-            return null_score;
-          } else {
-            m_nmr_ply = ply;
-            const Score score = search<expected>(ctrl, position, pv, alpha, beta, ss, ply, depth / 2);
-            m_nmr_ply = std::nullopt;
-            if (score >= beta)
-              return score;
-          }
+          ss->in_nmr = true;
+          const Score score = search<expected>(ctrl, position, pv, alpha, beta, ss, ply, depth / 2);
+          ss->in_nmr = false;
+          if (score >= beta)
+            return score;
         }
       }
     }

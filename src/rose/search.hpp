@@ -97,6 +97,7 @@ namespace rose {
     Score static_eval = score::none;
     i32 reduction = 0;
     ContinuationHistorySubtable* conthist = nullptr;
+    bool in_nmr = false;
   };
 
   struct SearchData {
@@ -149,7 +150,6 @@ namespace rose {
     Evaluation m_evaluation;
 
     SearchData m_sd;
-    std::optional<i32> m_nmr_ply;
     bool m_in_null_move_search;
     i32 m_iid_iteration = 0;
 
