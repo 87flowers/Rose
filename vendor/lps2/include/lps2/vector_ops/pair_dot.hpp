@@ -59,6 +59,12 @@ namespace lps2 {
     }
 #endif
 
+#if LPS2_ARCH_NEON
+    if constexpr (bitsize == 128 && std::is_same_v<T, i16> && std::is_same_v<U, i16>) {
+      return Result { vmull_s16(vget_low_s16(raw), vget_low_s16(second.raw)) + vmull_s16(vget_high_s16(raw), vget_high_s16(second.raw)) };
+    }
+#endif
+
     if constexpr (detail::vector_arch_type<T, N>::is_doubled) {
       using Half = vector<T, N / 2>;
       vector<T, N> result;
