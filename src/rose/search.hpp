@@ -194,6 +194,7 @@ namespace rose {
     template<NodeType leaf_expected, typename Controls>
     auto qsearch(const Controls& ctrl, const Position& position, Line& pv, Score alpha, Score beta, SearchStack* ss, i32 ply) -> Score;
 
+    auto draw_score() -> Score;
     auto eval(const Position& position) -> Score;
     auto eval_correction(const Position& position) -> i32;
     auto correct_eval(const Position& position, Score raw_static_eval, i32 correction) -> Score;

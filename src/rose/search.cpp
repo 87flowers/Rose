@@ -329,13 +329,13 @@ namespace rose {
     // Draw Detection
     if (!is_root) {
       if (const auto score = draw::is_fifty_move_draw(position, ply))
-        return *score;
+        return *score == 0 ? draw_score() : *score;
 
       if (draw::is_repetition(position, m_hash_stack, m_hash_waterline))
-        return 0;
+        return draw_score();
 
       if (draw::is_insufficient_material(position, m_hash_stack.back()))
-        return 0;
+        return draw_score();
     }
 
     if (ply >= max_depth)
@@ -735,13 +735,13 @@ namespace rose {
     // Draw Detection
     {
       if (const auto score = draw::is_fifty_move_draw(position, ply))
-        return *score;
+        return *score == 0 ? draw_score() : *score;
 
       if (draw::is_repetition(position, m_hash_stack, m_hash_waterline))
-        return 0;
+        return draw_score();
 
       if (draw::is_insufficient_material(position, m_hash_stack.back()))
-        return 0;
+        return draw_score();
     }
 
     if (ply >= max_depth)
@@ -868,6 +868,11 @@ namespace rose {
     });
 
     return best_score;
+  }
+
+  template<eval::concepts::State Evaluation>
+  auto Search<Evaluation>::draw_score() -> Score {
+    return (stats().nodes.load(std::memory_order_relaxed) % 5) - 2;
   }
 
   template<eval::concepts::State Evaluation>
