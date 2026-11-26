@@ -4,6 +4,7 @@
 #include "lps2/vector.hpp"
 
 #include <bit>
+#include <cstring>
 
 namespace lps2 {
   template<class T, usize N>
@@ -37,7 +38,7 @@ namespace lps2 {
     }
 #endif
     else {
-      return first.raw == second.raw;
+      return std::memcmp(&first, &second, sizeof(first));
     }
   }
 }  // namespace lps2
