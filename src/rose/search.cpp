@@ -872,7 +872,7 @@ namespace rose {
 
   template<eval::concepts::State Evaluation>
   auto Search<Evaluation>::draw_score() -> Score {
-    return (stats().nodes.load(std::memory_order_relaxed) % 5) - 2;
+    return (stats().nodes.load(std::memory_order_relaxed) % 4) - 2;
   }
 
   template<eval::concepts::State Evaluation>
