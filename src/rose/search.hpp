@@ -150,6 +150,7 @@ namespace rose {
 
     SearchData m_sd;
     std::optional<i32> m_nmr_ply;
+    bool m_in_null_move_search;
     i32 m_iid_iteration = 0;
 
     StaticVector<RootMove, max_legal_moves> m_root_moves {};

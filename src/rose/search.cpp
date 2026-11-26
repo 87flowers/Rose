@@ -240,6 +240,7 @@ namespace rose {
         m_search_stack = {};
         pv.clear();
         m_nmr_ply = std::nullopt;
+        m_in_null_move_search = false;
         m_iid_iteration = 0;
 
         const i32 aspiration_depth = std::max(1, depth - aspiration_reduction);
@@ -419,11 +420,13 @@ namespace rose {
       }
 
       // Null move reductions
-      if (depth >= 4 && m_nmr_ply != ply && ss[-1].move.is_some() && static_eval >= beta) {
+      if (depth >= 4 && !m_in_null_move_search && m_nmr_ply != ply && ss[-1].move.is_some() && static_eval >= beta) {
         const i32 reduction = (4754_z + depth * 344_z + improving * 768_z) / 1024;
 
         const Position null_position = make_null_move(ss, position);
+        m_in_null_move_search = true;
         const Score null_score = -search<expected.next()>(ctrl, null_position, pv, -beta, -beta + 1, ss + 1, ply + 1, depth - reduction);
+        m_in_null_move_search = false;
         unmake_move(ss);
 
         if (m_shared.stopping)
