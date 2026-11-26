@@ -21,8 +21,8 @@ namespace lps2 {
     explicit constexpr basic_vector_mask(inner_type::raw_type value) :
         raw(value) {};
     explicit constexpr basic_vector_mask(typename vector<std::make_unsigned_t<T>, N>::raw_type value)
-      requires (!std::is_same_v<typename vector<std::make_unsigned_t<T>, N>::raw_type, typename inner_type::raw_type>)
-      :
+      requires(!std::is_same_v<typename vector<std::make_unsigned_t<T>, N>::raw_type, typename inner_type::raw_type>)
+        :
         raw(std::bit_cast<typename inner_type::raw_type>(value)) {};
     explicit constexpr basic_vector_mask(detail::bit_mask_base_t<N> value);
 

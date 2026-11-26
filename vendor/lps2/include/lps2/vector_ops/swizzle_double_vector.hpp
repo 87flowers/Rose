@@ -87,14 +87,10 @@ namespace lps2 {
 
     if constexpr (bitsize == 128) {
       if constexpr (std::is_same_v<T, i8>) {
-        return vector {
-          vqtbl2q_s8(std::bit_cast<int8x16x2_t>(src), raw & vmovq_n_s8(0x9F))
-        };
+        return vector { vqtbl2q_s8(std::bit_cast<int8x16x2_t>(src), raw & vmovq_n_s8(0x9F)) };
       }
       if constexpr (std::is_same_v<T, u8>) {
-        return vector {
-          vqtbl2q_u8(std::bit_cast<uint8x16x2_t>(src), raw & vmovq_n_u8(0x9F))
-        };
+        return vector { vqtbl2q_u8(std::bit_cast<uint8x16x2_t>(src), raw & vmovq_n_u8(0x9F)) };
       }
     }
 
@@ -104,7 +100,7 @@ namespace lps2 {
           {
            vqtbl4q_s8(std::bit_cast<int8x16x4_t>(src), raw[0] & vmovq_n_s8(0xBF)),
            vqtbl4q_s8(std::bit_cast<int8x16x4_t>(src), raw[1] & vmovq_n_s8(0xBF)),
-          }
+           }
         };
       }
       if constexpr (std::is_same_v<T, u8>) {
@@ -112,7 +108,7 @@ namespace lps2 {
           {
            vqtbl4q_u8(std::bit_cast<uint8x16x4_t>(src), raw[0] & vmovq_n_u8(0xBF)),
            vqtbl4q_u8(std::bit_cast<uint8x16x4_t>(src), raw[1] & vmovq_n_u8(0xBF)),
-          }
+           }
         };
       }
     }

@@ -109,15 +109,15 @@ namespace lps2::detail {
 #endif
 
 #if LPS2_ARCH_NEON
-  LPS2_DEFINE_CONVERT(128, u16, u8, { 
+  LPS2_DEFINE_CONVERT(128, u16, u8, {
     auto u = v.template convert<u16>();
     return std::bit_cast<Result>(vcombine_u8(vmovn_u16(u.raw), vmov_n_u8(0)));
   })
-  LPS2_DEFINE_CONVERT(128, u32, u16, { 
+  LPS2_DEFINE_CONVERT(128, u32, u16, {
     auto u = v.template convert<u32>();
     return std::bit_cast<Result>(vcombine_u16(vmovn_u32(u.raw), vmov_n_u16(0)));
   })
-  LPS2_DEFINE_CONVERT(128, u64, u32, { 
+  LPS2_DEFINE_CONVERT(128, u64, u32, {
     auto u = v.template convert<u64>();
     return std::bit_cast<Result>(vcombine_u32(vmovn_u64(u.raw), vmov_n_u32(0)));
   })
@@ -132,18 +132,19 @@ namespace lps2::detail {
   })
   LPS2_DEFINE_CONVERT(128, u64, u8, {
     auto u = v.template convert<u64>();
-    return std::bit_cast<Result>(vcombine_u8(vmovn_u16(vcombine_u16(vmovn_u32(vcombine_u32(vmovn_u64(u.raw), vmov_n_u32(0))), vmov_n_u16(0))), vmov_n_u8(0)));
+    return std::bit_cast<Result>(
+      vcombine_u8(vmovn_u16(vcombine_u16(vmovn_u32(vcombine_u32(vmovn_u64(u.raw), vmov_n_u32(0))), vmov_n_u16(0))), vmov_n_u8(0)));
   })
 
-  LPS2_DEFINE_CONVERT(256, u16, u8, { 
+  LPS2_DEFINE_CONVERT(256, u16, u8, {
     auto u = v.template convert<u16>();
     return std::bit_cast<Result>(vcombine_u8(vmovn_u16(u.raw[0]), vmovn_u16(u.raw[1])));
   })
-  LPS2_DEFINE_CONVERT(256, u32, u16, { 
+  LPS2_DEFINE_CONVERT(256, u32, u16, {
     auto u = v.template convert<u32>();
     return std::bit_cast<Result>(vcombine_u16(vmovn_u32(u.raw[0]), vmovn_u32(u.raw[1])));
   })
-  LPS2_DEFINE_CONVERT(256, u64, u32, { 
+  LPS2_DEFINE_CONVERT(256, u64, u32, {
     auto u = v.template convert<u64>();
     return std::bit_cast<Result>(vcombine_u32(vmovn_u64(u.raw[0]), vmovn_u64(u.raw[1])));
   })
@@ -158,66 +159,47 @@ namespace lps2::detail {
   })
   LPS2_DEFINE_CONVERT(256, u64, u8, {
     auto u = v.template convert<u64>();
-    return std::bit_cast<Result>(vcombine_u8(vmovn_u16(vcombine_u16(vmovn_u32(vcombine_u32(vmovn_u64(u.raw[0]), vmovn_u64(u.raw[1]))), vmov_n_u16(0))), vmov_n_u8(0)));
+    return std::bit_cast<Result>(
+      vcombine_u8(vmovn_u16(vcombine_u16(vmovn_u32(vcombine_u32(vmovn_u64(u.raw[0]), vmovn_u64(u.raw[1]))), vmov_n_u16(0))), vmov_n_u8(0)));
   })
 
   LPS2_DEFINE_CONVERT(512, u16, u8, {
     auto u = v.template convert<u16>();
-    return std::bit_cast<Result>( 
-      std::array{
-        vcombine_u8(vmovn_u16(u.raw[0][0]), vmovn_u16(u.raw[0][1])),
-        vcombine_u8(vmovn_u16(u.raw[1][0]), vmovn_u16(u.raw[1][1])),
-      }
-    );
+    return std::bit_cast<Result>(std::array {
+      vcombine_u8(vmovn_u16(u.raw[0][0]), vmovn_u16(u.raw[0][1])),
+      vcombine_u8(vmovn_u16(u.raw[1][0]), vmovn_u16(u.raw[1][1])),
+    });
   })
-  LPS2_DEFINE_CONVERT(512, u32, u16, { 
+  LPS2_DEFINE_CONVERT(512, u32, u16, {
     auto u = v.template convert<u32>();
-    return std::bit_cast<Result>( 
-      std::array{
-        vcombine_u16(vmovn_u32(u.raw[0][0]), vmovn_u32(u.raw[0][1])),
-        vcombine_u16(vmovn_u32(u.raw[1][0]), vmovn_u32(u.raw[1][1])),
-      }
-    );
+    return std::bit_cast<Result>(std::array {
+      vcombine_u16(vmovn_u32(u.raw[0][0]), vmovn_u32(u.raw[0][1])),
+      vcombine_u16(vmovn_u32(u.raw[1][0]), vmovn_u32(u.raw[1][1])),
+    });
   })
   LPS2_DEFINE_CONVERT(512, u64, u32, {
     auto u = v.template convert<u64>();
-    return std::bit_cast<Result>( 
-      std::array{
-        vcombine_u32(vmovn_u64(u.raw[0][0]), vmovn_u64(u.raw[0][1])),
-        vcombine_u32(vmovn_u64(u.raw[1][0]), vmovn_u64(u.raw[1][1])),
-      }
-    );
+    return std::bit_cast<Result>(std::array {
+      vcombine_u32(vmovn_u64(u.raw[0][0]), vmovn_u64(u.raw[0][1])),
+      vcombine_u32(vmovn_u64(u.raw[1][0]), vmovn_u64(u.raw[1][1])),
+    });
   })
 
   LPS2_DEFINE_CONVERT(512, u32, u8, {
     auto u = v.template convert<u32>();
-    return std::bit_cast<Result>(
-      vcombine_u8(
-        vmovn_u16(vcombine_u16(vmovn_u32(u.raw[0][0]), vmovn_u32(u.raw[0][1]))),
-        vmovn_u16(vcombine_u16(vmovn_u32(u.raw[1][0]), vmovn_u32(u.raw[1][1])))
-      )
-    );
+    return std::bit_cast<Result>(vcombine_u8(vmovn_u16(vcombine_u16(vmovn_u32(u.raw[0][0]), vmovn_u32(u.raw[0][1]))),
+                                             vmovn_u16(vcombine_u16(vmovn_u32(u.raw[1][0]), vmovn_u32(u.raw[1][1])))));
   })
   LPS2_DEFINE_CONVERT(512, u64, u16, {
     auto u = v.template convert<u64>();
-    return std::bit_cast<Result>(
-      vcombine_u16(
-        vmovn_u32(vcombine_u32(vmovn_u64(u.raw[0][0]), vmovn_u64(u.raw[0][1]))),
-        vmovn_u32(vcombine_u32(vmovn_u64(u.raw[1][0]), vmovn_u64(u.raw[1][1])))
-      )
-    );
+    return std::bit_cast<Result>(vcombine_u16(vmovn_u32(vcombine_u32(vmovn_u64(u.raw[0][0]), vmovn_u64(u.raw[0][1]))),
+                                              vmovn_u32(vcombine_u32(vmovn_u64(u.raw[1][0]), vmovn_u64(u.raw[1][1])))));
   })
   LPS2_DEFINE_CONVERT(512, u64, u8, {
     auto u = v.template convert<u64>();
-    return std::bit_cast<Result>(
-      vcombine_u8(
-        vmovn_u16(vcombine_u16(
-          vmovn_u32(vcombine_u32(vmovn_u64(u.raw[0][0]), vmovn_u64(u.raw[0][1]))),
-          vmovn_u32(vcombine_u32(vmovn_u64(u.raw[1][0]), vmovn_u64(u.raw[1][1])))
-        )),
-        vmov_n_u8(0)
-      )
-    );
+    return std::bit_cast<Result>(vcombine_u8(vmovn_u16(vcombine_u16(vmovn_u32(vcombine_u32(vmovn_u64(u.raw[0][0]), vmovn_u64(u.raw[0][1]))),
+                                                                    vmovn_u32(vcombine_u32(vmovn_u64(u.raw[1][0]), vmovn_u64(u.raw[1][1]))))),
+                                             vmov_n_u8(0)));
   })
 #endif
 
@@ -276,42 +258,42 @@ namespace lps2::detail {
 #endif
 
 #if LPS2_ARCH_NEON
-  LPS2_DEFINE_CONVERT(128, u8, u16, { return std::bit_cast<Result>(
-    std::array {
+  LPS2_DEFINE_CONVERT(128, u8, u16, {
+    return std::bit_cast<Result>(std::array {
       vmovl_u8(vget_low_u8(v.raw)),
       vmovl_u8(vget_high_u8(v.raw)),
-    }
-  ); })
-  LPS2_DEFINE_CONVERT(128, i8, i16, { return std::bit_cast<Result>(
-    std::array {
+    });
+  })
+  LPS2_DEFINE_CONVERT(128, i8, i16, {
+    return std::bit_cast<Result>(std::array {
       vmovl_s8(vget_low_s8(v.raw)),
       vmovl_s8(vget_high_s8(v.raw)),
-    }
-  ); })
-  LPS2_DEFINE_CONVERT(128, u16, u32, { return std::bit_cast<Result>(
-    std::array {
+    });
+  })
+  LPS2_DEFINE_CONVERT(128, u16, u32, {
+    return std::bit_cast<Result>(std::array {
       vmovl_u16(vget_low_u16(v.raw)),
       vmovl_u16(vget_high_u16(v.raw)),
-    }
-  ); })
-  LPS2_DEFINE_CONVERT(128, i16, i32, { return std::bit_cast<Result>(
-    std::array {
+    });
+  })
+  LPS2_DEFINE_CONVERT(128, i16, i32, {
+    return std::bit_cast<Result>(std::array {
       vmovl_s16(vget_low_s16(v.raw)),
       vmovl_s16(vget_high_s16(v.raw)),
-    }
-  ); })
-  LPS2_DEFINE_CONVERT(128, u32, u64, { return std::bit_cast<Result>(
-    std::array {
+    });
+  })
+  LPS2_DEFINE_CONVERT(128, u32, u64, {
+    return std::bit_cast<Result>(std::array {
       vmovl_u32(vget_low_u32(v.raw)),
       vmovl_u32(vget_high_u32(v.raw)),
-    }
-  ); })
-  LPS2_DEFINE_CONVERT(128, i32, i64, { return std::bit_cast<Result>(
-    std::array {
+    });
+  })
+  LPS2_DEFINE_CONVERT(128, i32, i64, {
+    return std::bit_cast<Result>(std::array {
       vmovl_s32(vget_low_s32(v.raw)),
       vmovl_s32(vget_high_s32(v.raw)),
-    }
-  ); })
+    });
+  })
 
   LPS2_DEFINE_CONVERT(128, u8, u32, { return std::bit_cast<Result>(v.template convert<u16>().template convert<u32>()); })
   LPS2_DEFINE_CONVERT(128, i8, i32, { return std::bit_cast<Result>(v.template convert<i16>().template convert<i32>()); })
