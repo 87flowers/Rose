@@ -65,24 +65,24 @@ namespace lps2 {
 #if LPS2_ARCH_NEON
     if constexpr (inner_type::bitsize == 128) {
       if constexpr (sizeof(T) == sizeof(u8)) {
-        vector<i8, 16> bits { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
-        vector<i8, 16> masked = raw & bits;
+        vector<u8, 16> bits { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
+        vector<u8, 16> masked = raw.template convert<u8>() & bits;
         u16 result = 0;
         result |= vaddv_u8(vget_low_u8(masked.raw));
-        result |= vaddv_u8(vget_high_u8(masked.raw)) << 8;
+        result |= static_cast<u16>(vaddv_u8(vget_high_u8(masked.raw))) << 8;
         return result;
       }
       if constexpr (sizeof(T) == sizeof(u16)) {
-        vector<i16, 8> bits { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
-        return vaddvq_u16((raw & bits).raw);
+        vector<u16, 8> bits { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
+        return vaddvq_u16((raw.template convert<u16>() & bits).raw);
       }
       if constexpr (sizeof(T) == sizeof(u32)) {
-        vector<i32, 4> bits { 0x01, 0x02, 0x04, 0x08 };
-        return vaddvq_u32((raw & bits).raw);
+        vector<u32, 4> bits { 0x01, 0x02, 0x04, 0x08 };
+        return vaddvq_u32((raw.template convert<u32>() & bits).raw);
       }
       if constexpr (sizeof(T) == sizeof(u64)) {
-        vector<i64, 2> bits { 0x01, 0x02 };
-        return vaddvq_u64((raw & bits).raw);
+        vector<u64, 2> bits { 0x01, 0x02 };
+        return vaddvq_u64((raw.template convert<u64>() & bits).raw);
       }
     }
 #endif
