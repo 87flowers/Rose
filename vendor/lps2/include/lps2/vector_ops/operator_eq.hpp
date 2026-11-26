@@ -38,7 +38,7 @@ namespace lps2 {
     }
 #endif
     else {
-      return std::memcmp(&first, &second, sizeof(first));
+      return std::memcmp(&first, &second, sizeof(first)) == 0;
     }
   }
 }  // namespace lps2
