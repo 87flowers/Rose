@@ -44,6 +44,6 @@ namespace lps2 {
       result.raw[1] = Half { raw[1] }.andnot(second.raw[1]).raw;
       return result;
     }
-    return generic::vector_ops::andnot(*this, second);
+    return *this & ~second;
   }
 }  // namespace lps2

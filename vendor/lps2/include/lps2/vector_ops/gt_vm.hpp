@@ -133,6 +133,35 @@ namespace lps2 {
 #endif
     }
 
+#if LPS2_ARCH_NEON
+    if constexpr (bitsize == 128) {
+      if constexpr (std::is_same_v<T, i8>) {
+        return vmask_type { vcgtq_s8(raw, second.raw) };
+      }
+      if constexpr (std::is_same_v<T, i16>) {
+        return vmask_type { vcgtq_s16(raw, second.raw) };
+      }
+      if constexpr (std::is_same_v<T, i32>) {
+        return vmask_type { vcgtq_s32(raw, second.raw) };
+      }
+      if constexpr (std::is_same_v<T, i64>) {
+        return vmask_type { vcgtq_s64(raw, second.raw) };
+      }
+      if constexpr (std::is_same_v<T, u8>) {
+        return vmask_type { vcgtq_u8(raw, second.raw) };
+      }
+      if constexpr (std::is_same_v<T, u16>) {
+        return vmask_type { vcgtq_u16(raw, second.raw) };
+      }
+      if constexpr (std::is_same_v<T, u32>) {
+        return vmask_type { vcgtq_u32(raw, second.raw) };
+      }
+      if constexpr (std::is_same_v<T, u64>) {
+        return vmask_type { vcgtq_u64(raw, second.raw) };
+      }
+    }
+#endif
+
     if constexpr (detail::vector_arch_type<T, N>::is_doubled) {
       using Half = vector<T, N / 2>;
       vector_mask<T, N> result;

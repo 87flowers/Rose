@@ -94,6 +94,34 @@ namespace lps2 {
       }
     }
 #endif
+#if LPS2_ARCH_NEON
+    if constexpr (bitsize == 128) {
+      if constexpr (std::is_same_v<T, i8>) {
+        return vector { vminq_s8(vmaxq_s8(raw, min.raw), max.raw) };
+      }
+      if constexpr (std::is_same_v<T, i16>) {
+        return vector { vminq_s16(vmaxq_s16(raw, min.raw), max.raw) };
+      }
+      if constexpr (std::is_same_v<T, i32>) {
+        return vector { vminq_s32(vmaxq_s32(raw, min.raw), max.raw) };
+      }
+      if constexpr (std::is_same_v<T, i64>) {
+        return vector { vminq_s64(vmaxq_s64(raw, min.raw), max.raw) };
+      }
+      if constexpr (std::is_same_v<T, u8>) {
+        return vector { vminq_u8(vmaxq_u8(raw, min.raw), max.raw) };
+      }
+      if constexpr (std::is_same_v<T, u16>) {
+        return vector { vminq_u16(vmaxq_u16(raw, min.raw), max.raw) };
+      }
+      if constexpr (std::is_same_v<T, u32>) {
+        return vector { vminq_u32(vmaxq_u32(raw, min.raw), max.raw) };
+      }
+      if constexpr (std::is_same_v<T, u64>) {
+        return vector { vminq_u64(vmaxq_u64(raw, min.raw), max.raw) };
+      }
+    }
+#endif
     if constexpr (detail::vector_arch_type<T, N>::is_doubled) {
       using Half = vector<T, N / 2>;
       vector<T, N> result;
