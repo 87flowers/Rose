@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <fmt/format.h>
-#include <lps/lps.hpp>
+#include <lps2/lps2.hpp>
 #include <optional>
 #include <string_view>
 #include <tuple>
@@ -21,7 +21,7 @@ namespace rose {
   constexpr void rose_unused(const T&...) noexcept {
   }
 
-  using namespace lps::prelude;
+  using namespace lps2::prelude;
 
   using u8 = std::uint8_t;
   using u16 = std::uint16_t;

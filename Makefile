@@ -16,7 +16,7 @@ EVALFILE ?= $(DEFAULT_NETWORK_FILE)
 CXX := clang++
 CPPFLAGS := -Isrc -MMD -MP
 CPPFLAGS += -DFMT_HEADER_ONLY -Ivendor/fmt/include
-CPPFLAGS += -Ivendor/lps/include
+CPPFLAGS += -Ivendor/lps2/include
 CXXFLAGS := -std=c++26 -march=$(ARCH)
 RELFLAGS := -DNDEBUG -O3 -DROSE_NO_ASSERTS -flto=thin
 DEBFLAGS := -DNDEBUG -O2 -g
@@ -100,12 +100,6 @@ $(BUILD_DIR)/deb/src/rose/eval/nnue/embedded.o: $(EVALFILE)
 $(DEFAULT_NETWORK_FILE):
 > @mkdir -p $(dir $@)
 > curl -L https://github.com/87flowers/rose-nets/releases/download/$(DEFAULT_NETWORK)/$(DEFAULT_NETWORK).rosenet -o $(DEFAULT_NETWORK_FILE)
-
-update-lps:
-> @test -z "$(shell git status --porcelain)" || (echo "Working directory not clean" && exit 1)
-> rm -r vendor/lps
-> git clone git@github.com:/87flowers/lps vendor/lps
-> rm -rf vendor/lps/.git
 
 update-fmt:
 > @test -z "$(shell git status --porcelain)" || (echo "Working directory not clean" && exit 1)

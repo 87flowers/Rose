@@ -35,7 +35,7 @@ namespace rose {
         return PieceMask {to_vector().eq(u8x16::splat(ptype.raw...)).to_bits()};
       } else {
         constexpr u8 test_bits = (0 | ... | (1 << ptype.to_index()));
-        constexpr u8x16 ptype_to_bits {{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0, 0, 0, 0, 0, 0, 0, 0}};
+        constexpr u8x16 ptype_to_bits {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0, 0, 0, 0, 0, 0, 0, 0};
         return PieceMask {(to_vector().swizzle(ptype_to_bits) & u8x16::splat(test_bits)).nonzeros().to_bits()};
       }
     }
@@ -89,7 +89,7 @@ namespace rose {
     }
 
     constexpr auto to_vector() const -> u8x16 {
-#if LPS_SSE4_2 || LPS_AVX2 || LPS_AVX512
+#if LPS2_ARCH_SSE4_2
       return u8x16 {_mm_cvtsi32_si128(std::bit_cast<int>(raw))};
 #else
       u8x16 result {};
@@ -102,7 +102,7 @@ namespace rose {
       const u8x16 x = to_vector();
       const m8x16 mask = x.eq(u8x16::splat(sq.raw));
       const u8x16 y = mask.select(x, u8x16::splat(0x80));
-#if LPS_SSE4_2 || LPS_AVX2 || LPS_AVX512
+#if LPS2_ARCH_SSE4_2
       raw = std::bit_cast<u32>(_mm_cvtsi128_si32(y.raw));
 #else
       raw = y.extract_aligned<u32, 0>();
@@ -118,7 +118,7 @@ namespace rose {
     }
 
     constexpr auto to_index() const -> usize {
-#if LPS_AVX2 || LPS_AVX512
+#if LPS2_ARCH_AVX2
       return _pext_u32(~raw, 0x80808080);
 #else
       return ((~raw & 0x80808080) * 0x00204081) >> 28;

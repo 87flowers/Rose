@@ -16,9 +16,9 @@ namespace rose {
   auto MoveList::write(M mask, T v) -> void {
     const usize count = std::popcount(mask);
     rose_assert(len + count < capacity());
-#if LPS_AVX512
-    using V = lps::environment::vector<u16, T::size>;
-    using BM = lps::environment::bit_mask<u16, T::size>;
+#if LPS2_FAST_COMPRESS
+    using V = lps2::vector<u16, T::size>;
+    using BM = lps2::bit_mask<u16, T::size>;
     const V y = BM {mask}.compress(std::bit_cast<V>(v));
     std::memcpy(data.data() + len, &y, sizeof(V));
 #else
@@ -32,9 +32,9 @@ namespace rose {
   auto MoveList::write2(M mask, T v) -> void {
     const usize count = std::popcount(mask);
     rose_assert(len + count * 2 < capacity());
-#if LPS_AVX512
-    using V = lps::environment::vector<u32, T::size / 2>;
-    using BM = lps::environment::bit_mask<u32, T::size / 2>;
+#if LPS2_FAST_COMPRESS
+    using V = lps2::vector<u32, T::size / 2>;
+    using BM = lps2::bit_mask<u32, T::size / 2>;
     const V y = BM {mask}.compress(std::bit_cast<V>(v));
     std::memcpy(data.data() + len, &y, sizeof(V));
 #else
@@ -48,9 +48,9 @@ namespace rose {
   auto MoveList::write4(M mask, T v) -> void {
     const usize count = std::popcount(mask);
     rose_assert(len + count * 4 < capacity());
-#if LPS_AVX512
-    using V = lps::environment::vector<u64, T::size / 4>;
-    using BM = lps::environment::bit_mask<u64, T::size / 4>;
+#if LPS2_FAST_COMPRESS
+    using V = lps2::vector<u64, T::size / 4>;
+    using BM = lps2::bit_mask<u64, T::size / 4>;
     const V y = BM {mask}.compress(std::bit_cast<V>(v));
     std::memcpy(data.data() + len, &y, sizeof(V));
 #else

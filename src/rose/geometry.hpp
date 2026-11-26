@@ -16,7 +16,7 @@ namespace rose::geometry {
     // 0rrr0fff → 00rrrfff
     inline auto compress_coords(u8x64 list) -> std::tuple<u8x64, m8x64> {
       const m8x64 valid = (list & u8x64::splat(0x88)).zeros();
-#if LPS_AVX512
+#if LPS2_ARCH_AVX512BASE && __GFNI__
       const u8x64 compressed {_mm512_gf2p8affine_epi64_epi8(list.raw, u64x8::splat(0x0102041020400000).raw, 0)};
 #else
       const u8x64 compressed = (list & u8x64::splat(0x07)) | (list & u8x64::splat(0x70)).shr<1>();
@@ -102,7 +102,7 @@ namespace rose::geometry {
   auto superpiece_attacks(u64 occupied, u64 ray_valid) -> u64;
 
   inline auto superpiece_attacks(u8x64 ray_places, m8x64 ray_valid) -> m8x64 {
-#if LPS_AVX512
+#if LPS2_PREFERS_BIT_MASK
     return superpiece_attacks(ray_places.nonzeros(), ray_valid);
 #else
     return ray_valid.andnot(ray_places.eq(std::bit_cast<u8x64>(std::bit_cast<u64x8>(ray_places) - u64x8::splat(0x101))));
@@ -110,7 +110,7 @@ namespace rose::geometry {
   }
 
   inline auto superpiece_attacks(m8x64 occupied, m8x64 ray_valid) -> m8x64 {
-#if LPS_AVX512
+#if LPS2_PREFERS_BIT_MASK
     return m8x64 {superpiece_attacks(occupied.raw, ray_valid.raw)};
 #else
     return superpiece_attacks(occupied.to_vector().convert<u8>(), ray_valid);
@@ -124,7 +124,7 @@ namespace rose::geometry {
   }
 
   inline auto ray_fill(m8x64 x) -> m8x64 {
-#if LPS_AVX512
+#if LPS2_PREFERS_BIT_MASK
     u64 y = (x.raw + 0x7E7E7E7E7E7E7E7E) & 0x8080808080808080;
     return m8x64 {y - (y >> 7)};
 #else
@@ -234,7 +234,7 @@ namespace rose::geometry {
   }
 
   inline auto slider_broadcast(u8x64 x) -> u8x64 {
-#if LPS_AVX512
+#if LPS2_ARCH_AVX512BASE
     constexpr u8x64 expand {{
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  //
       0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,  //
@@ -246,7 +246,7 @@ namespace rose::geometry {
       0x38, 0x38, 0x38, 0x38, 0x38, 0x38, 0x38, 0x38,  //
     }};
     return m8x64 {0xFEFEFEFEFEFEFEFE}.mask(expand.swizzle(u8x64 {_mm512_sad_epu8(x.raw, _mm512_setzero_si512())}));
-#elif LPS_AVX2
+#elif LPS2_ARCH_AVX2
     constexpr u8x32 expand {{
       0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  //
       0x80, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,  //
@@ -254,10 +254,10 @@ namespace rose::geometry {
       0x80, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18,  //
     }};
     u8x64 y;
-    y.raw[0].raw = _mm256_sad_epu8(x.raw[0].raw, _mm256_setzero_si256());
-    y.raw[1].raw = _mm256_sad_epu8(x.raw[1].raw, _mm256_setzero_si256());
-    y.raw[0] = expand.swizzle(y.raw[0]);
-    y.raw[1] = expand.swizzle(y.raw[1]);
+    y.raw[0] = _mm256_sad_epu8(x.raw[0], _mm256_setzero_si256());
+    y.raw[1] = _mm256_sad_epu8(x.raw[1], _mm256_setzero_si256());
+    y.raw[0] = expand.swizzle(y.raw[0]).raw;
+    y.raw[1] = expand.swizzle(y.raw[1]).raw;
     return y;
 #else
     u64x8 y = std::bit_cast<u64x8>(x);
@@ -269,7 +269,7 @@ namespace rose::geometry {
   }
 
   inline auto lane_broadcast(u8x64 x) -> u8x64 {
-#if LPS_AVX512
+#if LPS2_ARCH_AVX512BASE
     return u8x64 {{
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  //
                     0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,  //
@@ -281,7 +281,7 @@ namespace rose::geometry {
                     0x38, 0x38, 0x38, 0x38, 0x38, 0x38, 0x38, 0x38,  //
                   }}
       .swizzle(u8x64 {_mm512_sad_epu8(x.raw, _mm512_setzero_si512())});
-#elif LPS_AVX2
+#elif LPS2_ARCH_AVX2
     u8x32 expand {{
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  //
       0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,  //
@@ -289,10 +289,10 @@ namespace rose::geometry {
       0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18,  //
     }};
     u8x64 y;
-    y.raw[0].raw = _mm256_sad_epu8(x.raw[0].raw, _mm256_setzero_si256());
-    y.raw[1].raw = _mm256_sad_epu8(x.raw[1].raw, _mm256_setzero_si256());
-    y.raw[0] = expand.swizzle(y.raw[0]);
-    y.raw[1] = expand.swizzle(y.raw[1]);
+    y.raw[0] = _mm256_sad_epu8(x.raw[0], _mm256_setzero_si256());
+    y.raw[1] = _mm256_sad_epu8(x.raw[1], _mm256_setzero_si256());
+    y.raw[0] = expand.swizzle(y.raw[0]).raw;
+    y.raw[1] = expand.swizzle(y.raw[1]).raw;
     return y;
 #else
     u64x8 y = std::bit_cast<u64x8>(x);
@@ -304,7 +304,7 @@ namespace rose::geometry {
   }
 
   inline auto flip_rays(u8x64 x) -> u8x64 {
-#if LPS_AVX512
+#if LPS2_ARCH_AVX512BASE
     return u8x64 {_mm512_shuffle_i64x2(x.raw, x.raw, 0b01001110)};
 #else
     auto y = std::bit_cast<std::array<u8x32, 2> >(x);
@@ -313,7 +313,7 @@ namespace rose::geometry {
   }
 
   inline auto flip_mask(m8x64 x) -> m8x64 {
-#if LPS_AVX512
+#if LPS2_PREFERS_BIT_MASK
     return m8x64 {std::rotl(x.raw, 32)};
 #else
     auto y = std::bit_cast<std::array<m8x32, 2> >(x);
@@ -322,7 +322,7 @@ namespace rose::geometry {
   }
 
   inline auto find_set(u8x16 needle, usize needle_count, u8x16 haystack) -> PieceMask {
-#if LPS_SSE4_2 || LPS_AVX2 || LPS_AVX512
+#if LPS2_ARCH_SSE4_2
     return PieceMask {narrow_cast<u16>(_mm_extract_epi16(_mm_cmpestrm(needle.raw, needle_count, haystack.raw, 16, 0), 0))};
 #else
     u16 result = 0;

@@ -42,7 +42,7 @@ namespace rose {
     return ((~clear & rook_ray).is_empty() && ((~clear | danger) & king_ray).is_empty() && (rook_bb & pinned).is_empty());
   }
 
-#if !defined(LPS_AVX512) || !LPS_AVX512
+#if !defined(LPS2_ARCH_AVX512BASE) || !LPS2_ARCH_AVX512BASE || !defined(LPS2_PREFERS_BIT_MASK) || !LPS2_PREFERS_BIT_MASK
   template<class T, class U>
   static inline auto concat(U a, U b) -> T {
     return std::bit_cast<T>(std::array {a, b});
@@ -50,7 +50,7 @@ namespace rose {
 #endif
 
   static inline auto expand_mask(m8x64 x) -> m16x64 {
-#if LPS_AVX512
+#if LPS2_PREFERS_BIT_MASK
     return x.convert<u16>();
 #else
     return concat<m16x64>(x.to_vector().zip_low(x.to_vector()), x.to_vector().zip_high(x.to_vector()));
@@ -59,7 +59,7 @@ namespace rose {
 
   static inline auto id_to_at(u8x64 ids) -> u16x64 {
     ids &= u8x64::splat(0xF);
-#if LPS_AVX512
+#if LPS2_ARCH_AVX512BASE
     const m16x64 valid_ids = ids.nonzeros().convert<u16>();
     return valid_ids.mask(u16x64::splat(1) << ids.convert<u16>());
 #else
@@ -765,7 +765,7 @@ namespace rose {
     const u8x64 board_layout = (~iperm.msb()).mask(iperm.swizzle(pinned_ids));
 
     // Convert from list of squares to piecemask
-#if LPS_AVX512
+#if LPS2_FAST_COMPRESS
     const int pinned_count = pinned.popcount();
     const u8x16 pinned_coord = pinned.compress(ray_coords).extract_aligned<u8x16, 0>();
     const PieceMask piece_mask = geometry::find_set(pinned_coord, pinned_count, piece_list_sq(m_stm).to_vector());
