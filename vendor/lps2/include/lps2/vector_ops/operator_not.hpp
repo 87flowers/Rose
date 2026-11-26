@@ -37,6 +37,12 @@ namespace lps2 {
     }
 #endif
 
+#if LPS2_ARCH_AARCH64
+    if constexpr (vector<T, N>::bitsize == 128) {
+      return vector<T, N> { ~first.raw };
+    }
+#endif
+
     if constexpr (detail::vector_arch_type<T, N>::is_doubled) {
       using Half = vector<T, N / 2>;
       vector<T, N> result;

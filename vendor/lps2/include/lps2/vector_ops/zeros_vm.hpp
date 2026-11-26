@@ -30,6 +30,35 @@ namespace lps2::generic::vector_ops {
 namespace lps2 {
   template<class T, usize N>
   LPS2_INLINE constexpr vector_mask<T, N> vector<T, N>::zeros_vm() const {
+#if LPS2_ARCH_NEON
+    if constexpr (bitsize == 128) {
+      if constexpr (std::is_same_v<T, i8>) {
+        return vmask_type { veqzq_s8(raw) };
+      }
+      if constexpr (std::is_same_v<T, i16>) {
+        return vmask_type { veqzq_s16(raw) };
+      }
+      if constexpr (std::is_same_v<T, i32>) {
+        return vmask_type { veqzq_s32(raw) };
+      }
+      if constexpr (std::is_same_v<T, i64>) {
+        return vmask_type { veqzq_s64(raw) };
+      }
+      if constexpr (std::is_same_v<T, u8>) {
+        return vmask_type { veqzq_u8(raw) };
+      }
+      if constexpr (std::is_same_v<T, u16>) {
+        return vmask_type { veqzq_u16(raw) };
+      }
+      if constexpr (std::is_same_v<T, u32>) {
+        return vmask_type { veqzq_u32(raw) };
+      }
+      if constexpr (std::is_same_v<T, u64>) {
+        return vmask_type { veqzq_u64(raw) };
+      }
+    }
+#endif
+
     return eq(zero());
   }
 

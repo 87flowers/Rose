@@ -95,6 +95,59 @@ namespace lps2 {
     }
 #endif
 
+#if LPS2_ARCH_NEON
+    if constexpr (bitsize == 128) {
+      if constexpr (std::is_same_v<T, i8>) {
+        return vector { vqtbl1q_s8(src.raw, raw & vmovq_n_s8(0x8F)) };
+      }
+      if constexpr (std::is_same_v<T, u8>) {
+        return vector { vqtbl1q_u8(src.raw, raw & vmovq_n_u8(0x8F)) };
+      }
+    }
+
+    if constexpr (bitsize == 256) {
+      if constexpr (std::is_same_v<T, i8>) {
+        return vector {
+          {
+           vqtbl2q_s8(std::bit_cast<int8x16x2_t>(src), raw[0] & vmovq_n_s8(0x9F)),
+           vqtbl2q_s8(std::bit_cast<int8x16x2_t>(src), raw[1] & vmovq_n_s8(0x9F)),
+          }
+        };
+      }
+      if constexpr (std::is_same_v<T, u8>) {
+        return vector {
+          {
+           vqtbl2q_u8(std::bit_cast<uint8x16x2_t>(src), raw[0] & vmovq_n_u8(0x9F)),
+           vqtbl2q_u8(std::bit_cast<uint8x16x2_t>(src), raw[1] & vmovq_n_u8(0x9F)),
+          }
+        };
+      }
+    }
+
+    if constexpr (bitsize == 512) {
+      if constexpr (std::is_same_v<T, i8>) {
+        return vector {
+          {
+           vqtbl4q_s8(std::bit_cast<int8x16x4_t>(src), raw[0][0] & vmovq_n_s8(0xBF)),
+           vqtbl4q_s8(std::bit_cast<int8x16x4_t>(src), raw[0][1] & vmovq_n_s8(0xBF)),
+           vqtbl4q_s8(std::bit_cast<int8x16x4_t>(src), raw[1][0] & vmovq_n_s8(0xBF)),
+           vqtbl4q_s8(std::bit_cast<int8x16x4_t>(src), raw[1][1] & vmovq_n_s8(0xBF)),
+          }
+        };
+      }
+      if constexpr (std::is_same_v<T, u8>) {
+        return vector {
+          {
+           vqtbl4q_u8(std::bit_cast<uint8x16x4_t>(src), raw[0][0] & vmovq_n_u8(0xBF)),
+           vqtbl4q_u8(std::bit_cast<uint8x16x4_t>(src), raw[0][1] & vmovq_n_u8(0xBF)),
+           vqtbl4q_u8(std::bit_cast<uint8x16x4_t>(src), raw[1][0] & vmovq_n_u8(0xBF)),
+           vqtbl4q_u8(std::bit_cast<uint8x16x4_t>(src), raw[1][1] & vmovq_n_u8(0xBF)),
+          }
+        };
+      }
+    }
+#endif
+
     if constexpr (detail::vector_arch_type<T, N>::is_doubled) {
       using Half = vector<T, N / 2>;
       vector<T, N> result;

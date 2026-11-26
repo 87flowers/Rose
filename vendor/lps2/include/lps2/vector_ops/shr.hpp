@@ -159,6 +159,12 @@ namespace lps2 {
 #endif
     }
 
+#if LPS2_ARCH_AARCH64
+    if constexpr (bitsize == 128) {
+      return vector { raw >> shift_amount };
+    }
+#endif
+
     if constexpr (detail::vector_arch_type<T, N>::is_doubled) {
       using Half = vector<T, N / 2>;
       vector<T, N> result;
