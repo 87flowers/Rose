@@ -62,6 +62,31 @@ namespace lps2 {
     }
 #endif
 
+#if LPS2_ARCH_NEON
+    if constexpr (inner_type::bitsize == 128) {
+      if constexpr (sizeof(T) == sizeof(u8)) {
+        vector<i8, 16> bits { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
+        vector<i8, 16> masked = raw & bits;
+        u16 result = 0;
+        result |= vaddv_u8(vget_low_u8(masked.raw));
+        result |= vaddv_u8(vget_high_u8(masked.raw)) << 8;
+        return result;
+      }
+      if constexpr (sizeof(T) == sizeof(u16)) {
+        vector<i16, 8> bits { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
+        return vaddvq_u16((raw & bits).raw);
+      }
+      if constexpr (sizeof(T) == sizeof(u32)) {
+        vector<i32, 4> bits { 0x01, 0x02, 0x04, 0x08 };
+        return vaddvq_u32((raw & bits).raw);
+      }
+      if constexpr (sizeof(T) == sizeof(u64)) {
+        vector<i64, 2> bits { 0x01, 0x02 };
+        return vaddvq_u64((raw & bits).raw);
+      }
+    }
+#endif
+
     if constexpr (detail::vector_arch_type<T, N>::is_doubled) {
       using Half = vector_mask<T, N / 2>;
       detail::bit_mask_base_t<N> result = 0;
