@@ -528,7 +528,7 @@ namespace rose {
         return history;
       }();
 
-      if (!score::is_loss(best_score) && !is_in_check && !is_root) {
+      if (!score::is_loss(best_score) && !is_in_check && !is_root && expected != NodeType::pv) {
         // Late Move Pruning
         if (!mv.is_noisy() && searched_moves >= i64 {4415_z + 953_z * depth * depth} * (526_z + 550_z * improving) / (1024 * 1024)) {
           moves.skip_quiet();
