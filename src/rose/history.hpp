@@ -97,6 +97,27 @@ namespace rose {
     }
   };
 
+  struct HashHistory {
+  private:
+    constexpr static usize hash_entry_count = 8192;
+    constexpr static i32 entry_max = 8192;
+    multi_array<i16, Color::count, hash_entry_count, Square::count, Square::count> m_table {};
+
+  public:
+    auto reset() -> void {
+      m_table = {};
+    }
+
+    auto update(Color stm, Hash h, Move mv, i32 bonus) -> void {
+      i16& entry = m_table[stm.to_index()][h % hash_entry_count][mv.from().to_index()][mv.to().to_index()];
+      gravity_formula<entry_max>(entry, bonus);
+    }
+
+    auto get(Color stm, Hash h, Move mv) const -> i32 {
+      return m_table[stm.to_index()][h % hash_entry_count][mv.from().to_index()][mv.to().to_index()];
+    }
+  };
+
   struct HashCorrectionHistory {
   private:
     constexpr static usize hash_entry_count = 8192;

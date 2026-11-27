@@ -103,6 +103,7 @@ namespace rose {
     QuietHistory quiet_history;
     NoisyHistory noisy_history;
     ContinuationHistory continuation_history;
+    HashHistory pawn_history;
     HashCorrectionHistory pawn_correction_history;
     std::array<HashCorrectionHistory, Color::count> non_pawn_correction_history;
 

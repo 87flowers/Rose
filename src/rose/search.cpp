@@ -186,7 +186,7 @@ namespace rose {
     }
 
     // Otherwise, rely on our move ordering to pick a move.
-    MovePicker moves {m_sd, m_root, &m_search_stack[search_stack_offset], Move::none()};
+    MovePicker moves {m_sd, m_root, m_root.calc_hashes_slow(), &m_search_stack[search_stack_offset], Move::none()};
     pv.write(moves.next());
     return 0;
   }
@@ -501,7 +501,7 @@ namespace rose {
       }
     }
 
-    MovePicker moves {m_sd, position, ss, hint_move};
+    MovePicker moves {m_sd, position, m_hash_stack.back(), ss, hint_move};
 
     MoveList fail_low_quiets;
     MoveList fail_low_noisies;
@@ -675,18 +675,25 @@ namespace rose {
       const i32 cont_bonus = std::min(137_z * depth - 74_z, 1463_z);
       const i32 cont_malus = std::min(98_z * depth - 34_z, 1123_z);
 
+      const i32 pawn_bonus = std::min(164_z * depth - 87_z, 1705_z);
+      const i32 pawn_malus = std::min(83_z * depth - 28_z, 897_z);
+
       if (best_move.is_noisy()) {
         m_sd.noisy_history.update(stm, position.ptype_at(best_move.from()), best_move, noisy_bonus);
         for (const Move noisy : fail_low_noisies) {
           m_sd.noisy_history.update(stm, position.ptype_at(noisy.from()), noisy, -noisy_malus);
         }
       } else {
+        const Hash pawn_hash = m_hash_stack.back().pawn();
+
         m_sd.quiet_history.update(stm, enemy_threatened, best_move, quiet_bonus);
+        m_sd.pawn_history.update(stm, pawn_hash, best_move, pawn_bonus);
         for (i32 i : conthists_indexes)
           if (ss[-i].conthist)
             ss[-i].conthist->update(stm, position.ptype_at(best_move.from()), best_move, cont_bonus);
         for (const Move quiet : fail_low_quiets) {
           m_sd.quiet_history.update(stm, enemy_threatened, quiet, -quiet_malus);
+          m_sd.pawn_history.update(stm, pawn_hash, quiet, -pawn_malus);
           for (i32 i : conthists_indexes)
             if (ss[-i].conthist)
               ss[-i].conthist->update(stm, position.ptype_at(quiet.from()), quiet, -cont_malus);
@@ -808,7 +815,7 @@ namespace rose {
     }
     alpha = std::max(alpha, best_score);
 
-    MovePicker moves {m_sd, position, ss, Move::none()};
+    MovePicker moves {m_sd, position, m_hash_stack.back(), ss, Move::none()};
     if (!is_in_check)
       moves.skip_quiet();
 

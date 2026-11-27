@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rose/common.hpp"
+#include "rose/hash.hpp"
 #include "rose/move.hpp"
 #include "rose/movegen.hpp"
 #include "rose/search.hpp"
@@ -29,6 +30,7 @@ namespace rose {
 
     const SearchData& m_sd;
     const Position& m_position;
+    Hashes m_hashes;
     const SearchStack* m_ss;
     MoveGen m_movegen;
     Move m_hint_move;
@@ -40,7 +42,7 @@ namespace rose {
 
   public:
     // SAFETY: hint_move must be legal
-    MovePicker(const SearchData& sd, const Position& position, const SearchStack* ss, Move hint_move);
+    MovePicker(const SearchData& sd, const Position& position, const Hashes& hashes, const SearchStack* ss, Move hint_move);
 
     auto next() -> Move;
 

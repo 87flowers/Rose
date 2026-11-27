@@ -12,9 +12,10 @@
 
 namespace rose {
 
-  MovePicker::MovePicker(const SearchData& sd, const Position& position, const SearchStack* ss, Move hint_move) :
+  MovePicker::MovePicker(const SearchData& sd, const Position& position, const Hashes& hashes, const SearchStack* ss, Move hint_move) :
       m_sd(sd),
       m_position(position),
+      m_hashes(hashes),
       m_ss(ss),
       m_movegen(position),
       m_hint_move(hint_move) {
@@ -133,6 +134,7 @@ namespace rose {
 
     const Color stm = m_position.stm();
     const Bitboard threats = m_position.attack_table(!stm).bitboard_any();
+    const Hash pawn_hash = m_hashes.pawn();
 
     for (isize i = 0; i < m_moves.size(); i++) {
       const Move mv = m_moves[i];
@@ -140,6 +142,7 @@ namespace rose {
 
       i32 score = 0;
       score += m_sd.quiet_history.get(stm, threats, mv);
+      score += m_sd.pawn_history.get(stm, pawn_hash, mv);
       for (i32 i : conthists_indexes)
         if (m_ss[-i].conthist)
           score += m_ss[-i].conthist->get(stm, ptype, mv);
