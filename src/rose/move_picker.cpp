@@ -41,7 +41,7 @@ namespace rose {
         const Move mv = m_moves[m_current_index];
         const i32 score = m_scores[m_current_index];
         m_current_index++;
-        if (!see::see(m_position, mv, -score * 64_z / 1024 + 63_z)) {
+        if (!see::see(m_position, mv, (262144_z - score * 128_z) / 1048576)) {
           m_bad_noisies.push_back(mv);
           continue;
         }
