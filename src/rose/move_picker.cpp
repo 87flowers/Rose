@@ -100,8 +100,8 @@ namespace rose {
   auto MovePicker::is_good_noisy(Move mv, i32 score) -> bool {
     if (mv.flags() == MoveFlags::promo_q)
       return true;
-    const i32 threshold = -score * 16 / 1024 + 128;
-    return see::see(m_position, mv, -163_z);
+    const i32 threshold = -score * 16_z / 1024 + 128_z;
+    return see::see(m_position, mv, threshold);
   }
 
   auto MovePicker::generate_noisy() -> void {
