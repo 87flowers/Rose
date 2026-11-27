@@ -808,7 +808,9 @@ namespace rose {
     }
     alpha = std::max(alpha, best_score);
 
-    MovePicker moves {m_sd, position, ss, Move::none()};
+    const Move hint_move = tte.bound.is_pv_or_cut() ? tte.move : Move::none();
+
+    MovePicker moves {m_sd, position, ss, hint_move};
     if (!is_in_check)
       moves.skip_quiet();
 
