@@ -142,7 +142,7 @@ namespace rose {
 
       i32 score = 0;
       score += m_sd.quiet_history.get(stm, threats, mv);
-      score += m_sd.pawn_history.get(stm, pawn_hash, mv);
+      score += m_sd.pawn_history.get(stm, pawn_hash, ptype, mv);
       for (i32 i : conthists_indexes)
         if (m_ss[-i].conthist)
           score += m_ss[-i].conthist->get(stm, ptype, mv);

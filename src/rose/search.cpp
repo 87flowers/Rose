@@ -687,16 +687,17 @@ namespace rose {
         const Hash pawn_hash = m_hash_stack.back().pawn();
 
         m_sd.quiet_history.update(stm, enemy_threatened, best_move, quiet_bonus);
-        m_sd.pawn_history.update(stm, pawn_hash, best_move, pawn_bonus);
+        m_sd.pawn_history.update(stm, pawn_hash, position.ptype_at(best_move.from()), best_move, pawn_bonus);
         for (i32 i : conthists_indexes)
           if (ss[-i].conthist)
             ss[-i].conthist->update(stm, position.ptype_at(best_move.from()), best_move, cont_bonus);
         for (const Move quiet : fail_low_quiets) {
+          const PieceType ptype = position.ptype_at(quiet.from());
           m_sd.quiet_history.update(stm, enemy_threatened, quiet, -quiet_malus);
-          m_sd.pawn_history.update(stm, pawn_hash, quiet, -pawn_malus);
+          m_sd.pawn_history.update(stm, pawn_hash, ptype, quiet, -pawn_malus);
           for (i32 i : conthists_indexes)
             if (ss[-i].conthist)
-              ss[-i].conthist->update(stm, position.ptype_at(quiet.from()), quiet, -cont_malus);
+              ss[-i].conthist->update(stm, ptype, quiet, -cont_malus);
         }
       }
     }
