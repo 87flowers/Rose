@@ -5,7 +5,6 @@
 #include "rose/search.hpp"
 #include "rose/see.hpp"
 #include "rose/tune.hpp"
-#include "rose/util/static_vector.hpp"
 
 #include <algorithm>
 #include <ranges>
@@ -39,8 +38,10 @@ namespace rose {
       [[fallthrough]];
     case Stage::emit_good_noisy:
       while (m_current_index < m_moves.size()) {
-        const Move mv = m_moves[m_current_index++];
-        if (!see::see(m_position, mv, -163_z)) {
+        const Move mv = m_moves[m_current_index];
+        const i32 score = m_scores[m_current_index] / 256;
+        m_current_index++;
+        if (!is_good_noisy(mv, score)) {
           m_bad_noisies.push_back(mv);
           continue;
         }
@@ -96,12 +97,18 @@ namespace rose {
     }
   }
 
+  auto MovePicker::is_good_noisy(Move mv, i32 score) -> bool {
+    if (mv.flags() == MoveFlags::promo_q)
+      return true;
+    const i32 threshold = -score * 16 / 1024 + 128;
+    return see::see(m_position, mv, -163_z);
+  }
+
   auto MovePicker::generate_noisy() -> void {
     m_moves.clear();
     m_movegen.generate_noisy(m_moves);
 
-    StaticVector<i32, max_legal_moves> scores;
-    scores.resize(m_moves.size());
+    m_scores.resize(m_moves.size());
 
     const Color stm = m_position.stm();
 
@@ -113,13 +120,13 @@ namespace rose {
       const PieceType attacker = m_position.ptype_at(mv.from());
 
       i32 score = 0;
-      score += victim_score[victim.to_index()] * 7_z;
+      score += victim_score[victim.to_index()] * 14_z;
       score += m_sd.noisy_history.get(stm, attacker, mv);
 
-      scores[i] = score * 256 - i;
+      m_scores[i] = score * 256 - i;
     }
 
-    std::ranges::sort(std::ranges::zip_view(m_moves, scores), [](auto&& a, auto&& b) {
+    std::ranges::sort(std::ranges::zip_view(m_moves, m_scores), [](auto&& a, auto&& b) {
       return std::get<1>(a) > std::get<1>(b);
     });
   }
@@ -128,8 +135,7 @@ namespace rose {
     m_moves.clear();
     m_movegen.generate_quiet(m_moves);
 
-    StaticVector<i32, max_legal_moves> scores;
-    scores.resize(m_moves.size());
+    m_scores.resize(m_moves.size());
 
     const Color stm = m_position.stm();
     const Bitboard threats = m_position.attack_table(!stm).bitboard_any();
@@ -144,10 +150,10 @@ namespace rose {
         if (m_ss[-i].conthist)
           score += m_ss[-i].conthist->get(stm, ptype, mv);
 
-      scores[i] = score * 256 - i;
+      m_scores[i] = score * 256 - i;
     }
 
-    std::ranges::sort(std::ranges::zip_view(m_moves, scores), [](auto&& a, auto&& b) {
+    std::ranges::sort(std::ranges::zip_view(m_moves, m_scores), [](auto&& a, auto&& b) {
       return std::get<1>(a) > std::get<1>(b);
     });
   }

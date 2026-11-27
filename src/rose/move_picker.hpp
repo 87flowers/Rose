@@ -4,6 +4,7 @@
 #include "rose/move.hpp"
 #include "rose/movegen.hpp"
 #include "rose/search.hpp"
+#include "rose/util/static_vector.hpp"
 
 namespace rose {
 
@@ -37,6 +38,7 @@ namespace rose {
     usize m_current_index = 0;
     MoveList m_moves;
     MoveList m_bad_noisies;
+    StaticVector<i32, max_legal_moves> m_scores;
 
   public:
     // SAFETY: hint_move must be legal
@@ -53,6 +55,7 @@ namespace rose {
     }
 
   private:
+    auto is_good_noisy(Move mv, i32 score) -> bool;
     auto generate_noisy() -> void;
     auto generate_quiet() -> void;
   };
