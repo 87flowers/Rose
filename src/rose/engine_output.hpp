@@ -12,6 +12,7 @@ namespace rose {
 
     struct Info {
       i32 depth;
+      i32 seldepth;
       i32 score;
       time::Duration time;
       u64 nodes;

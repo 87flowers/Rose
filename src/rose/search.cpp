@@ -215,10 +215,12 @@ namespace rose {
     Line last_pv {};
     Score last_score = score::none;
     i32 last_depth = -1;
+    i32 last_seldepth = -1;
 
     const auto print_info = [&, this]() {
       m_shared.output->info(EngineOutput::Info {
         .depth = last_depth,
+        .seldepth = last_seldepth,
         .score = last_score,
         .time = ctrl.elapsed(),
         .nodes = m_shared.total_nodes(),
@@ -241,6 +243,8 @@ namespace rose {
     f64 best_move_changes = 0.0;
 
     for (i32 depth = 1; depth < max_depth; depth++) {
+      m_seldepth = 0;
+
       Line pv {};
       Score alpha = -score::infinity;
       Score beta = score::infinity;
@@ -296,6 +300,7 @@ namespace rose {
       last_score = score;
       last_pv = pv;
       last_depth = depth;
+      last_seldepth = m_seldepth;
 
       if (is_main_thread()) {
         const f64 best_move_nodes = find_root_move(pv.first_move()).nodes;
@@ -344,6 +349,8 @@ namespace rose {
       m_shared.stop();
       return 0;
     }
+
+    m_seldepth = std::max(m_seldepth, ply + 1);
 
     // Draw Detection
     if (!is_root) {

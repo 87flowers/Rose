@@ -24,8 +24,9 @@ namespace rose {
     auto info(EngineOutput::Info args) -> void override {
       const auto time_ms = time::cast<time::Milliseconds>(args.time);
       const u64 nps = time::nps<u64>(args.nodes, args.time);
-      fmt::print("info depth {} score {} time {} nodes {} nps {} pv {}\n",
+      fmt::print("info depth {} seldepth {} score {} time {} nodes {} nps {} pv {}\n",
                  args.depth,
+                 args.seldepth,
                  score::uci_format(args.score),
                  time_ms.count(),
                  args.nodes,
