@@ -420,7 +420,8 @@ namespace rose {
       }
 
       // Null move reductions
-      if (depth >= 4 && !m_in_null_move_search && m_nmr_ply != ply && ss[-1].move.is_some() && static_eval >= beta) {
+      const bool only_pawns = position.has_only<PieceType::k, PieceType::p>(stm);
+      if (depth >= 4 && !m_in_null_move_search && m_nmr_ply != ply && !only_pawns && ss[-1].move.is_some() && static_eval >= beta) {
         const i32 reduction = (4754_z + depth * 344_z + improving * 768_z) / 1024;
 
         const Position null_position = make_null_move(ss, position);
