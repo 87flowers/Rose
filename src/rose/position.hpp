@@ -229,6 +229,11 @@ namespace rose {
       return piece_list_type(color).piece_mask_for<ptypes...>();
     }
 
+    template<PieceType... ptypes>
+    auto has_only(Color color) const -> bool {
+      return piece_list_type(color).has_only<ptypes...>();
+    }
+
     template<PieceType ptype>
     auto piece_count() const -> i32 {
       return piece_mask_for<ptype>(Color::white).popcount() + piece_mask_for<ptype>(Color::black).popcount();
