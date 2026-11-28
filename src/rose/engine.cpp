@@ -66,6 +66,12 @@ namespace rose {
     m_shared->send_go(start_time, limits, g);
   }
 
+  auto Engine::raw_eval(const Game& g) -> Score {
+    m_shared->send_raw_eval(g);
+    wait();
+    return m_shared->final_score.load();
+  }
+
   auto Engine::wait() -> void {
     m_shared->send_ping();
   }

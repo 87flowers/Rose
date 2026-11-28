@@ -43,6 +43,7 @@ namespace rose {
     ping,
     quit,
     go,
+    raw_eval,
   };
 
   struct SearchShared {
@@ -67,6 +68,9 @@ namespace rose {
     SearchLimit search_main_limits;
     const Game* search_game = nullptr;
 
+    // Search -> UCI Threat Communication
+    std::atomic<Score> final_score;
+
     // Shared Search Data
     std::vector<SearchStats> stats;
     tt::TT transposition_table;
@@ -79,6 +83,7 @@ namespace rose {
     auto send_ping() -> void;
     auto send_quit() -> void;
     auto send_go(time::TimePoint start_time, const SearchLimit& limits, const Game& g) -> void;
+    auto send_raw_eval(const Game& g) -> void;
 
     auto stop() -> void;
 

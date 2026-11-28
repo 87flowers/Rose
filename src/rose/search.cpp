@@ -63,6 +63,14 @@ namespace rose {
     search_game = nullptr;
   }
 
+  auto SearchShared::send_raw_eval(const Game& g) -> void {
+    search_game = &g;
+    engine_message = EngineMessage::raw_eval;
+    idle_barrier.arrive_and_wait();
+    started_barrier.arrive_and_wait();
+    search_game = nullptr;
+  }
+
   auto SearchShared::stop() -> void {
     stopping = true;
   }
@@ -170,6 +178,16 @@ namespace rose {
           },
           ctrl);
       } break;
+
+      case EngineMessage::raw_eval:
+        if (is_main_thread()) {
+          const Game& g = *m_shared.search_game;
+          m_evaluation.reset(g.position());
+          const Score eval = m_evaluation.evaluate(g.position());
+          m_shared.final_score.store(eval);
+        }
+        (void)m_shared.started_barrier.arrive();
+        break;
       }
     }
   }

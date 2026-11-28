@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rose/common.hpp"
+#include "rose/score.hpp"
 #include "rose/util/time.hpp"
 
 #include <memory>
@@ -32,6 +33,8 @@ namespace rose {
     auto set_output(std::shared_ptr<EngineOutput> output) -> void;
 
     auto run_search(time::TimePoint start_time, const SearchLimit& limits, const Game& g) -> void;
+
+    auto raw_eval(const Game& g) -> Score;
 
     auto wait() -> void;
     auto stop() -> void;

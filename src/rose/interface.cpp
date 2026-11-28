@@ -109,6 +109,8 @@ namespace rose {
       uci_moves(it);
     } else if (cmd == "d") {
       cmd_d(it);
+    } else if (cmd == "eval") {
+      cmd_eval(it);
     } else if (cmd == "getposition") {
       m_game.print_game_record();
     } else if (cmd == "dumpposition") {
@@ -350,6 +352,8 @@ namespace rose {
       xboard_cores(it);
     } else if (cmd == "d") {
       cmd_d(it);
+    } else if (cmd == "eval") {
+      cmd_eval(it);
     } else if (cmd == "getposition") {
       m_game.print_game_record();
     } else if (cmd == "dumpposition") {
@@ -593,6 +597,12 @@ namespace rose {
     fmt::print("\n");
     fmt::print("fen: {}\n", pos.to_string(MoveFormat::frc));
     fmt::print("hash: {:016x}\n", m_game.hash());
+  }
+
+  auto Interface::cmd_eval(Tokenizer&) -> void {
+    const Position& pos = m_game.position();
+
+    fmt::print("score type raw_eval cp {}\n", m_engine.raw_eval(m_game));
   }
 
   Interface::Interface() {

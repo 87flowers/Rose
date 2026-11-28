@@ -73,6 +73,7 @@ namespace rose {
     auto xboard_cores(Tokenizer& it) -> void;
 
     auto cmd_d(Tokenizer& it) -> void;
+    auto cmd_eval(Tokenizer& it) -> void;
 
   public:
     Interface();
